@@ -4,6 +4,10 @@ runtime: python
 api_version: 1
 
 handlers:
+- url: /fofou.css
+  static_files: fofou.css
+  upload: fofou.css
+
 - url: .*
   script: main.py
- 
+
