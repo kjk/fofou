@@ -7,7 +7,25 @@
 </head>
 
 <body>
-
-Welcome to <b>{{ title }}</b>.
+<table>
+<tbody>
+<tr>
+    <td colspan="2" class="header">
+        <div>
+            <h1><a href="{{ siteroot }}" class="green">{{ title }}</a><h1>
+            <p>{{ tagline }}</p>
+        </div>
+    </td>
+</tr>
+<tr>
+    <td class="sidebar">{{ sidebar}}
+    </td>
+    <td class="contents">
+    </td>
+</tr>
+</tbody>
+</table>
+<hr>
+<center>Powered by <a href="http://blog.kowalczyk.info/software/fofou">fofou</a> (<b><font color="blue">Fo</font></b>rums <b><font color="blue">Fo</font></b>r Yo<b><font color="blue">u</font></b>)</center>
 </body>
 </html>
