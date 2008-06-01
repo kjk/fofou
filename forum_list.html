@@ -1,15 +1,25 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-    <title>Not logged in.</title>
+    <title>List of forums</title>
     <link href="fofou.css" rel="stylesheet" type="text/css">
 </head>
 
 <body>
 <p>Welcome to <b><font color="blue">Fo</font></b>rums <b><font color="blue">Fo</font></b>r Yo<b><font color="blue">u</font></b>!</p>
-<p>There are no forums created yet.</p>
-<p>You're not logged in. To create a new forum <a href="{{ loginurl }}">log in</a> as admin.</p>
-
+<p>Available forums:
+<ul>
+{% for f in forums %}
+<li> <a href="{{ f.url }}"> {{ f.title }}</a></li>
+{% endfor %}
+</ul>
+</p>
+{% if isadmin %}
+<p>Since you're an admin, you can <a href="{{ createforumurl }}">manage forums</a>.</p>
+{% endif %}
+<p>
+path: <b>{{ path }}</b>, forumurl: <b>{{ forumurl }}</b>, pathrest: <b>{{ pathrest }}</b>.
+</p>
 <hr>
 <center>Powered by <a href="http://blog.kowalczyk.info/software/fofou">fofou</a> (<b><font color="blue">Fo</font></b>rums <b><font color="blue">Fo</font></b>r Yo<b><font color="blue">u</font></b>)</center>
 </body>

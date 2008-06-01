@@ -1,30 +1,60 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-    <title>{{ title }}</title>
+    <title>Create a forum</title>
     <link href="fofou.css" rel="stylesheet" type="text/css">
-    <link type="application/rss+xml" rel="alternate" title="Discussion Group" href="/rss">
 </head>
 
 <body>
 <p>Welcome to <b><font color="blue">Fo</font></b>rums <b><font color="blue">Fo</font></b>r Yo<b><font color="blue">u</font></b>!</p>
 
-
-<p>Hello {{ nickname }}.
+<p>Hello <b>{{ nickname }}</b>.
   {% if not forums %}
-	You haven't created any forums yet.</p>
+	You haven't created any forums yet.
   {% else %}
-    List of forums:
+  Existing forums:
+	<ul>
+	  	{% for f in forums %}
+	  	<li> {{ f.title }} <a href="{{ f.url }}">edit</a>&nbsp;&nbsp; <a href="{{ f.url }}">delete</a></li>
+	  	{% endfor %}
+	</ul>
   {% endif %}
-<p>Create a new forum:</p>
+</p>
   <center>
     <form action="/createforum" method="post">
-      <p>Url: <input type="edit" size="40" maxlength="128" name="url"></input></p>
-      <p>Title: <input type="edit" size="40" maxlength="128" name="title"></input></p>
-      <div><input type="submit" value="Create forum"></div>
+      <table>
+        <tr>
+         <td align="center" colspan="2">Create a new forum:</td>
+        <tr>
+         <td>Url</td>
+         <td><input type="edit" size="60" maxlength="60" name="url"></input></td>
+        </tr>
+        <tr>
+         <td>Title</td>
+         <td><input type="edit" size="60" maxlength="128" name="title"></input></td>
+        </tr>
+         <td>Tagline</td>
+         <td><input type="edit" size="60" maxlength="256" name="tagline"></input></td>
+        <tr>
+        </tr>
+         <td valign="top">Sidebar</td>
+         <td><textarea name="sidebar" rows="4" cols="45"></textarea></td>
+        <tr>
+        </tr>
+        <tr>
+         <td></td>
+         <td align="right"><input type="submit" value="Create forum"></td>
+        </tr>
+      </table>
     </form>
   </center>
-
+</p>
+<p><b>Url</b> is part of the forum url. Should be short and contain no spaces.</p>
+<p><b>Title</b> is what we show at the top of the forum.</p>
+<p><b>Tagline</b> is for clever words.</p>
+<p>
+Don't stress about choosing the right values - you can change them later.
+</p>
 <hr>
 <center>Powered by <a href="http://blog.kowalczyk.info/software/fofou">fofou</a> (<b><font color="blue">Fo</font></b>rums <b><font color="blue">Fo</font></b>r Yo<b><font color="blue">u</font></b>)</center>
 </body>
