@@ -1,0 +1,31 @@
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <title>{{ title }}</title>
+    <link href="fofou.css" rel="stylesheet" type="text/css">
+    <link type="application/rss+xml" rel="alternate" title="Discussion Group" href="/rss">
+</head>
+
+<body>
+<p>Welcome to <b><font color="blue">Fo</font></b>rums <b><font color="blue">Fo</font></b>r Yo<b><font color="blue">u</font></b>!</p>
+
+
+<p>Hello {{ nickname }}.
+  {% if not forums %}
+	You haven't created any forums yet.</p>
+  {% else %}
+    List of forums:
+  {% endif %}
+<p>Create a new forum:</p>
+  <center>
+    <form action="/createforum" method="post">
+      <p>Url: <input type="edit" size="40" maxlength="128" name="url"></input></p>
+      <p>Title: <input type="edit" size="40" maxlength="128" name="title"></input></p>
+      <div><input type="submit" value="Create forum"></div>
+    </form>
+  </center>
+
+<hr>
+<center>Powered by <a href="http://blog.kowalczyk.info/software/fofou">fofou</a> (<b><font color="blue">Fo</font></b>rums <b><font color="blue">Fo</font></b>r Yo<b><font color="blue">u</font></b>)</center>
+</body>
+</html>
