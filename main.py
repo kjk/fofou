@@ -1,4 +1,4 @@
-import os, string
+import os, string, Cookie, sha, time
 import wsgiref.handlers
 from google.appengine.ext import db
 from google.appengine.api import users
@@ -11,13 +11,44 @@ from google.appengine.ext.webapp import template
 # <rest> is:
 # /
 #    index, lists recent topics
-# /post
-#    form for creating a new post
+# /post[?topic=<id>]
+#    form for creating a new post. if "topic" is present, it's a new post in
+#    existing topic, otherwise a new topic post
 # /topic/<id>?posts=<n>
 #    shows posts in a given topic, 'posts' is ignored (just a trick to re-use
 #    browser's history to see if the topic has posts that user didn't see yet
 # /rss
 #    rss feed for posts
+
+# cookie code based on http://code.google.com/p/appengine-utitlies/source/browse/trunk/utilities/session.py
+# TODO: cookie validation
+
+COOKIE_NAME = "fofou-uid"
+COOKIE_PATH = "/"
+COOKIE_EXPIRE_TIME = 60*60*24*120 # valid for 60*60*24*120 seconds => 120 days
+HTTP_COOKIE_HDR = "HTTP_COOKIE"
+
+def get_user_agent(): return os.environ['HTTP_USER_AGENT']
+def get_remote_ip(): return os.environ['REMOTE_ADDR']
+
+def get_inbound_cookie():
+  c = Cookie.SimpleCookie()
+  cstr = os.environ.get(HTTP_COOKIE_HDR, '')
+  c.load(cstr)
+  return c
+
+def new_user_id():
+  sid = sha.new(repr(time.time())).hexdigest()
+  return sid
+
+def get_user_cookie()::
+  c = get_inbound_cookie()
+  if COOKIE_NAME not in c:
+    c[COOKIE_NAME] = new_user_id()
+    c[COOKIE_NAME]['path'] = COOKIE_PATH
+    c[COOKIE_NAME]['expires'] = COOKIE_EXPIRE_TIME
+  # TODO: maybe should validate cookie if exists, the way appengine-utilities does
+  return c
 
 class Forum(db.Model):
   # Urls for forums are in the form /<urlpart>/<rest>
@@ -26,6 +57,22 @@ class Forum(db.Model):
   title = db.StringProperty()
   tagline = db.StringProperty()
   sideline = db.StringProperty()
+
+class Topic(db.Model):
+  subject = db.StringProperty(required=True)
+  created = db.DateTimeProperty(auto_now_add=True)
+  updated = db.DateTimeProperty(auto_now=True)
+  archived = db.BooleanProperty(default=False)
+
+class AnonUser(db.Model):
+  uidcookie = db.StringProperty()
+  ipaddr = db.StringProperty()
+
+class Post(db.Model):
+  created = db.DateTimeProperty(auto_now_add=True)
+  body = db.Text(required=True)
+  topic = db.Reference(Topic)
+  user = db.Reference(AnonUser)
 
 class CreateForum(webapp.RequestHandler):
   def cant_create(self):
