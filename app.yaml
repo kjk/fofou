@@ -8,6 +8,9 @@ handlers:
   static_files: fofou.css
   upload: fofou.css
 
+- url: /graphics
+  static_dir: graphics
+
 - url: .*
   script: main.py
 
