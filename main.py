@@ -41,7 +41,7 @@ def new_user_id():
   sid = sha.new(repr(time.time())).hexdigest()
   return sid
 
-def get_user_cookie()::
+def get_user_cookie():
   c = get_inbound_cookie()
   if COOKIE_NAME not in c:
     c[COOKIE_NAME] = new_user_id()
@@ -70,7 +70,7 @@ class AnonUser(db.Model):
 
 class Post(db.Model):
   created = db.DateTimeProperty(auto_now_add=True)
-  body = db.Text(required=True)
+  body = db.TextProperty(required=True)
   topic = db.Reference(Topic)
   user = db.Reference(AnonUser)
 
