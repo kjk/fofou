@@ -1,33 +1,34 @@
 <html>
 <head>
-    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-    <title>{{ title }}</title>
-    <link href="/fofou.css" rel="stylesheet" type="text/css">
-    <link type="application/rss+xml" rel="alternate" title="Discussion Group" href="{{ rssurl }}">
+	<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+	<title>{{ title }}</title>
+	<link href="/fofou.css" rel="stylesheet" type="text/css">
+	<link type="application/rss+xml" rel="alternate" title="Discussion Group" href="{{ rssurl }}">
 </head>
 
 <body>
 <table>
 <tbody>
 <tr>
-    <td colspan="2" class="header">
-        <div>
-            <h1><a href="{{ siteroot }}" class="green">{{ title }}</a><h1>
-            <p>{{ tagline }}</p>
-        </div>
-    </td>
+	<td colspan="2" class="header">
+		<div>
+			<h1><a href="{{ siteroot }}" class="green">{{ title }}</a><h1>
+			<p>{{ tagline }}</p>
+		</div>
+	</td>
 </tr>
 <tr>
-    <td class="sidebar">{{ sidebar}}
-    </td>
-    <td class="contents">
-
-    <div class="buttons">
-	<a accesskey="n" href="post.php"><img src="graphics/new.gif" alt="New topic" border="0" height="14" width="13"> <u>N</u>ew topic</a>
-	<a accesskey="t" href="archive.php"><img src="graphics/archive.gif" alt="Older topics" border="0" height="14" width="13"> Older <u>t</u>opics</a>
-	</div>
-
-    </td>
+	<td class="sidebar">{{ sidebar}}
+	</td>
+	<td class="contents">
+		{% if not topics %}
+			There are no topics. You better create one.
+		{% endif %}
+		<div class="buttons">
+		<a accesskey="n" href="{{ posturl }}"><img src="/graphics/new.gif" alt="New topic" border="0" height="14" width="13"> <u>N</u>ew topic</a>
+		<a accesskey="t" href="{{ archiveurl }}"><img src="/graphics/archive.gif" alt="Older topics" border="0" height="14" width="13"> Older <u>t</u>opics</a>
+		</div>
+	</td>
 </tr>
 </tbody>
 </table>

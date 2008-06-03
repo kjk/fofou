@@ -1,9 +1,10 @@
-import os, string, Cookie, sha, time
+import os, string, Cookie, sha, time, random
 import wsgiref.handlers
 from google.appengine.ext import db
 from google.appengine.api import users
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
+import logging
 
 # Structure of urls:
 # /<forum_url>/<rest>
@@ -56,7 +57,7 @@ class Forum(db.Model):
   # What we show as html <title>
   title = db.StringProperty()
   tagline = db.StringProperty()
-  sideline = db.StringProperty()
+  sidebar = db.StringProperty()
 
 class Topic(db.Model):
   subject = db.StringProperty(required=True)
@@ -74,7 +75,7 @@ class Post(db.Model):
   topic = db.Reference(Topic)
   user = db.Reference(AnonUser)
 
-class CreateForum(webapp.RequestHandler):
+class ForumsManage(webapp.RequestHandler):
   def cant_create(self):
     self.response.headers['Content-Type'] = 'text/html'
     tname = "cant_create_forum.html"
@@ -89,7 +90,6 @@ class CreateForum(webapp.RequestHandler):
     if not users.is_current_user_admin():
       self.cant_create()
       return
-    self.response.headers['Content-Type'] = 'text/html'
     url = self.request.get('url')
     title = self.request.get('title')
     tagline = self.request.get('tagline')
@@ -100,6 +100,7 @@ class CreateForum(webapp.RequestHandler):
       tvals = {
         'errmsg' : errmsg
       }
+      self.response.headers['Content-Type'] = 'text/html'
       path = os.path.join(os.path.dirname(__file__), tname)
       self.response.out.write(template.render(path, tvals))
       return
@@ -115,109 +116,142 @@ class CreateForum(webapp.RequestHandler):
     tvals = {
       'forumname' : forumname,
       'forumurl' : forumurl,
-      'forumlisturl' : "/createforum"
+      'forums_manage_url' : "/forumsmanage"
     }
+    self.response.headers['Content-Type'] = 'text/html'
     path = os.path.join(os.path.dirname(__file__), tname)
     self.response.out.write(template.render(path, tvals))
     return
 
   def get(self):
     if users.is_current_user_admin():
-      self.user = users.get_current_user()
+      user = users.get_current_user()
       tname = "no_forums_admin.html"
       forumsq = db.GqlQuery("SELECT * FROM Forum")
       forums = []
       for f in forumsq:
         forums.append(f)
-      tvals = {}
-      tvals['nickname'] = self.user.nickname()
-      tvals['forums'] = forums
+      tvals = {
+        'nickname' : user.nickname(),
+        'forums' : forums
+      }
+      self.response.headers['Content-Type'] = 'text/html'
       path = os.path.join(os.path.dirname(__file__), tname)
       self.response.out.write(template.render(path, tvals))
     else:
       self.cant_create()
 
-class Dispatcher(webapp.RequestHandler):
+def forum_from_url(url):
+  assert '/' == url[0]
+  path = url[1:]
+  if '/' in path:
+    (forumurl, rest) = path.split("/", 1)
+  else:
+    forumurl = path
+  forum = Forum.gql("WHERE url = :1", forumurl)
+  return forum.get()
+
+class IndexForm(webapp.RequestHandler):
+  def get(self):
+    pass
+
+  # TODO: merge no_fourms_not_logged_in.html, no_forums_admin.html and
+  # no_forums_not_admin.html into forum_list.html, to simplify
   def no_forums(self):
-    self.response.headers['Content-Type'] = 'text/html'
+    user = users.get_current_user()
     tname = None
     tvals = {}
-    if not self.user:
+    if not user:
       tname = "no_forums_not_logged_in.html"
       tvals['loginurl'] = users.create_login_url(self.request.uri)
     elif users.is_current_user_admin():
       tname = "no_forums_admin.html"
-      forums = self.forums
-      #forums = None
-      #if len(self.forums) > 0:
-      #  forums = self.forums
-      tvals['nickname'] = self.user.nickname()
-      tvals['forums'] = forums
+      tvals['nickname'] = user.nickname()
     else:
       tname = "no_forums_not_admin.html"
       tvals['logouturl'] = users.create_logout_url(self.request.uri)
-    path = os.path.join(os.path.dirname(__file__), tname)
-    self.response.out.write(template.render(path, tvals))
-
-  def get_forum(self, url):
-    forum = Forum.gql("WHERE url = :1", url)
-    return forum.get()
-
-  def do_forum(self, forum):
     self.response.headers['Content-Type'] = 'text/html'
-    tname = "index.html"
-    tvals = {}
-    title = forum.title
-    if 0 == len(title):
-      title = forum.url
-    tvals['title'] = title
     path = os.path.join(os.path.dirname(__file__), tname)
     self.response.out.write(template.render(path, tvals))
 
-  def get(self):
-    # TODO: do I need to cache it or is it cached by the system?
-    self.user = users.get_current_user()
-    req = self.request
-    path = req.path_info[1:]
-    forumurl = None
-    pathrest = None
-    if '/' in path:
-      (forumurl, pathrest) = path.split("/", 1)
-    else:
-      forumurl = path
-      pathrest = ""
-
-    forum = self.get_forum(forumurl)
-    if forum:
-      return self.do_forum(forum)
-
+  def forum_list(self):
     forumsq = db.GqlQuery("SELECT * FROM Forum")
-    self.forums = []
-    for f in forumsq:
-      self.forums.append(f)
-    forumcount = len(self.forums)
-    if 0 == forumcount:
+    if 0 == forumsq.count():
       return self.no_forums()
+    forums = []
+    for f in forumsq:
+      # if title is missing, make it same as url
+      f.title = f.title or f.url
+      forums.append(f)
     isadmin = users.is_current_user_admin()
-    for f in self.forums:
-      if 0 == len(f.title):
-        f.title = f.url
-    self.response.headers['Content-Type'] = 'text/html'
-    tname = "forum_list.html"
     tvals = {
       'isadmin' : isadmin,
-      'createforumurl' : "/createforum",
-      'forums' : self.forums,
-      'path' : path,
-      'forumurl' : forumurl,
-      'pathrest' : pathrest
+      'forums' : forums,
     }
-    path = os.path.join(os.path.dirname(__file__), tname)
+    self.response.headers['Content-Type'] = 'text/html'
+    path = os.path.join(os.path.dirname(__file__), "forum_list.html")
     self.response.out.write(template.render(path, tvals))
+
+  def forum_index(self, forum):
+    assert forum
+    tvals = {
+      'title' : forum.title or forum.url,
+      'posturl' : "/" + forum.url + "/post",
+      'archiveurl' : "/" + forum.url + "/archive"
+    }
+    self.response.headers['Content-Type'] = 'text/html'
+    path = os.path.join(os.path.dirname(__file__), "index.html")
+    self.response.out.write(template.render(path, tvals))
+
+# responds to /<forumurl>/post
+class PostForm(IndexForm):
+
+  def get(self):
+    forum = forum_from_url(self.request.path_info)
+    if not forum:
+      return self.forum_list()
+
+    topicid = self.request.get('topic')
+
+    (num1, num2) = (random.randint(1,9), random.randint(1,9))
+    tvals = {
+      'title' : forum.title or forum.url,
+      'siteroot' : "/" + forum.url,
+      'sidebar' : forum.sidebar or "",
+      'tagline' : forum.tagline or "",
+      'num1' : num1,
+      'num2' : num2,
+      'num3' : num1+num2,
+      'url_val' : "http://"
+    }
+    self.response.headers['Content-Type'] = 'text/html'
+    path = os.path.join(os.path.dirname(__file__), "post.html")
+    self.response.out.write(template.render(path, tvals))
+
+  def post(self):
+    forum = forum_from_url(self.request.path_info)
+    if not forum:
+      return self.forum_list()
+    # TODO: read form values and act apropriately
+    if self.request.get('Cancel'):
+      # TODO: should redirect instead?
+      return self.forum_index(forum)
+
+    self.forum_index(forum)
+
+class Dispatcher(IndexForm):
+
+  def get(self):
+    forum = forum_from_url(self.request.path_info)
+    if not forum:
+      return self.forum_list()
+
+    self.forum_index(forum)
 
 def main():
   application = webapp.WSGIApplication( 
-     [ ('/createforum', CreateForum),
+     [ ('/forumsmanage', ForumsManage),
+       ('/[^/]*/post', PostForm),
        ('.*', Dispatcher)],
      debug=True)
   wsgiref.handlers.CGIHandler().run(application)

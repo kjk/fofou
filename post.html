@@ -1,0 +1,109 @@
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+	<title>{{ title }}</title>
+	<link href="/fofou.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+<table>
+<tbody>
+<tr>
+	<td colspan="2" class="header">
+		<div>
+			<h1><a href="{{ siteroot }}" class="green">{{ title }}</a><h1>
+			<p>{{ tagline }}</p>
+		</div>
+	</td>
+</tr>
+<tr>
+	<td class="sidebar">{{ sidebar}}
+	</td>
+	<td class="contents">
+	<div class="form">
+		<form action="post" method="post">
+		<input name="CaptchaResponse" value="{{ num3 }}" type="hidden">
+
+		{% if topic_id %} 
+			<input name="TopicId" value="{{ topic_id }}" type="hidden">
+			<h2>Reply to "{{ topic_subject }}"</h2>
+		{% else %}
+			<h2>New topic</h2>
+		{% endif %}
+
+		<table class="form" cellspacing="0">
+			<tbody>
+			<tr>
+			<th><label for="Captcha">{{ num1 }} + {{ num2 }} is? (hint: {{ num3 }})</label></th>
+			<td colspan="2">
+				<input class="Captcha" size="60" maxlength="64" name="Captcha" id="Captcha" style="width: 39em;" value="{{ captcha_val }}" type="edit">&nbsp;
+					<div>Are you human? (sorry we have to ask). Tell us how much
+					is {{ num1 }} + {{ num2 }} by entering <b>{{ num3 }}</b> above.</div>
+					&nbsp;
+			</td>
+			</tr>
+			{% if not topic_id %} 
+			<tr>
+				<th><label for="Subject">Subject:</label></th>
+				<td colspan="2">
+					<input class="Subject" size="60" maxlength="64" name="Subject" id="Subject" style="width: 39em;" value="{{ subject_val }}" type="edit">
+					&nbsp;
+				</td>
+			</tr>
+			{% endif %}
+
+			<tr>
+				<th><label for="Message">Message:</label></th>
+				<td colspan="2">
+					<textarea class="Message" name="Message" id="Message" style="width: 39em;" rows="16" cols="60" wrap="virtual">{{ message_val }}</textarea>
+					<div style="width: 300px;">Don't use HTML. Surround URLs with spaces.</div>
+					&nbsp;
+				</td>
+			</tr>
+			<tr>
+				<th><label for="Name">Full name:</label></th>
+				<td style="width: 29em;">
+					<input class="Name" size="60" maxlength="32" name="Name" id="Name" style="width: 29em;" value="{{ name_val }}" type="edit">
+				</td>
+			</tr>
+			<tr>
+				<th>
+					<label for="Email">Email:</label>
+				</th>
+				<td colspan="2">
+					<input class="Email" size="60" maxlength="64" name="Email" id="Email" style="width: 29em;" value="{{ email_val }}" type="edit">
+					<div style="width: 300px;">Allows other people to email you through our web site. Your address is never revealed.</div>
+					&nbsp;
+				</td>
+			</tr>
+			<tr>
+				<th>
+					<label for="Url">Home Page:</label>
+				</th>
+				<td colspan="2">
+					<input class="Url" size="60" maxlength="128" name="Url" id="Url" style="width: 29em;" value="{{ url_val }}" type="edit">
+					&nbsp;
+				</td>
+			</tr>
+			<tr>
+				<td>&nbsp;</td>
+				<td class="buttons" colspan="2">
+					<input accesskey="o" name="Ok" value="Ok" type="submit">
+					<input accesskey="c" name="Cancel" value="Cancel" type="submit">
+				</td>
+			</tr>
+			</tbody>
+		</table>
+
+		</form>
+	</div>
+
+	</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<center>Powered by <a href="http://blog.kowalczyk.info/software/fofou">fofou</a> (<b><font color="blue">Fo</font></b>rums <b><font color="blue">Fo</font></b>r Yo<b><font color="blue">u</font></b>)</center>
+</body>
+</html>
+
