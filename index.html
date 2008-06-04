@@ -23,6 +23,14 @@
 	<td class="contents">
 		{% if not topics %}
 			There are no topics. You better create one.
+		{% else %}
+		<div class="topics">
+		{% for topic in topics %}
+			<a href="{{ siteroot }}/topic?key={{ topic.key }}" title="{{ topic.msg_short }}">{{ topic.subject }}</a>
+			<em>{{ topic.user_name }}</em><span>{{ topic.posts }}</span>
+			<br />
+		{% endfor %}
+		</div>
 		{% endif %}
 		<div class="buttons">
 		<a accesskey="n" href="{{ posturl }}"><img src="/graphics/new.gif" alt="New topic" border="0" height="14" width="13"> <u>N</u>ew topic</a>

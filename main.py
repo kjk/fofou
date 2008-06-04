@@ -64,6 +64,7 @@ class Topic(db.Model):
   created = db.DateTimeProperty(auto_now_add=True)
   updated = db.DateTimeProperty(auto_now=True)
   archived = db.BooleanProperty(default=False)
+  ncomments = db.IntegerProperty(default=0)
 
 class AnonUser(db.Model):
   uidcookie = db.StringProperty()
@@ -72,45 +73,44 @@ class AnonUser(db.Model):
 class Post(db.Model):
   created = db.DateTimeProperty(auto_now_add=True)
   body = db.TextProperty(required=True)
-  topic = db.Reference(Topic)
+  topic = db.Reference(Topic, required=True)
   user = db.Reference(AnonUser)
 
+def template_out(response, template_name, template_values):
+  response.headers['Content-Type'] = 'text/html'
+  path = os.path.join(os.path.dirname(__file__), template_name)
+  response.out.write(template.render(path, template_values))
+  
+# responds to /forumsmanage
 class ForumsManage(webapp.RequestHandler):
+
   def cant_create(self):
-    self.response.headers['Content-Type'] = 'text/html'
-    tname = "cant_create_forum.html"
-    tvals = {}
-    path = os.path.join(os.path.dirname(__file__), tname)
-    self.response.out.write(template.render(path, tvals))
+    template_out(self.response, "cant_create_forum.html", {})
 
   def valid_url(self, url):
     return url.isalpha()
 
   def post(self):
     if not users.is_current_user_admin():
-      self.cant_create()
-      return
+      return self.cant_create()
+
     url = self.request.get('url')
     title = self.request.get('title')
     tagline = self.request.get('tagline')
     sidebar = self.request.get('sidebar')
     if not self.valid_url(url):
-      tname = 'create_forum_invalid.html'
+      # TODO: error case should re-use the same form, just indicate an error
+      # directly in the form
       errmsg = "Url '%s' is not valid. Can only contain letters." % url
       tvals = {
         'errmsg' : errmsg
       }
-      self.response.headers['Content-Type'] = 'text/html'
-      path = os.path.join(os.path.dirname(__file__), tname)
-      self.response.out.write(template.render(path, tvals))
+      template_out(self.response,  "create_forum_invalid.html", tvals)
       return
-    forum = Forum(url=url)
-    forum.title = title
-    forum.tagline = tagline
-    forum.sidebar = sidebar
+
+    forum = Forum(url=url, title=title, tagline=tagline, sidebar=sidebar)
     forum.put()
 
-    tname = 'forum_created.html'
     forumname = url
     forumurl = "/" + url + "/"
     tvals = {
@@ -118,26 +118,22 @@ class ForumsManage(webapp.RequestHandler):
       'forumurl' : forumurl,
       'forums_manage_url' : "/forumsmanage"
     }
-    self.response.headers['Content-Type'] = 'text/html'
-    path = os.path.join(os.path.dirname(__file__), tname)
-    self.response.out.write(template.render(path, tvals))
-    return
+    template_out(self.response,  "forum_created.html", tvals)
 
   def get(self):
     if users.is_current_user_admin():
       user = users.get_current_user()
-      tname = "no_forums_admin.html"
       forumsq = db.GqlQuery("SELECT * FROM Forum")
       forums = []
       for f in forumsq:
+        if not f.title:
+          f.title = f.url
         forums.append(f)
       tvals = {
         'nickname' : user.nickname(),
         'forums' : forums
       }
-      self.response.headers['Content-Type'] = 'text/html'
-      path = os.path.join(os.path.dirname(__file__), tname)
-      self.response.out.write(template.render(path, tvals))
+      template_out(self.response,  "no_forums_admin.html", tvals)
     else:
       self.cant_create()
 
@@ -170,9 +166,7 @@ class IndexForm(webapp.RequestHandler):
     else:
       tname = "no_forums_not_admin.html"
       tvals['logouturl'] = users.create_logout_url(self.request.uri)
-    self.response.headers['Content-Type'] = 'text/html'
-    path = os.path.join(os.path.dirname(__file__), tname)
-    self.response.out.write(template.render(path, tvals))
+    template_out(self.response, tname, tvals)
 
   def forum_list(self):
     forumsq = db.GqlQuery("SELECT * FROM Forum")
@@ -188,20 +182,27 @@ class IndexForm(webapp.RequestHandler):
       'isadmin' : isadmin,
       'forums' : forums,
     }
-    self.response.headers['Content-Type'] = 'text/html'
-    path = os.path.join(os.path.dirname(__file__), "forum_list.html")
-    self.response.out.write(template.render(path, tvals))
+    template_out(self.response,  "forum_list.html", tvals)
 
   def forum_index(self, forum):
     assert forum
+    # TODO: filter by forum
+    topics = [massage_topic(t) for t in db.GqlQuery("SELECT * FROM Topic")]
+    MAX_TOPICS = 25
+    topics = topics[:MAX_TOPICS]
     tvals = {
       'title' : forum.title or forum.url,
       'posturl' : "/" + forum.url + "/post",
-      'archiveurl' : "/" + forum.url + "/archive"
+      'archiveurl' : "/" + forum.url + "/archive",
+      'topics' : topics
     }
-    self.response.headers['Content-Type'] = 'text/html'
-    path = os.path.join(os.path.dirname(__file__), "index.html")
-    self.response.out.write(template.render(path, tvals))
+    template_out(self.response,  "index.html", tvals)
+
+def massage_topic(topic):
+  # TODO: should update topic with message count when constructing a message
+  # to avoid this lookup
+  topic.key_str = str(topic.key())
+  return topic
 
 # responds to /<forumurl>/post
 class PostForm(IndexForm):
@@ -224,9 +225,10 @@ class PostForm(IndexForm):
       'num3' : num1+num2,
       'url_val' : "http://"
     }
-    self.response.headers['Content-Type'] = 'text/html'
-    path = os.path.join(os.path.dirname(__file__), "post.html")
-    self.response.out.write(template.render(path, tvals))
+    template_out(self.response, "post.html", tvals)
+
+  def invalid_captcha(self):
+      template_out(self.response, "invalid_captcha.html", {})
 
   def post(self):
     forum = forum_from_url(self.request.path_info)
@@ -237,7 +239,41 @@ class PostForm(IndexForm):
       # TODO: should redirect instead?
       return self.forum_index(forum)
 
-    self.forum_index(forum)
+    captcha = self.request.get('Captcha')
+    captchaResponse = self.request.get('CaptchaResponse')
+    try:
+      captcha = int(captcha)
+      captchaResponse = int(captchaResponse)
+    except ValueError:
+      return self.invalid_captcha()
+
+    if captcha != captchaResponse:
+      return self.invalid_captcha()
+
+    subject = self.request.get('Subject').strip()
+    msg = self.request.get('Message').strip()
+    fullName = self.request.get('Name').strip()
+    url = self.request.get('Url').strip()
+    if url == "http://":
+      url = ""
+    # TODO: handle user names, urls
+    # TODO: update comments count on Topic
+    topic_key = self.request.get('Topic').strip()
+    if not topic_key:
+      topic = Topic(subject=subject)
+      topic.put()
+    else:
+      assert 0 # not yet handled
+      topic = Model.get_by_key_name(topic_key)
+      topic.ncount += 1
+
+    p = Post(body=msg, topic=topic)
+    p.put()
+    if not topic_key:
+      topic.put()
+    # TODO: redirect?
+    self.redirect("/" + forum.url)
+    #self.forum_index(forum)
 
 class Dispatcher(IndexForm):
 
@@ -247,6 +283,9 @@ class Dispatcher(IndexForm):
       return self.forum_list()
 
     self.forum_index(forum)
+
+  def post(self):
+    template_out(self.response, "404.html", {})  
 
 def main():
   application = webapp.WSGIApplication( 
