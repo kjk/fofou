@@ -7,6 +7,14 @@ from google.appengine.ext.webapp import template
 import logging
 
 # Structure of urls:
+#
+# Top-level urls
+#
+# / - list of all forums
+# /forumsmanage[?forum=<key> - edit/create/disable forums
+#
+# Per-forum urls
+#
 # /<forum_url>/<rest>
 #
 # <rest> is:
@@ -57,47 +65,49 @@ class Forum(db.Model):
   # What we show as html <title>
   title = db.StringProperty()
   tagline = db.StringProperty()
-  sidebar = db.StringProperty()
+  sidebar = db.TextProperty()
+  disabled = db.BooleanProperty(default=False)
 
 class Topic(db.Model):
+  forum = db.Reference(Forum, required=True)
   subject = db.StringProperty(required=True)
   created = db.DateTimeProperty(auto_now_add=True)
   updated = db.DateTimeProperty(auto_now=True)
   archived = db.BooleanProperty(default=False)
+  # ncomments is redundant for perf
   ncomments = db.IntegerProperty(default=0)
-
-class AnonUser(db.Model):
-  uidcookie = db.StringProperty()
-  ipaddr = db.StringProperty()
 
 class Post(db.Model):
   created = db.DateTimeProperty(auto_now_add=True)
   body = db.TextProperty(required=True)
   topic = db.Reference(Topic, required=True)
-  user = db.Reference(AnonUser)
+  # ip address from which this post has been made
+  user_ip = db.StringProperty(required=True)
+  # a cookie for this user (if anonymous)
+  user_cookie = db.StringProperty()
+  # user id for logged in users
+  user_id = db.UserProperty()
 
 def template_out(response, template_name, template_values):
   response.headers['Content-Type'] = 'text/html'
   path = os.path.join(os.path.dirname(__file__), template_name)
   response.out.write(template.render(path, template_values))
   
-# responds to /forumsmanage
+# responds to /forumsmanage[?forum=<key>&disable=yes]
 class ForumsManage(webapp.RequestHandler):
-
-  def cant_create(self):
-    template_out(self.response, "cant_create_forum.html", {})
 
   def valid_url(self, url):
     return url.isalpha()
 
   def post(self):
     if not users.is_current_user_admin():
-      return self.cant_create()
+      return self.redirect("/")
 
     url = self.request.get('url')
     title = self.request.get('title')
     tagline = self.request.get('tagline')
     sidebar = self.request.get('sidebar')
+    # TODO: disabled or not
     if not self.valid_url(url):
       # TODO: error case should re-use the same form, just indicate an error
       # directly in the form
@@ -118,24 +128,37 @@ class ForumsManage(webapp.RequestHandler):
       'forumurl' : forumurl,
       'forums_manage_url' : "/forumsmanage"
     }
+    # TODO: redirect this to itself with a message that will flash on the
+    # screen (using Javascript or just static div)
     template_out(self.response,  "forum_created.html", tvals)
 
   def get(self):
-    if users.is_current_user_admin():
-      user = users.get_current_user()
-      forumsq = db.GqlQuery("SELECT * FROM Forum")
-      forums = []
-      for f in forumsq:
-        if not f.title:
-          f.title = f.url
-        forums.append(f)
-      tvals = {
-        'nickname' : user.nickname(),
-        'forums' : forums
-      }
-      template_out(self.response,  "no_forums_admin.html", tvals)
-    else:
-      self.cant_create()
+    if not users.is_current_user_admin():
+      return self.redirect("/")
+
+    # if there is 'forum_key' argument, this is editing an existing
+    # forum.
+    forum = None
+    forum_key = self.request.get('forum')
+    if forum_key:
+      forum = db.get(db.Key(forum_key))
+    if forum:
+      disable = self.request.get('disable')
+      # TODO: populate form with url/title etc. from forum
+
+    user = users.get_current_user()
+    forumsq = db.GqlQuery("SELECT * FROM Forum")
+    forums = []
+    for f in forumsq:
+      if not f.title:
+        f.title = f.url
+      f.edit_url = "/" + f.url + "/forumsmanage?forum=" + str(f.key())
+      forums.append(f)
+    tvals = {
+      'user' : user,
+      'forums' : forums
+    }
+    template_out(self.response,  "no_forums_admin.html", tvals)
 
 def forum_from_url(url):
   assert '/' == url[0]
@@ -204,6 +227,16 @@ def massage_topic(topic):
   # to avoid this lookup
   topic.key_str = str(topic.key())
   return topic
+
+# responds to /<forumurl>/topic?key=<key>
+class TopicForm(IndexForm):
+
+  def get(self):
+    forum = forum_from_url(self.request.path_info)
+    if not forum:
+      return self.forum_list()
+
+    topicid = self.request.get('key')
 
 # responds to /<forumurl>/post
 class PostForm(IndexForm):
@@ -292,6 +325,7 @@ def main():
   application = webapp.WSGIApplication( 
      [ ('/forumsmanage', ForumsManage),
        ('/[^/]*/post', PostForm),
+       ('/[^/]*/topic', TopicForm),
        ('.*', Dispatcher)],
      debug=True)
   wsgiref.handlers.CGIHandler().run(application)
