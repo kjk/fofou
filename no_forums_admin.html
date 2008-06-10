@@ -15,7 +15,7 @@
 	Existing forums:
 	<ul>
 		{% for f in forums %}
-		<li> <a href="{{ f.url }}">{{ f.title }}</a> <a href="{{ f.edit_url }}">edit</a>&nbsp;&nbsp; <a href="{{ f.url }}">disable</a></li>
+		<li> <a href="{{ f.url }}">{{ f.title }}</a> <a href="{{ f.edit_url }}">edit</a>&nbsp;<a href="{{ f.enable_disable_url }}">{{ f.enable_disable_txt }}</a></li>
 		{% endfor %}
 	</ul>
 	{% endif %}

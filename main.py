@@ -144,6 +144,13 @@ class ForumsManage(webapp.RequestHandler):
       forum = db.get(db.Key(forum_key))
     if forum:
       disable = self.request.get('disable')
+      enable = self.request.get('enable')
+      if disable:
+        # TODO: disable enabled forum
+        pass
+      elif enable:
+        # TODO: enable disabled forum
+        pass
       # TODO: populate form with url/title etc. from forum
 
     user = users.get_current_user()
@@ -152,11 +159,18 @@ class ForumsManage(webapp.RequestHandler):
     for f in forumsq:
       if not f.title:
         f.title = f.url
-      f.edit_url = "/" + f.url + "/forumsmanage?forum=" + str(f.key())
+      f.edit_url = "/forumsmanage?forum=" + str(f.key())
+      if f.disabled:
+        f.enable_disable_txt = "enable"
+        f.enable_disable_url = f.edit_url + "&enable=yes"
+      else:
+        f.enable_disable_txt = "disable"
+        f.enable_disable_url = f.edit_url + "&disable=yes"      
       forums.append(f)
+
     tvals = {
       'user' : user,
-      'forums' : forums
+      'forums' : forums,
     }
     template_out(self.response,  "no_forums_admin.html", tvals)
 
