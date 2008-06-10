@@ -194,6 +194,7 @@ class IndexForm(webapp.RequestHandler):
       'title' : forum.title or forum.url,
       'posturl' : "/" + forum.url + "/post",
       'archiveurl' : "/" + forum.url + "/archive",
+      'siteroot' : "/" + forum.url,
       'topics' : topics
     }
     template_out(self.response,  "index.html", tvals)
