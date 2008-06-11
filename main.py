@@ -261,6 +261,7 @@ class IndexForm(webapp.RequestHandler):
       'posturl' : "/" + forum.url + "/post",
       'archiveurl' : "/" + forum.url + "/archive",
       'siteroot' : "/" + forum.url,
+      'sidebar' : forum.sidebar,
       'topics' : topics
     }
     template_out(self.response,  "index.html", tvals)
