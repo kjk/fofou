@@ -7,51 +7,66 @@
 
 <body>
 <p>Welcome to <b><font color="blue">Fo</font></b>rums <b><font color="blue">Fo</font></b>r Yo<b><font color="blue">u</font></b>!</p>
+{% if msg %}<div class="manageforumsmsg">{{ msg }}</div>{% endif %}
 
-<p>Hello <b>{{ user.nickname }}</b>.
+<p>
 	{% if not forums %}
 	You haven't created any forums yet.
 	{% else %}
 	Existing forums:
 	<ul>
 		{% for f in forums %}
-		<li> <a href="{{ f.url }}">{{ f.title }}</a> <a href="{{ f.edit_url }}">edit</a>&nbsp;<a href="{{ f.enable_disable_url }}">{{ f.enable_disable_txt }}</a></li>
+		<li> <a href="{{ f.url }}">{{ f.title_or_url }}</a>
+			{% if f.no_edit_link %}
+				edit
+			{% else %}
+			<a href="{{ f.edit_url }}">edit</a>
+			{% endif %}
+			&nbsp;<a href="{{ f.enable_disable_url }}">{{ f.enable_disable_txt }}</a></li>
 		{% endfor %}
 	</ul>
 	{% endif %}
 </p>
 	<center>
-		<form action="/forumsmanage" method="post">
 			<table>
-				<tr>
-					<td align="center" colspan="2">Create a new forum:</td>
-				<tr>
-					<td>Url</td>
-					<td><input type="edit" size="60" maxlength="60" name="url"></input></td>
-				</tr>
-				<tr>
-					<td>Title</td>
-					<td><input type="edit" size="60" maxlength="128" name="title"></input></td>
-				</tr>
-					<td>Tagline</td>
-					<td><input type="edit" size="60" maxlength="256" name="tagline"></input></td>
-				<tr>
-				</tr>
-					<td valign="top">Sidebar</td>
-					<td><textarea name="sidebar" rows="4" cols="45"></textarea></td>
-				<tr>
-				</tr>
-				<tr>
-					<td></td>
-					<td align="right"><input type="submit" value="Create forum"></td>
-				</tr>
+				<form action="/manageforums" method="post">
+					<tr>
+						<td align="center" colspan="2">Create a new forum:</td>
+					</tr>
+					<tr>
+						<td>Url</td>
+						<td><input class="{{ urlclass }}" type="edit" size="60" maxlength="60" name="url" value="{{ prevurl }}"></input>
+							<div>{{ errmsg }}</div>
+						</td>
+					</tr>
+					<tr>
+						<td>Title</td>
+						<td><input type="edit" size="60" maxlength="128" name="title" value="{{ prevtitle }}"></input></td>
+					</tr>
+					<tr>
+						<td>Tagline</td>
+						<td><input type="edit" size="60" maxlength="256" name="tagline" value="{{ prevtagline }}"></input></td>
+					</tr>
+					<tr>
+						<td valign="top">Sidebar</td>
+						<td><textarea name="sidebar" rows="4" cols="45" value="{{ prevsidebar }}"></textarea></td>
+					</tr>
+					<tr>
+						<td></td>
+						{% if forum_key %}
+							<input type="hidden" value="{{ forum_key }}" name="forum_key">
+							<td align="right"><input type="submit" value="Update forum"></td>
+						{% else %}
+							<td align="right"><input type="submit" value="Create forum"></td>
+						{% endif %}
+					</tr>
+				</form>
 			</table>
-		</form>
 	</center>
 </p>
-<p><b>Url</b> is part of the forum url. Should be short and contain no spaces.</p>
+<p><b>Url</b> is part of the forum url. Should be short and only consist of lower-case letters.</p>
 <p><b>Title</b> is what we show at the top of the forum.</p>
-<p><b>Tagline</b> is for clever words.</p>
+<p><b>Tagline</b> is shown in smaller font, under title.</p>
 <p><b>Sidebar</b> is displayed in the left column.</p>
 <p>
 Don't stress about choosing the right values - you can change them later.

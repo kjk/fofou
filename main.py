@@ -1,4 +1,4 @@
-import os, string, Cookie, sha, time, random
+import os, string, Cookie, sha, time, random, cgi, urllib
 import wsgiref.handlers
 from google.appengine.ext import db
 from google.appengine.api import users
@@ -62,25 +62,35 @@ def get_user_cookie():
 class Forum(db.Model):
   # Urls for forums are in the form /<urlpart>/<rest>
   url = db.StringProperty(required=True)
-  # What we show as html <title>
+  # What we show as html <title> and as main header on the page
   title = db.StringProperty()
+  # a tagline is below title
   tagline = db.StringProperty()
+  # stuff to display in left sidebar
   sidebar = db.TextProperty()
-  disabled = db.BooleanProperty(default=False)
+  # if true, forum has been disabled. We don't support deletion so that
+  # forum can always be re-enabled in the future
+  is_disabled = db.BooleanProperty(default=False)
+  # just in case, when the forum was created. Not used.
+  created_on = db.DateTimeProperty(auto_now_add=True)
 
+# A forum is collection of topics, shown in the 'newest topic on top' order
 class Topic(db.Model):
   forum = db.Reference(Forum, required=True)
   subject = db.StringProperty(required=True)
-  created = db.DateTimeProperty(auto_now_add=True)
-  updated = db.DateTimeProperty(auto_now=True)
-  archived = db.BooleanProperty(default=False)
-  # ncomments is redundant for perf
+  created_on = db.DateTimeProperty(auto_now_add=True)
+  # just in case, not used
+  updated_on = db.DateTimeProperty(auto_now=True)
+  # admin can delete (and then undelete) topics
+  is_deleted = db.BooleanProperty(default=False)
+  # ncomments is redundant but is faster than always quering count of Posts
   ncomments = db.IntegerProperty(default=0)
 
+# A topic is a collection of posts
 class Post(db.Model):
-  created = db.DateTimeProperty(auto_now_add=True)
-  body = db.TextProperty(required=True)
   topic = db.Reference(Topic, required=True)
+  created_on = db.DateTimeProperty(auto_now_add=True)
+  body = db.TextProperty(required=True)
   # ip address from which this post has been made
   user_ip = db.StringProperty(required=True)
   # a cookie for this user (if anonymous)
@@ -92,86 +102,122 @@ def template_out(response, template_name, template_values):
   response.headers['Content-Type'] = 'text/html'
   path = os.path.join(os.path.dirname(__file__), template_name)
   response.out.write(template.render(path, template_values))
+
+def valid_forum_url(url):
+  if not url:
+    return False
+  return url.isalpha()
   
-# responds to /manageforums[?forum=<key>&disable=yes]
+# responds to GET /manageforums[?forum=<key>&disable=yes&enable=yes]
+# and POST /manageforums with values from the form
 class ManageForums(webapp.RequestHandler):
-
-  def valid_url(self, url):
-    return url.isalpha()
-
   def post(self):
     if not users.is_current_user_admin():
       return self.redirect("/")
 
+    forum_key = self.request.get('forum_key')
+    forum = None
+    if forum_key:
+      forum = db.get(db.Key(forum_key))
+      if not forum:
+        # invalid key - should not happen so go to top-level
+        return self.redirect("/")
+
     url = self.request.get('url')
+    if url: url = url.strip()
     title = self.request.get('title')
     tagline = self.request.get('tagline')
     sidebar = self.request.get('sidebar')
-    # TODO: disabled or not
-    if not self.valid_url(url):
-      # TODO: error case should re-use the same form, just indicate an error
-      # directly in the form
-      errmsg = "Url '%s' is not valid. Can only contain letters." % url
+    disable = self.request.get('disable')
+    enable = self.request.get('enable')
+
+    if not valid_forum_url(url):
       tvals = {
-        'errmsg' : errmsg
+        # TODO: the value is passed in but apparently my form is not in the right form
+        # need to figure this out
+        'urlclass' : "error",
+        'prevurl' : cgi.escape(url, True),
+        'prevtitle' : cgi.escape(title, True),
+        'prevtagline' : cgi.escape(tagline, True),
+        'prevsidebar' : cgi.escape(sidebar, True),
+        'forum_key' : forum_key,
+        'errmsg' : "Url can only contain lower-case letters"
       }
-      template_out(self.response,  "create_forum_invalid.html", tvals)
-      return
+      return self.render_rest(tvals)
 
-    forum = Forum(url=url, title=title, tagline=tagline, sidebar=sidebar)
-    forum.put()
-
-    forumname = url
-    forumurl = "/" + url + "/"
-    tvals = {
-      'forumname' : forumname,
-      'forumurl' : forumurl,
-      'forums_manage_url' : "/manageforums"
-    }
-    # TODO: redirect this to itself with a message that will flash on the
-    # screen (using Javascript or just static div)
-    template_out(self.response,  "forum_created.html", tvals)
+    if forum:
+      # update existing forum
+      forum.url = url
+      forum.title = title
+      forum.tagline = tagline
+      forum.sidebar = sidebar
+      forum.put()
+      title_or_url = forum.title or forum.url
+      msg = "Forum '%s' has been updated." % title_or_url
+    else:
+      # create a new forum
+      forum = Forum(url=url, title=title, tagline=tagline, sidebar=sidebar)
+      forum.put()
+      title_or_url = title or url
+      msg = "Forum '%s' has been created." % title_or_url
+    url = "/manageforums?msg=%s" % urllib.quote(msg)
+    return self.redirect(url)
 
   def get(self):
     if not users.is_current_user_admin():
       return self.redirect("/")
 
-    # if there is 'forum_key' argument, this is editing an existing
-    # forum.
+    # if there is 'forum_key' argument, this is editing an existing forum.
     forum = None
-    forum_key = self.request.get('forum')
+    forum_key = self.request.get('forum_key')
     if forum_key:
       forum = db.get(db.Key(forum_key))
+      if not forum:
+        # invalid forum key - should not happen, return to top level
+        return self.redirect("/")
+
+    tvals = {}
     if forum:
       disable = self.request.get('disable')
       enable = self.request.get('enable')
-      if disable:
-        # TODO: disable enabled forum
-        pass
-      elif enable:
-        # TODO: enable disabled forum
-        pass
-      # TODO: populate form with url/title etc. from forum
+      if disable or enable:
+        title_or_url = forum.title or forum.url
+        if disable:
+          forum.is_disabled = True
+          forum.put()
+          msg = "Forum %s has been disabled." % title_or_url
+        else:
+          forum.is_disabled = False
+          forum.put()
+          msg = "Forum %s has been enabled." % title_or_url
+        return self.redirect("/manageforums?msg=%s" % urllib.quote(msg))
+    self.render_rest(tvals, forum)
 
+  def render_rest(self, tvals, forum=None):
     user = users.get_current_user()
     forumsq = db.GqlQuery("SELECT * FROM Forum")
     forums = []
     for f in forumsq:
-      if not f.title:
-        f.title = f.url
-      f.edit_url = "/manageforums?forum=" + str(f.key())
-      if f.disabled:
+      f.title_or_url = f.title or f.url
+      f.edit_url = "/manageforums?forum_key=" + str(f.key())
+      if f.is_disabled:
         f.enable_disable_txt = "enable"
         f.enable_disable_url = f.edit_url + "&enable=yes"
       else:
         f.enable_disable_txt = "disable"
         f.enable_disable_url = f.edit_url + "&disable=yes"      
+      if forum and f.key() == forum.key():
+        # editing existing forum
+        f.no_edit_link = True
+        tvals['prevurl'] = cgi.escape(f.url, True)
+        tvals['prevtitle'] = cgi.escape(f.title, True)
+        tvals['prevtagline'] = cgi.escape(f.tagline, True)
+        tvals['prevsidebar'] = cgi.escape(f.sidebar, True)
+        tvals['forum_key'] = str(f.key())
       forums.append(f)
-
-    tvals = {
-      'user' : user,
-      'forums' : forums,
-    }
+    tvals['msg'] = self.request.get('msg')
+    tvals['user'] = user
+    tvals['forums'] = forums
     template_out(self.response,  "manage_forums.html", tvals)
 
 def forum_from_url(url):
@@ -188,26 +234,11 @@ class IndexForm(webapp.RequestHandler):
   def get(self):
     pass
 
-  def no_forums(self):
-    user = users.get_current_user()
-    tname = 'no_forums.html'
-    tvals = {}
-    if not user:
-      tvals['loginurl'] = users.create_login_url(self.request.uri)
-    elif users.is_current_user_admin():
-      return self.redirect("/manageforums")
-    else:
-      tvals['logouturl'] = users.create_logout_url(self.request.uri)
-    template_out(self.response, tname, tvals)
-
   def forum_list(self):
     forumsq = db.GqlQuery("SELECT * FROM Forum")
-    if 0 == forumsq.count():
-      return self.no_forums()
     forums = []
     for f in forumsq:
-      # if title is missing, make it same as url
-      f.title = f.title or f.url
+      f.title_or_url = f.title or f.url
       forums.append(f)
     isadmin = users.is_current_user_admin()
     tvals = {

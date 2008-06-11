@@ -169,6 +169,10 @@ span.formCheckBoxPair label { float: left; margin-top: 3px;	_margin-top: 4px; co
 	vertical-align:		top;
 }
 
+div.manageforumsmsg {
+  color: #ff0000;
+  text-align: center;
+}
 
 /*******************************************************************************
  * Topics layout
