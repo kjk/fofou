@@ -11,7 +11,7 @@ import logging
 # Top-level urls
 #
 # / - list of all forums
-# /forumsmanage[?forum=<key> - edit/create/disable forums
+# /manageforums[?forum=<key> - edit/create/disable forums
 #
 # Per-forum urls
 #
@@ -93,8 +93,8 @@ def template_out(response, template_name, template_values):
   path = os.path.join(os.path.dirname(__file__), template_name)
   response.out.write(template.render(path, template_values))
   
-# responds to /forumsmanage[?forum=<key>&disable=yes]
-class ForumsManage(webapp.RequestHandler):
+# responds to /manageforums[?forum=<key>&disable=yes]
+class ManageForums(webapp.RequestHandler):
 
   def valid_url(self, url):
     return url.isalpha()
@@ -126,7 +126,7 @@ class ForumsManage(webapp.RequestHandler):
     tvals = {
       'forumname' : forumname,
       'forumurl' : forumurl,
-      'forums_manage_url' : "/forumsmanage"
+      'forums_manage_url' : "/manageforums"
     }
     # TODO: redirect this to itself with a message that will flash on the
     # screen (using Javascript or just static div)
@@ -159,7 +159,7 @@ class ForumsManage(webapp.RequestHandler):
     for f in forumsq:
       if not f.title:
         f.title = f.url
-      f.edit_url = "/forumsmanage?forum=" + str(f.key())
+      f.edit_url = "/manageforums?forum=" + str(f.key())
       if f.disabled:
         f.enable_disable_txt = "enable"
         f.enable_disable_url = f.edit_url + "&enable=yes"
@@ -172,7 +172,7 @@ class ForumsManage(webapp.RequestHandler):
       'user' : user,
       'forums' : forums,
     }
-    template_out(self.response,  "no_forums_admin.html", tvals)
+    template_out(self.response,  "manage_forums.html", tvals)
 
 def forum_from_url(url):
   assert '/' == url[0]
@@ -188,20 +188,15 @@ class IndexForm(webapp.RequestHandler):
   def get(self):
     pass
 
-  # TODO: merge no_fourms_not_logged_in.html, no_forums_admin.html and
-  # no_forums_not_admin.html into forum_list.html, to simplify
   def no_forums(self):
     user = users.get_current_user()
-    tname = None
+    tname = 'no_forums.html'
     tvals = {}
     if not user:
-      tname = "no_forums_not_logged_in.html"
       tvals['loginurl'] = users.create_login_url(self.request.uri)
     elif users.is_current_user_admin():
-      tname = "no_forums_admin.html"
-      tvals['nickname'] = user.nickname()
+      return self.redirect("/manageforums")
     else:
-      tname = "no_forums_not_admin.html"
       tvals['logouturl'] = users.create_logout_url(self.request.uri)
     template_out(self.response, tname, tvals)
 
@@ -337,7 +332,7 @@ class Dispatcher(IndexForm):
 
 def main():
   application = webapp.WSGIApplication( 
-     [ ('/forumsmanage', ForumsManage),
+     [ ('/manageforums', ManageForums),
        ('/[^/]*/post', PostForm),
        ('/[^/]*/topic', TopicForm),
        ('.*', Dispatcher)],
