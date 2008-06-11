@@ -106,8 +106,8 @@ def template_out(response, template_name, template_values):
 def valid_forum_url(url):
   if not url:
     return False
-  return url.isalpha()
-  
+  return url == urllib.quote_plus(url)
+
 # responds to GET /manageforums[?forum=<key>&disable=yes&enable=yes]
 # and POST /manageforums with values from the form
 class ManageForums(webapp.RequestHandler):
@@ -141,7 +141,7 @@ class ManageForums(webapp.RequestHandler):
         'prevtagline' : cgi.escape(tagline, True),
         'prevsidebar' : cgi.escape(sidebar, True),
         'forum_key' : forum_key,
-        'errmsg' : "Url can only contain lower-case letters"
+        'errmsg' : "Url contains illegal characters"
       }
       return self.render_rest(tvals)
 
@@ -235,16 +235,19 @@ class IndexForm(webapp.RequestHandler):
     pass
 
   def forum_list(self):
+    if users.is_current_user_admin():
+      return self.redirect("/manageforums")
     forumsq = db.GqlQuery("SELECT * FROM Forum")
     forums = []
     for f in forumsq:
       f.title_or_url = f.title or f.url
       forums.append(f)
-    isadmin = users.is_current_user_admin()
     tvals = {
-      'isadmin' : isadmin,
       'forums' : forums,
     }
+    user = users.get_current_user()
+    if not user:
+      tvals['loginurl'] = users.create_login_url(self.request.uri)
     template_out(self.response,  "forum_list.html", tvals)
 
   def forum_index(self, forum):
@@ -261,6 +264,10 @@ class IndexForm(webapp.RequestHandler):
       'topics' : topics
     }
     template_out(self.response,  "index.html", tvals)
+
+class ForumList(IndexForm):
+  def get(self):
+    return self.forum_list()
 
 def massage_topic(topic):
   # TODO: should update topic with message count when constructing a message
@@ -362,8 +369,9 @@ class Dispatcher(IndexForm):
     template_out(self.response, "404.html", {})  
 
 def main():
-  application = webapp.WSGIApplication( 
-     [ ('/manageforums', ManageForums),
+  application = webapp.WSGIApplication(
+     [ ('/', ForumList),
+       ('/manageforums', ManageForums),
        ('/[^/]*/post', PostForm),
        ('/[^/]*/topic', TopicForm),
        ('.*', Dispatcher)],

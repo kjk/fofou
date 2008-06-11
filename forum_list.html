@@ -16,17 +16,14 @@
 				{% endfor %}
 			</ul>
 		</p>
-		{% if isadmin %}
-		<p>Since you're an admin, you can <a href="/manageforums">manage forums</a>.</p>
-		{% endif %}
-		</p>
 	{% else %}
 		<p>There are no forums created yet.</p>
 		{% if loginurl %}
-		<p>You're not logged in. To create a new forum <a href="{{ loginurl }}">log in</a> as admin.</p>
+			<p>You're not logged in. To create a new forum <a href="{{ loginurl }}">log in</a> as admin.</p>
 		{% else %}
-		<p>You're not logged in as admin, so you can't create new forums. To create new forums,
-			<a href="{{ logouturl }}">log out</a> and log in as admin.</p>
+			<p>You're not an admin so you'll have to wait until an admin creates 
+				a forum.
+			</p>
 		{% endif %}
 	{% endif %}
 	<hr>
