@@ -269,7 +269,7 @@ class TopicListForm(webapp.RequestHandler):
       'siteroot' : "/" + forum.url,
       'sidebar' : forum.sidebar,
       'tagline' : forum.tagline,
-      'rsslink' : "/" + forum.url + "/rss",
+      'rssurl' : "/" + forum.url + "/rss",
       'topics' : topics
     }
     template_out(self.response,  "topic_list.html", tvals)
