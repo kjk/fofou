@@ -13,6 +13,7 @@
 		<div>
 			<h1><a href="{{ siteroot }}" class="green">{{ title }}</a><h1>
 			<p>{{ tagline }}</p>
+			<a href="{{ rssurl }}" title="RSS feed"><img src="/graphics/rss.gif" alt="RSS feed" align="right" valign="middle" border="0" height="14" width="36"></a><br />
 		</div>
 	</td>
 </tr>
@@ -65,8 +66,10 @@
 				<td style="width: 29em;">
 					<input class="Name" size="60" maxlength="32" name="Name" id="Name" style="width: 29em;" value="{{ name_val }}" type="edit">
 				</td>
+				<td style="width: 10em;">
+					<span class="formCheckBoxPair"><input name="Remember" id="Remember" value="1"  checked type="checkbox"> <label for="Remember">Remember me</label></span>
+				</td>
 			</tr>
-<!--
 			<tr>
 				<th>
 					<label for="Email">Email:</label>
@@ -77,7 +80,6 @@
 					&nbsp;
 				</td>
 			</tr>
--->
 			<tr>
 				<th>
 					<label for="Url">Home Page:</label>

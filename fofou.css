@@ -11,11 +11,9 @@ body {
 	color:				black;
 	padding:			0; /* needed for Opera */
 	font-family:		Tahoma,Arial,Helvetica,sans-serif;    
-	/*font-size:			12px;*/
-	margin-left:		1em;
-	margin-top:			1em;
-	margin-right:		1em;	
-	margin-bottom:		0em;	
+	font-size:			12px;
+	margin:1em 1em 0em;
+	padding:0pt;
 }
 
 form { margin: 0px; padding: 0px; }
@@ -31,7 +29,7 @@ a:visited {	color: purple; }
 
 .header div {
 	color: #ffe;
-	margin: 0 0 10 0;
+	/*margin: 0 0 10 0;*/
 	border: 0;
 	height: 60px;
 	padding: 0px 5px 0px 5px;

@@ -6,6 +6,28 @@ from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
 import logging
 
+# TODO:
+#  - handle adding a post
+#  - show list of posts
+#  - /<forumurl>/rssall - like /rss but shows all posts, not only when a
+#    new topic is created
+#  - /rsscombined - all posts for all forums, for forum admins mostly
+#  - deleting/undeleting a post
+#  - search (using google)
+#  - archives (by month?)
+#  - use template inheritance to reduce duplication of html
+#  - admin features like blocking users (ip address, cookie, user_id)
+#  - per-forum templates
+#  - import posts from a file (good enough to import fruitshow forums)
+#  - email form
+#  - figure out why spacing between sections is so small (and fix it)
+#  - write a web page for fofou
+#  - cookie validation
+# Maybe:
+#  - register fofou.org and hookup sumatra forums there
+#  - alternative forms of integration with a wesite (iframe? return data
+#    as json and do most of the rendering using javascrip?)
+
 # Structure of urls:
 #
 # Top-level urls
@@ -30,7 +52,6 @@ import logging
 #    rss feed for posts
 
 # cookie code based on http://code.google.com/p/appengine-utitlies/source/browse/trunk/utilities/session.py
-# TODO: cookie validation
 
 COOKIE_NAME = "fofou-uid"
 COOKIE_PATH = "/"
