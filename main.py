@@ -269,12 +269,22 @@ class TopicListForm(webapp.RequestHandler):
       'siteroot' : "/" + forum.url,
       'sidebar' : forum.sidebar,
       'tagline' : forum.tagline,
+      'rsslink' : "/" + forum.url + "/rss",
       'topics' : topics
     }
     template_out(self.response,  "topic_list.html", tvals)
 
 # responds to /<forumurl>/topic?key=<key>
 class TopicForm(webapp.RequestHandler):
+
+  def get(self):
+    forum = forum_from_url(self.request.path_info)
+    if not forum:
+      return self.redirect("/")
+    # TODO: write me
+
+# responds to /<forumurl>/rss, returns an RSS feed of recent topics
+class RssFeed(webapp.RequestHandler):
 
   def get(self):
     forum = forum_from_url(self.request.path_info)
@@ -357,6 +367,7 @@ def main():
         ('/manageforums', ManageForums),
         ('/[^/]+/post', PostForm),
         ('/[^/]+/topic', TopicForm),
+        ('/[^/]+/rss', RssFeed),
         ('/[^/]+/?', TopicListForm)],
      debug=True)
   wsgiref.handlers.CGIHandler().run(application)
