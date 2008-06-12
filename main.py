@@ -230,11 +230,10 @@ def forum_from_url(url):
   forum = Forum.gql("WHERE url = :1", forumurl)
   return forum.get()
 
-class IndexForm(webapp.RequestHandler):
+# responds to /, shows list of available forums or redirects to
+# forum management page if user is admin
+class ForumList(webapp.RequestHandler):
   def get(self):
-    pass
-
-  def forum_list(self):
     if users.is_current_user_admin():
       return self.redirect("/manageforums")
     forumsq = db.GqlQuery("SELECT * FROM Forum")
@@ -250,12 +249,19 @@ class IndexForm(webapp.RequestHandler):
       tvals['loginurl'] = users.create_login_url(self.request.uri)
     template_out(self.response,  "forum_list.html", tvals)
 
-  def forum_index(self, forum):
-    assert forum
-    # TODO: filter by forum
-    topics = [massage_topic(t) for t in db.GqlQuery("SELECT * FROM Topic")]
+def massage_topic(topic):
+  topic.key_str = str(topic.key())
+  return topic
+
+# responds to /<forumurl>/, shows a list of recent topics
+class TopicListForm(webapp.RequestHandler):
+  def get(self):
     MAX_TOPICS = 25
-    topics = topics[:MAX_TOPICS]
+    forum = forum_from_url(self.request.path_info)
+    if not forum or forum.is_disabled:
+      return self.redirect("/")
+    topics = Topic.gql("WHERE forum = :1 ORDER BY created_on LIMIT %d" % MAX_TOPICS, forum)
+    #topics = [massage_topic(t) for t in topics]
     tvals = {
       'title' : forum.title or forum.url,
       'posturl' : "/" + forum.url + "/post",
@@ -267,28 +273,18 @@ class IndexForm(webapp.RequestHandler):
     }
     template_out(self.response,  "topic_list.html", tvals)
 
-class ForumList(IndexForm):
-  def get(self):
-    return self.forum_list()
-
-def massage_topic(topic):
-  # TODO: should update topic with message count when constructing a message
-  # to avoid this lookup
-  topic.key_str = str(topic.key())
-  return topic
-
 # responds to /<forumurl>/topic?key=<key>
-class TopicForm(IndexForm):
+class TopicForm(webapp.RequestHandler):
 
   def get(self):
     forum = forum_from_url(self.request.path_info)
     if not forum:
-      return self.forum_list()
+      return self.redirect("/")
 
     topicid = self.request.get('key')
 
 # responds to /<forumurl>/post
-class PostForm(IndexForm):
+class PostForm(webapp.RequestHandler):
 
   def get(self):
     forum = forum_from_url(self.request.path_info)
@@ -316,11 +312,10 @@ class PostForm(IndexForm):
   def post(self):
     forum = forum_from_url(self.request.path_info)
     if not forum:
-      return self.forum_list()
+      return self.redirect("/")
     # TODO: read form values and act apropriately
     if self.request.get('Cancel'):
-      # TODO: should redirect instead?
-      return self.forum_index(forum)
+      self.redirect("/" + forum.url)
 
     captcha = self.request.get('Captcha')
     captchaResponse = self.request.get('CaptchaResponse')
@@ -354,29 +349,15 @@ class PostForm(IndexForm):
     p.put()
     if not topic_key:
       topic.put()
-    # TODO: redirect?
     self.redirect("/" + forum.url)
-    #self.forum_index(forum)
-
-class Dispatcher(IndexForm):
-
-  def get(self):
-    forum = forum_from_url(self.request.path_info)
-    if not forum or forum.is_disabled:
-      return self.redirect("/")
-
-    self.forum_index(forum)
-
-  def post(self):
-    template_out(self.response, "404.html", {})  
 
 def main():
   application = webapp.WSGIApplication(
-     [ ('/', ForumList),
-       ('/manageforums', ManageForums),
-       ('/[^/]*/post', PostForm),
-       ('/[^/]*/topic', TopicForm),
-       ('.*', Dispatcher)],
+     [  ('/', ForumList),
+        ('/manageforums', ManageForums),
+        ('/[^/]+/post', PostForm),
+        ('/[^/]+/topic', TopicForm),
+        ('/[^/]+/?', TopicListForm)],
      debug=True)
   wsgiref.handlers.CGIHandler().run(application)
 
