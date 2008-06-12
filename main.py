@@ -265,7 +265,7 @@ class IndexForm(webapp.RequestHandler):
       'tagline' : forum.tagline,
       'topics' : topics
     }
-    template_out(self.response,  "index.html", tvals)
+    template_out(self.response,  "topic_list.html", tvals)
 
 class ForumList(IndexForm):
   def get(self):
