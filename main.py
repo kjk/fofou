@@ -9,6 +9,7 @@ import logging
 # TODO:
 #  - handle adding a post
 #  - show list of posts
+#  - /<forumurl>/rss - rss feed
 #  - /<forumurl>/rssall - like /rss but shows all posts, not only when a
 #    new topic is created
 #  - /rsscombined - all posts for all forums, for forum admins mostly
