@@ -23,10 +23,12 @@
 	<td class="contents">
 	<div class="form">
 		<form action="post" method="post">
-		<input name="CaptchaResponse" value="{{ num3 }}" type="hidden">
+		<input name="num1" value="{{ num1 }}" type="hidden">
+		<input name="num2" value="{{ num2 }}" type="hidden">
+		<input name="num3" value="{{ num3 }}" type="hidden">
 
-		{% if topic_id %} 
-			<input name="Topic" value="{{ topic_val }}" type="hidden">
+		{% if topic_key %} 
+			<input name="TopicKey" value="{{ topic_key }}" type="hidden">
 			<h2>Reply to "{{ topic_subject }}"</h2>
 		{% else %}
 			<h2>New topic</h2>
@@ -37,7 +39,7 @@
 			<tr>
 			<th><label for="Captcha">{{ num1 }} + {{ num2 }} is? (hint: {{ num3 }})</label></th>
 			<td colspan="2">
-				<input class="Captcha" size="60" maxlength="64" name="Captcha" id="Captcha" style="width: 39em;" value="{{ captcha_val }}" type="edit">&nbsp;
+				<input class="{{ captcha_class }}" size="60" maxlength="64" name="Captcha" id="Captcha" style="width: 39em;" value="{{ prevCaptcha }}" type="edit">&nbsp;
 					<div>Are you human? (sorry we have to ask). Tell us how much
 					is {{ num1 }} + {{ num2 }} by entering <b>{{ num3 }}</b> above.</div>
 					&nbsp;
@@ -47,7 +49,7 @@
 			<tr>
 				<th><label for="Subject">Subject:</label></th>
 				<td colspan="2">
-					<input class="Subject" size="60" maxlength="64" name="Subject" id="Subject" style="width: 39em;" value="{{ subject_val }}" type="edit">
+					<input class="Subject" size="60" maxlength="64" name="Subject" id="Subject" style="width: 39em;" value="{{ prevSubject }}" type="edit">
 					&nbsp;
 				</td>
 			</tr>
@@ -56,7 +58,7 @@
 			<tr>
 				<th><label for="Message">Message:</label></th>
 				<td colspan="2">
-					<textarea class="Message" name="Message" id="Message" style="width: 39em;" rows="16" cols="60" wrap="virtual">{{ message_val }}</textarea>
+					<textarea class="Message" name="Message" id="Message" style="width: 39em;" rows="16" cols="60" wrap="virtual">{{ prevMessage }}</textarea>
 					<div style="width: 300px;">Don't use HTML. Surround URLs with spaces.</div>
 					&nbsp;
 				</td>
@@ -64,10 +66,10 @@
 			<tr>
 				<th><label for="Name">Full name:</label></th>
 				<td style="width: 29em;">
-					<input class="Name" size="60" maxlength="32" name="Name" id="Name" style="width: 29em;" value="{{ name_val }}" type="edit">
+					<input class="Name" size="60" maxlength="32" name="Name" id="Name" style="width: 29em;" value="{{ prevName }}" type="edit">
 				</td>
 				<td style="width: 10em;">
-					<span class="formCheckBoxPair"><input name="Remember" id="Remember" value="1"  checked type="checkbox"> <label for="Remember">Remember me</label></span>
+					<span class="formCheckBoxPair"><input name="Remember" id="Remember" value="{{ prevRemember }}"  checked type="checkbox"> <label for="Remember">Remember me</label></span>
 				</td>
 			</tr>
 			<tr>

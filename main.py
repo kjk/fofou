@@ -8,12 +8,14 @@ import logging
 
 # TODO:
 #  - handle adding a post
+#  - user class (remembers info about all kinds of users: anon (cookie) or signed in
 #  - show list of posts
 #  - /<forumurl>/rss - rss feed
 #  - /<forumurl>/rssall - like /rss but shows all posts, not only when a
 #    new topic is created
 #  - /rsscombined - all posts for all forums, for forum admins mostly
 #  - deleting/undeleting a post
+#  - sign-in/out links
 #  - search (using google)
 #  - archives (by month?)
 #  - use template inheritance to reduce duplication of html
@@ -38,19 +40,22 @@ import logging
 #
 # Per-forum urls
 #
-# /<forum_url>/<rest>
-#
-# <rest> is:
-# /
+# /<forum_url>/
 #    index, lists recent topics
-# /post[?topic=<id>]
-#    form for creating a new post. if "topic" is present, it's a new post in
-#    existing topic, otherwise a new topic post
-# /topic/<id>?posts=<n>
-#    shows posts in a given topic, 'posts' is ignored (just a trick to re-use
+#
+# /<forum_url>/post[?topic_key=<id>]
+#    form for creating a new post. if "topic" is present, it's a post in
+#    existing topic, otherwise a post starting a new topic
+#
+# /<forum_url>/topic?<id>&comments=<n>
+#    shows posts in a given topic, 'comments' is ignored (just a trick to re-use
 #    browser's history to see if the topic has posts that user didn't see yet
-# /rss
-#    rss feed for posts
+#
+# /<forum_url>/rss
+#    rss feed for first post in the topic (default)
+#
+# /<forum_url>/rssall
+#    rss feed for all posts
 
 # cookie code based on http://code.google.com/p/appengine-utitlies/source/browse/trunk/utilities/session.py
 
@@ -307,7 +312,6 @@ class TopicForm(webapp.RequestHandler):
 
 # responds to /<forumurl>/rss, returns an RSS feed of recent topics
 class RssFeed(webapp.RequestHandler):
-
   def get(self):
     forum = forum_from_url(self.request.path_info)
     if not forum:
@@ -315,60 +319,91 @@ class RssFeed(webapp.RequestHandler):
 
     topicid = self.request.get('key')
 
-# responds to /<forumurl>/post
+# responds to /<forumurl>/post[?topic_key=<topic_key>]
 class PostForm(webapp.RequestHandler):
-
   def get(self):
     forum = forum_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
 
-    topicid = self.request.get('topic')
+    topic_key = self.request.get('topic_key')
 
+    # TODO: find topic with this key, redirect to topic list if doesn't exist
     (num1, num2) = (random.randint(1,9), random.randint(1,9))
+    # TODO: topic_key, topic_subject
     tvals = {
       'title' : forum.title or forum.url,
-      'siteroot' : "/" + forum.url,
-      'sidebar' : forum.sidebar or "",
-      'tagline' : forum.tagline or "",
+      'siteroot' : "/" + forum.url + "/",
+      'sidebar' : forum.sidebar,
+      'tagline' : forum.tagline,
+      'rssurl' : "/" + forum.url + "/rss",
       'num1' : num1,
       'num2' : num2,
       'num3' : num1+num2,
+      'captcha_class' : "Captcha",
+      # remember by default, should probably be tied to a user (cookie)
+      'prevRemember' : "1",
       'url_val' : "http://"
     }
     template_out(self.response, "post.html", tvals)
-
-  def invalid_captcha(self):
-      template_out(self.response, "invalid_captcha.html", {})
 
   def post(self):
     forum = forum_from_url(self.request.path_info)
     if not forum:
       return self.redirect("/")
-    # TODO: read form values and act apropriately
-    if self.request.get('Cancel'):
-      self.redirect("/" + forum.url)
 
-    captcha = self.request.get('Captcha')
-    captchaResponse = self.request.get('CaptchaResponse')
+    if self.request.get('Cancel'):
+      self.redirect("/" + forum.url + "/")
+
+    num1 = self.request.get('num1')
+    num2 = self.request.get('num2')
+    captcha = self.request.get('Captcha').strip()
+    subject = self.request.get('Subject').strip()
+    message = self.request.get('Message')
+    remember_me = self.request.get('Remember')
+    email = self.request.get('Email').strip()
+    url = self.request.get('Url').strip()
+    name = self.request.get('Name').strip()
+    topic_key = self.request.get('Topic')
+
+    tvals = {
+      'title' : forum.title or forum.url,
+      'siteroot' : "/" + forum.url + "/",
+      'sidebar' : forum.sidebar,
+      'tagline' : forum.tagline,
+      'rssurl' : "/" + forum.url + "/rss",
+      'num1' : num1,
+      'num2' : num2,
+      'num3' : int(num1) + int(num2),
+      "prevCaptcha" : cgi.escape(captcha, True),
+      "prevSubject" : cgi.escape(subject, True),
+      "prevMessage" : cgi.escape(message, True),
+      "prevRememberMe" : cgi.escape(remember_me, True),
+      "prevEmail" : cgi.escape(email, True),
+      "prevUrl" : cgi.escape(url, True),
+      "prevName" : cgi.escape(name, True),
+      "topic_key" : cgi.escape(topic_key, True),
+    }
+
+    validCaptcha = True
     try:
-      captcha = int(captcha)
+      captcha = int(num3)
       captchaResponse = int(captchaResponse)
     except ValueError:
-      return self.invalid_captcha()
+      validCaptcha = False
 
-    if captcha != captchaResponse:
-      return self.invalid_captcha()
+    if not validCaptcha or (captcha != captchaResponse):
+      tvals['captcha_class'] = "error"
+      return template_out(self.response, "post.html", tvals)
 
-    subject = self.request.get('Subject').strip()
-    msg = self.request.get('Message').strip()
-    fullName = self.request.get('Name').strip()
-    url = self.request.get('Url').strip()
+    # TODO: need to have a User class, where user can be anonymous. needed for 'remember'
+    # feature
+
     if url == "http://":
       url = ""
+
     # TODO: handle user names, urls
     # TODO: update comments count on Topic
-    topic_key = self.request.get('Topic').strip()
     if not topic_key:
       topic = Topic(subject=subject)
       topic.put()
