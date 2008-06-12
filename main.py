@@ -291,8 +291,8 @@ class PostForm(IndexForm):
 
   def get(self):
     forum = forum_from_url(self.request.path_info)
-    if not forum:
-      return self.forum_list()
+    if not forum or forum.is_disabled:
+      return self.redirect("/")
 
     topicid = self.request.get('topic')
 
@@ -361,8 +361,8 @@ class Dispatcher(IndexForm):
 
   def get(self):
     forum = forum_from_url(self.request.path_info)
-    if not forum:
-      return self.forum_list()
+    if not forum or forum.is_disabled:
+      return self.redirect("/")
 
     self.forum_index(forum)
 
