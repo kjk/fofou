@@ -262,6 +262,7 @@ class IndexForm(webapp.RequestHandler):
       'archiveurl' : "/" + forum.url + "/archive",
       'siteroot' : "/" + forum.url,
       'sidebar' : forum.sidebar,
+      'tagline' : forum.tagline,
       'topics' : topics
     }
     template_out(self.response,  "index.html", tvals)
