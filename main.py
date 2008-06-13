@@ -158,6 +158,26 @@ def valid_forum_url(url):
   if not url:
     return False
   return url == urllib.quote_plus(url)
+    
+def forum_from_url(url):
+  assert '/' == url[0]
+  path = url[1:]
+  if '/' in path:
+    (forumurl, rest) = path.split("/", 1)
+  else:
+    forumurl = path
+  forum = Forum.gql("WHERE url = :1", forumurl)
+  return forum.get()
+      
+def forum_root(forum):
+  return "/" + forum.url + "/"
+
+def get_log_in_out(url):
+  user = users.get_current_user()
+  if user:
+    return "Welcome, %s! <a href=\"%s\">Log out</a>" % (user.nickname(), users.create_logout_url(url))
+  else:
+    return "<a href=\"%s\">Log in or register</a>" % users.create_login_url(url)    
 
 # responds to GET /manageforums[?forum=<key>&disable=yes&enable=yes]
 # and POST /manageforums with values from the form
@@ -271,16 +291,6 @@ class ManageForums(webapp.RequestHandler):
     tvals['forums'] = forums
     template_out(self.response,  "manage_forums.html", tvals)
 
-def forum_from_url(url):
-  assert '/' == url[0]
-  path = url[1:]
-  if '/' in path:
-    (forumurl, rest) = path.split("/", 1)
-  else:
-    forumurl = path
-  forum = Forum.gql("WHERE url = :1", forumurl)
-  return forum.get()
-
 # responds to /, shows list of available forums or redirects to
 # forum management page if user is admin
 class ForumList(webapp.RequestHandler):
@@ -303,7 +313,7 @@ class ForumList(webapp.RequestHandler):
 def massage_topic(topic):
   topic.key_str = str(topic.key())
   return topic
-
+  
 # responds to /<forumurl>/, shows a list of recent topics
 class TopicListForm(webapp.RequestHandler):
   def get(self):
@@ -313,21 +323,16 @@ class TopicListForm(webapp.RequestHandler):
       return self.redirect("/")
     topics = Topic.gql("WHERE forum = :1 ORDER BY created_on LIMIT %d" % MAX_TOPICS, forum)
     #topics = [massage_topic(t) for t in topics]
-    user = users.get_current_user()
-    if user:
-      log_in_out = "Welcome, %s! <a href=\"%s\">Log out</a>" % (user.nickname(), users.create_logout_url("/" + forum.url + "/"))
-    else:
-        log_in_out = "<a href=\"%s\">Log in or register</a>" % users.create_login_url("/" + forum.url + "/")    
     tvals = {
       'title' : forum.title or forum.url,
       'posturl' : "/" + forum.url + "/post",
       'archiveurl' : "/" + forum.url + "/archive",
-      'siteroot' : "/" + forum.url,
+      'siteroot' : forum_root(forum),
       'sidebar' : forum.sidebar,
       'tagline' : forum.tagline,
       'rssurl' : "/" + forum.url + "/rss",
       'topics' : topics,
-      'log_in_out' : log_in_out
+      'log_in_out' : get_log_in_out("/" + forum.url + "/")
     }
     template_out(self.response,  "topic_list.html", tvals)
 
@@ -357,23 +362,26 @@ class PostForm(webapp.RequestHandler):
       return self.redirect("/")
 
     topic_key = self.request.get('topic_key')
+    if topic_key:
+      # TODO: find topic with this key, redirect to topic list if doesn't exist
+      pass
 
-    # TODO: find topic with this key, redirect to topic list if doesn't exist
     (num1, num2) = (random.randint(1,9), random.randint(1,9))
     # TODO: topic_key, topic_subject
     tvals = {
       'title' : forum.title or forum.url,
-      'siteroot' : "/" + forum.url + "/",
+      'siteroot' : forum_root(forum),
       'sidebar' : forum.sidebar,
       'tagline' : forum.tagline,
-      'rssurl' : "/" + forum.url + "/rss",
+      'rssurl' : forum_root(forum) + "rss",
       'num1' : num1,
       'num2' : num2,
       'num3' : num1+num2,
       'captcha_class' : "Captcha",
       # remember by default, should probably be tied to a user (cookie)
       'prevRemember' : "1",
-      'url_val' : "http://"
+      'url_val' : "http://",
+      'log_in_out' : get_log_in_out(forum_root(forum) + "post")
     }
     template_out(self.response, "post.html", tvals)
 
@@ -398,7 +406,7 @@ class PostForm(webapp.RequestHandler):
 
     tvals = {
       'title' : forum.title or forum.url,
-      'siteroot' : "/" + forum.url + "/",
+      'siteroot' : forum_root(forum),
       'sidebar' : forum.sidebar,
       'tagline' : forum.tagline,
       'rssurl' : "/" + forum.url + "/rss",
