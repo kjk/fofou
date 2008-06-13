@@ -99,7 +99,12 @@ def anonUser():
     g_anonUser = users.User("dummy@dummy.address.com")
   return g_anonUser
 
-class PossiblyAnonUser(db.Model):
+class FofouUser(db.Model):
+  # according to docs UserProperty() cannot be optional, so for anon users
+  # we set it to value returned by anonUser() function
+  # user is uniquely identified by either user property (if not equal to
+  # anonUser()) or cookie
+  user = db.UserProperty()
   cookie = db.StringProperty()
   # email, as entered in the post form, can be empty string
   email = db.StringProperty()
@@ -107,11 +112,8 @@ class PossiblyAnonUser(db.Model):
   name = db.StringProperty()
   # homepage - as entered in the post form, can be empty string
   homepage = db.StringProperty()
-  # according to docs UserProperty() cannot be optional, so for anon users
-  # we set it to value returned by anonUser() function
-  user = db.UserProperty()
   # value of 'remember_me' checkbox selected during most recent post
-  remember_me = db.BooleanProperty()
+  remember_me = db.BooleanProperty(default=True)
 
 class Forum(db.Model):
   # Urls for forums are in the form /<urlpart>/<rest>
@@ -147,7 +149,7 @@ class Post(db.Model):
   body = db.TextProperty(required=True)
   # ip address from which this post has been made
   user_ip = db.StringProperty(required=True)
-  user = db.Reference(PossiblyAnonUser, required=True)
+  user = db.Reference(FofouUser, required=True)
 
 def template_out(response, template_name, template_values):
   response.headers['Content-Type'] = 'text/html'
@@ -321,18 +323,19 @@ class TopicListForm(webapp.RequestHandler):
     forum = forum_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
+    siteroot = forum_root(forum)
     topics = Topic.gql("WHERE forum = :1 ORDER BY created_on LIMIT %d" % MAX_TOPICS, forum)
     #topics = [massage_topic(t) for t in topics]
     tvals = {
+      'siteroot' : siteroot,
       'title' : forum.title or forum.url,
-      'posturl' : "/" + forum.url + "/post",
-      'archiveurl' : "/" + forum.url + "/archive",
-      'siteroot' : forum_root(forum),
-      'sidebar' : forum.sidebar,
       'tagline' : forum.tagline,
-      'rssurl' : "/" + forum.url + "/rss",
+      'sidebar' : forum.sidebar,
+      'posturl' : siteroot + "post",
+      'archiveurl' : siteroot + "archive",
+      'rssurl' : siteroot + "rss",
       'topics' : topics,
-      'log_in_out' : get_log_in_out("/" + forum.url + "/")
+      'log_in_out' : get_log_in_out(siteroot)
     }
     template_out(self.response,  "topic_list.html", tvals)
 
@@ -354,6 +357,11 @@ class RssFeed(webapp.RequestHandler):
 
     topicid = self.request.get('key')
 
+def is_valid_subject(txt):
+  if not txt:
+    return False
+  return True
+
 # responds to /<forumurl>/post[?topic_key=<topic_key>]
 class PostForm(webapp.RequestHandler):
   def get(self):
@@ -372,7 +380,7 @@ class PostForm(webapp.RequestHandler):
       'num2' : num2,
       'num3' : num1+num2,
       'captcha_class' : "Captcha",
-      # TODO: get from PossiblyAnonUser.remember_me
+      # TODO: get from FofouUser.remember_me
       'prevRemember' : "1",
       'url_val' : "http://",
       'log_in_out' : get_log_in_out(forum_root(forum) + "post")
@@ -391,13 +399,16 @@ class PostForm(webapp.RequestHandler):
     if not forum:
       return self.redirect("/")
 
+    siteroot = forum_root(forum)
     if self.request.get('Cancel'):
-      self.redirect("/" + forum.url + "/")
+      self.redirect(siteroot)
 
     num1 = self.request.get('num1')
     num2 = self.request.get('num2')
     captcha = self.request.get('Captcha').strip()
-    subject = self.request.get('Subject').strip()
+    subject = self.request.get('Subject')
+    if subject:
+      subject = subject.strip() # TODO: do I need this?
     message = self.request.get('Message')
     remember_me = self.request.get('Remember')
     email = self.request.get('Email').strip()
@@ -406,11 +417,11 @@ class PostForm(webapp.RequestHandler):
     topic_key = self.request.get('Topic')
 
     tvals = {
+      'siteroot' : siteroot,
       'title' : forum.title or forum.url,
-      'siteroot' : forum_root(forum),
-      'sidebar' : forum.sidebar,
       'tagline' : forum.tagline,
-      'rssurl' : "/" + forum.url + "/rss",
+      'sidebar' : forum.sidebar,
+      'rssurl' : siteroot + "rss",
       'num1' : num1,
       'num2' : num2,
       'num3' : int(num1) + int(num2),
@@ -435,8 +446,22 @@ class PostForm(webapp.RequestHandler):
       tvals['captcha_class'] = "error"
       return template_out(self.response, "post.html", tvals)
 
-    # TODO: need to have a User class, where user can be anonymous. needed for 'remember'
-    # feature
+    # get user either by google user id or cookie. Create user objects if don't
+    # already exist
+    user_id = users.get_current_user()
+    if user_id:
+      user = FofouUser.gql("WHERE user = :1", user)
+      if not user:
+        user = FofouUser()
+        user.user = user_id
+        user.put()
+    else:
+      cookie = get_user_cookie()
+      user = FofouUser.gql("WHERE cookie = :1", cookie)
+      if not user:
+        user = FofouUser()
+        user.cookie = cookie
+        user.put()
 
     if url == "http://":
       url = ""
@@ -444,6 +469,9 @@ class PostForm(webapp.RequestHandler):
     # TODO: handle user names, urls
     # TODO: update comments count on Topic
     if not topic_key:
+      if not is_valid_subject(subject):
+        tvals['subject_class'] = "error"
+        return template_out(self.response, "post.html", tvals)
       topic = Topic(subject=subject)
       topic.put()
     else:
@@ -455,7 +483,7 @@ class PostForm(webapp.RequestHandler):
     p.put()
     if not topic_key:
       topic.put()
-    self.redirect("/" + forum.url)
+    self.redirect(siteroot)
 
 def main():
   application = webapp.WSGIApplication(
