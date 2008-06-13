@@ -23,6 +23,10 @@ a:visited {	color: purple; }
 /* To hide things from IE */
 .noIE { _display: none; }
 
+#tbTop {
+	text-align:right;
+}
+
 /*******************************************************************************
  * Header, footer, and body table
  ******************************************************************************/

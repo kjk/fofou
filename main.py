@@ -25,9 +25,9 @@ import logging
 #  - email form
 #  - figure out why spacing between sections is so small (and fix it)
 #  - write a web page for fofou
-#  - cookie validation
+#  - hookup sumatra forums at fofou.org there
 # Maybe:
-#  - register fofou.org and hookup sumatra forums there
+#  - cookie validation
 #  - alternative forms of integration with a wesite (iframe? return data
 #    as json and do most of the rendering using javascrip?)
 
@@ -77,14 +77,41 @@ def new_user_id():
   sid = sha.new(repr(time.time())).hexdigest()
   return sid
 
+def valid_user_cookie(c):
+  # cookie should always be a hex-encoded sha1 checksum
+  if len(c) != 40:
+    return False
+  return True
+
 def get_user_cookie():
   c = get_inbound_cookie()
-  if COOKIE_NAME not in c:
+  if (COOKIE_NAME not in c) or not valid_user_cookie(c[COOKIE_NAME]):
     c[COOKIE_NAME] = new_user_id()
     c[COOKIE_NAME]['path'] = COOKIE_PATH
     c[COOKIE_NAME]['expires'] = COOKIE_EXPIRE_TIME
   # TODO: maybe should validate cookie if exists, the way appengine-utilities does
   return c
+
+g_anonUser = None
+def anonUser():
+  global g_anonUser
+  if None == g_anonUser:
+    g_anonUser = users.User("dummy@dummy.address.com")
+  return g_anonUser
+
+class PossiblyAnonUser(db.Model):
+  cookie = db.StringProperty()
+  # email, as entered in the post form, can be empty string
+  email = db.StringProperty()
+  # name, as entered in the post form, can be empty string
+  name = db.StringProperty()
+  # homepage - as entered in the post form, can be empty string
+  homepage = db.StringProperty()
+  # according to docs UserProperty() cannot be optional, so for anon users
+  # we set it to value returned by anonUser() function
+  user = db.UserProperty()
+  # value of 'remember_me' checkbox selected during most recent post
+  remember_me = db.BooleanProperty()
 
 class Forum(db.Model):
   # Urls for forums are in the form /<urlpart>/<rest>
@@ -120,10 +147,7 @@ class Post(db.Model):
   body = db.TextProperty(required=True)
   # ip address from which this post has been made
   user_ip = db.StringProperty(required=True)
-  # a cookie for this user (if anonymous)
-  user_cookie = db.StringProperty()
-  # user id for logged in users
-  user_id = db.UserProperty()
+  user = db.Reference(PossiblyAnonUser, required=True)
 
 def template_out(response, template_name, template_values):
   response.headers['Content-Type'] = 'text/html'
@@ -289,6 +313,11 @@ class TopicListForm(webapp.RequestHandler):
       return self.redirect("/")
     topics = Topic.gql("WHERE forum = :1 ORDER BY created_on LIMIT %d" % MAX_TOPICS, forum)
     #topics = [massage_topic(t) for t in topics]
+    user = users.get_current_user()
+    if user:
+      log_in_out = "Welcome, %s! <a href=\"%s\">Log out</a>" % (user.nickname(), users.create_logout_url("/" + forum.url + "/"))
+    else:
+        log_in_out = "<a href=\"%s\">Log in or register</a>" % users.create_login_url("/" + forum.url + "/")    
     tvals = {
       'title' : forum.title or forum.url,
       'posturl' : "/" + forum.url + "/post",
@@ -297,7 +326,8 @@ class TopicListForm(webapp.RequestHandler):
       'sidebar' : forum.sidebar,
       'tagline' : forum.tagline,
       'rssurl' : "/" + forum.url + "/rss",
-      'topics' : topics
+      'topics' : topics,
+      'log_in_out' : log_in_out
     }
     template_out(self.response,  "topic_list.html", tvals)
 
