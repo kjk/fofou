@@ -361,28 +361,29 @@ class PostForm(webapp.RequestHandler):
     if not forum or forum.is_disabled:
       return self.redirect("/")
 
-    topic_key = self.request.get('topic_key')
-    if topic_key:
-      # TODO: find topic with this key, redirect to topic list if doesn't exist
-      pass
-
     (num1, num2) = (random.randint(1,9), random.randint(1,9))
-    # TODO: topic_key, topic_subject
     tvals = {
-      'title' : forum.title or forum.url,
       'siteroot' : forum_root(forum),
-      'sidebar' : forum.sidebar,
+      'title' : forum.title or forum.url,
       'tagline' : forum.tagline,
+      'sidebar' : forum.sidebar,
       'rssurl' : forum_root(forum) + "rss",
       'num1' : num1,
       'num2' : num2,
       'num3' : num1+num2,
       'captcha_class' : "Captcha",
-      # remember by default, should probably be tied to a user (cookie)
+      # TODO: get from PossiblyAnonUser.remember_me
       'prevRemember' : "1",
       'url_val' : "http://",
       'log_in_out' : get_log_in_out(forum_root(forum) + "post")
     }
+    topic_key = self.request.get('topic_key')
+    if topic_key:
+      topic = db.get(db.Topic(topic_key))
+      if not topic:
+        return self.redirect(forum_root(forum))
+      tvals['topic_key'] = topic_key
+      tvals['topic_subject'] = topic.subject
     template_out(self.response, "post.html", tvals)
 
   def post(self):
