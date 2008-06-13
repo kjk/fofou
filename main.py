@@ -7,8 +7,8 @@ from google.appengine.ext.webapp import template
 import logging
 
 # TODO:
-#  - handle adding a post
-#  - user class (remembers info about all kinds of users: anon (cookie) or signed in
+#  - handle adding comment to existing topic
+#  - send user cookie
 #  - show list of posts
 #  - /<forumurl>/rss - rss feed
 #  - /<forumurl>/rssall - like /rss but shows all posts, not only when a
@@ -25,7 +25,8 @@ import logging
 #  - email form
 #  - figure out why spacing between sections is so small (and fix it)
 #  - write a web page for fofou
-#  - hookup sumatra forums at fofou.org there
+#  - hookup sumatra forums at fofou.org
+#  - handle 'older topics' button
 # Maybe:
 #  - cookie validation
 #  - alternative forms of integration with a wesite (iframe? return data
@@ -57,8 +58,59 @@ import logging
 # /<forum_url>/rssall
 #    rss feed for all posts
 
-# cookie code based on http://code.google.com/p/appengine-utitlies/source/browse/trunk/utilities/session.py
+class FofouUser(db.Model):
+  # according to docs UserProperty() cannot be optional, so for anon users
+  # we set it to value returned by anonUser() function
+  # user is uniquely identified by either user property (if not equal to
+  # anonUser()) or cookie
+  user = db.UserProperty()
+  cookie = db.StringProperty()
+  # email, as entered in the post form, can be empty string
+  email = db.StringProperty()
+  # name, as entered in the post form
+  name = db.StringProperty()
+  # homepage - as entered in the post form, can be empty string
+  homepage = db.StringProperty()
+  # value of 'remember_me' checkbox selected during most recent post
+  remember_me = db.BooleanProperty(default=True)
 
+class Forum(db.Model):
+  # Urls for forums are in the form /<urlpart>/<rest>
+  url = db.StringProperty(required=True)
+  # What we show as html <title> and as main header on the page
+  title = db.StringProperty()
+  # a tagline is below title
+  tagline = db.StringProperty()
+  # stuff to display in left sidebar
+  sidebar = db.TextProperty()
+  # if true, forum has been disabled. We don't support deletion so that
+  # forum can always be re-enabled in the future
+  is_disabled = db.BooleanProperty(default=False)
+  # just in case, when the forum was created. Not used.
+  created_on = db.DateTimeProperty(auto_now_add=True)
+
+# A forum is collection of topics
+class Topic(db.Model):
+  forum = db.Reference(Forum, required=True)
+  subject = db.StringProperty(required=True)
+  created_on = db.DateTimeProperty(auto_now_add=True)
+  # just in case, not used
+  updated_on = db.DateTimeProperty(auto_now=True)
+  # admin can delete (and then undelete) topics
+  is_deleted = db.BooleanProperty(default=False)
+  # ncomments is redundant but is faster than always quering count of Posts
+  ncomments = db.IntegerProperty(default=0)
+
+# A topic is a collection of posts
+class Post(db.Model):
+  topic = db.Reference(Topic, required=True)
+  created_on = db.DateTimeProperty(auto_now_add=True)
+  message = db.TextProperty(required=True)
+  # ip address from which this post has been made
+  user_ip = db.StringProperty(required=True)
+  user = db.Reference(FofouUser, required=True)
+
+# cookie code based on http://code.google.com/p/appengine-utitlies/source/browse/trunk/utilities/session.py
 COOKIE_NAME = "fofou-uid"
 COOKIE_PATH = "/"
 COOKIE_EXPIRE_TIME = 60*60*24*120 # valid for 60*60*24*120 seconds => 120 days
@@ -99,58 +151,6 @@ def anonUser():
     g_anonUser = users.User("dummy@dummy.address.com")
   return g_anonUser
 
-class FofouUser(db.Model):
-  # according to docs UserProperty() cannot be optional, so for anon users
-  # we set it to value returned by anonUser() function
-  # user is uniquely identified by either user property (if not equal to
-  # anonUser()) or cookie
-  user = db.UserProperty()
-  cookie = db.StringProperty()
-  # email, as entered in the post form, can be empty string
-  email = db.StringProperty()
-  # name, as entered in the post form, can be empty string
-  name = db.StringProperty()
-  # homepage - as entered in the post form, can be empty string
-  homepage = db.StringProperty()
-  # value of 'remember_me' checkbox selected during most recent post
-  remember_me = db.BooleanProperty(default=True)
-
-class Forum(db.Model):
-  # Urls for forums are in the form /<urlpart>/<rest>
-  url = db.StringProperty(required=True)
-  # What we show as html <title> and as main header on the page
-  title = db.StringProperty()
-  # a tagline is below title
-  tagline = db.StringProperty()
-  # stuff to display in left sidebar
-  sidebar = db.TextProperty()
-  # if true, forum has been disabled. We don't support deletion so that
-  # forum can always be re-enabled in the future
-  is_disabled = db.BooleanProperty(default=False)
-  # just in case, when the forum was created. Not used.
-  created_on = db.DateTimeProperty(auto_now_add=True)
-
-# A forum is collection of topics, shown in the 'newest topic on top' order
-class Topic(db.Model):
-  forum = db.Reference(Forum, required=True)
-  subject = db.StringProperty(required=True)
-  created_on = db.DateTimeProperty(auto_now_add=True)
-  # just in case, not used
-  updated_on = db.DateTimeProperty(auto_now=True)
-  # admin can delete (and then undelete) topics
-  is_deleted = db.BooleanProperty(default=False)
-  # ncomments is redundant but is faster than always quering count of Posts
-  ncomments = db.IntegerProperty(default=0)
-
-# A topic is a collection of posts
-class Post(db.Model):
-  topic = db.Reference(Topic, required=True)
-  created_on = db.DateTimeProperty(auto_now_add=True)
-  body = db.TextProperty(required=True)
-  # ip address from which this post has been made
-  user_ip = db.StringProperty(required=True)
-  user = db.Reference(FofouUser, required=True)
-
 def template_out(response, template_name, template_values):
   response.headers['Content-Type'] = 'text/html'
   path = os.path.join(os.path.dirname(__file__), template_name)
@@ -160,7 +160,23 @@ def valid_forum_url(url):
   if not url:
     return False
   return url == urllib.quote_plus(url)
-    
+
+def valid_subject(txt):
+  if not txt:
+    return False
+  return True
+
+# very simplistic check for <txt> being a valid e-mail address
+def valid_email(txt):
+  # allow empty strings
+  if not txt:
+    return True
+  if '@' not in txt:
+    return False
+  if '.' not in txt:
+    return False
+  return True
+
 def forum_from_url(url):
   assert '/' == url[0]
   path = url[1:]
@@ -168,11 +184,9 @@ def forum_from_url(url):
     (forumurl, rest) = path.split("/", 1)
   else:
     forumurl = path
-  forum = Forum.gql("WHERE url = :1", forumurl)
-  return forum.get()
+  return Forum.gql("WHERE url = :1", forumurl).get()
       
-def forum_root(forum):
-  return "/" + forum.url + "/"
+def forum_root(forum): return "/" + forum.url + "/"
 
 def get_log_in_out(url):
   user = users.get_current_user()
@@ -324,7 +338,8 @@ class TopicListForm(webapp.RequestHandler):
     if not forum or forum.is_disabled:
       return self.redirect("/")
     siteroot = forum_root(forum)
-    topics = Topic.gql("WHERE forum = :1 ORDER BY created_on LIMIT %d" % MAX_TOPICS, forum)
+
+    topics = Topic.gql("WHERE forum = :1 ORDER BY created_on DESC", forum).fetch(MAX_TOPICS)
     #topics = [massage_topic(t) for t in topics]
     tvals = {
       'siteroot' : siteroot,
@@ -346,6 +361,8 @@ class TopicForm(webapp.RequestHandler):
     forum = forum_from_url(self.request.path_info)
     if not forum:
       return self.redirect("/")
+    siteroot = forum_root(forum)
+
     # TODO: write me
 
 # responds to /<forumurl>/rss, returns an RSS feed of recent topics
@@ -353,14 +370,10 @@ class RssFeed(webapp.RequestHandler):
   def get(self):
     forum = forum_from_url(self.request.path_info)
     if not forum:
+      # TODO: return 404?
       return self.redirect("/")
 
     topicid = self.request.get('key')
-
-def is_valid_subject(txt):
-  if not txt:
-    return False
-  return True
 
 # responds to /<forumurl>/post[?topic_key=<topic_key>]
 class PostForm(webapp.RequestHandler):
@@ -368,53 +381,62 @@ class PostForm(webapp.RequestHandler):
     forum = forum_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
+    siteroot = forum_root(forum)
 
     (num1, num2) = (random.randint(1,9), random.randint(1,9))
     tvals = {
-      'siteroot' : forum_root(forum),
+      'siteroot' : siteroot,
       'title' : forum.title or forum.url,
       'tagline' : forum.tagline,
       'sidebar' : forum.sidebar,
-      'rssurl' : forum_root(forum) + "rss",
+      'rssurl' : siteroot + "rss",
       'num1' : num1,
       'num2' : num2,
       'num3' : num1+num2,
-      'captcha_class' : "Captcha",
-      # TODO: get from FofouUser.remember_me
+      # TODO: get from FofouUser.remember_me and also values for name, homepage
+      # if remember me is set to 1
       'prevRemember' : "1",
-      'url_val' : "http://",
-      'log_in_out' : get_log_in_out(forum_root(forum) + "post")
+      'prevUrl' : "http://",
+      "log_in_out" : get_log_in_out(siteroot + "post")
     }
     topic_key = self.request.get('topic_key')
     if topic_key:
       topic = db.get(db.Topic(topic_key))
       if not topic:
-        return self.redirect(forum_root(forum))
-      tvals['topic_key'] = topic_key
-      tvals['topic_subject'] = topic.subject
+        return self.redirect(siteroot)
+      tvals['prevTopicKey'] = topic_key
+      tvals['prevSubject'] = topic.subject
     template_out(self.response, "post.html", tvals)
 
   def post(self):
     forum = forum_from_url(self.request.path_info)
     if not forum:
       return self.redirect("/")
-
     siteroot = forum_root(forum)
+
     if self.request.get('Cancel'):
       self.redirect(siteroot)
 
+    topic_key = self.request.get('TopicKey')
     num1 = self.request.get('num1')
     num2 = self.request.get('num2')
     captcha = self.request.get('Captcha').strip()
     subject = self.request.get('Subject')
-    if subject:
-      subject = subject.strip() # TODO: do I need this?
-    message = self.request.get('Message')
-    remember_me = self.request.get('Remember')
+    if subject: # TODO: do I need to check or can I just subject.strip()
+      subject = subject.strip() 
+    message = self.request.get('Message').strip()
+    remember_me = self.request.get('Remember').strip()
     email = self.request.get('Email').strip()
-    url = self.request.get('Url').strip()
     name = self.request.get('Name').strip()
-    topic_key = self.request.get('Topic')
+    homepage = self.request.get('Url').strip()
+
+    validCaptcha = True
+    try:
+      captcha = int(captcha)
+      num1 = int(num1)
+      num2 = int(num2)
+    except ValueError:
+      validCaptcha = False
 
     tvals = {
       'siteroot' : siteroot,
@@ -424,65 +446,83 @@ class PostForm(webapp.RequestHandler):
       'rssurl' : siteroot + "rss",
       'num1' : num1,
       'num2' : num2,
-      'num3' : int(num1) + int(num2),
-      "prevCaptcha" : cgi.escape(captcha, True),
+      'num3' : num1 + num2,
+      "prevCaptcha" : captcha,
       "prevSubject" : cgi.escape(subject, True),
       "prevMessage" : cgi.escape(message, True),
-      "prevRememberMe" : cgi.escape(remember_me, True),
+      "prevRemember" : cgi.escape(remember_me, True),
       "prevEmail" : cgi.escape(email, True),
-      "prevUrl" : cgi.escape(url, True),
+      "prevUrl" : cgi.escape(homepage, True),
       "prevName" : cgi.escape(name, True),
-      "topic_key" : cgi.escape(topic_key, True),
+      "prevTopicKey" : cgi.escape(topic_key, True),
+      "log_in_out" : get_log_in_out(siteroot + "post")
     }
 
-    validCaptcha = True
-    try:
-      captcha = int(num3)
-      captchaResponse = int(captchaResponse)
-    except ValueError:
-      validCaptcha = False
-
-    if not validCaptcha or (captcha != captchaResponse):
+    # ensure user properly answered math question
+    if not validCaptcha or (captcha != (num1 + num2)):
       tvals['captcha_class'] = "error"
+      return template_out(self.response, "post.html", tvals)
+
+    if remember_me == "1":
+      remember_me = True
+    else:
+      remember_me = False
+
+    # 'http://' is the default value we put, so if unchanged, consider it
+    # as not given at all
+    if homepage == "http://":
+      homepage = ""
+
+    # message cannot be empty
+    if not message:
+      tvals['message_class'] = "error"
+      return template_out(self.response, "post.html", tvals)
+    
+    # name cannot be empty
+    if not name:
+      tvals['name_class'] = "error"
+      return template_out(self.response, "post.html", tvals)
+    
+    if not valid_email(email):
+      tvals['email_class'] = "error"
       return template_out(self.response, "post.html", tvals)
 
     # get user either by google user id or cookie. Create user objects if don't
     # already exist
     user_id = users.get_current_user()
     if user_id:
-      user = FofouUser.gql("WHERE user = :1", user)
+      user = FofouUser.gql("WHERE user = :1", user_id).get()
       if not user:
-        user = FofouUser()
-        user.user = user_id
+        logging.info("Creating new user for '%s'" % str(user_id))
+        user = FofouUser(user=user_id, remember_me = remember_me, email=email, homepage=homepage)
         user.put()
+      else:
+        logging.info("Found existing user for '%s'" % str(user_id))
     else:
-      cookie = get_user_cookie()
-      user = FofouUser.gql("WHERE cookie = :1", cookie)
+      cookie = get_user_cookie()[COOKIE_NAME]
+      user = FofouUser.gql("WHERE cookie = :1", cookie).get()
       if not user:
-        user = FofouUser()
-        user.cookie = cookie
+        logging.info("Creating new user for cookie '%s'" % cookie)
+        user = FofouUser(cookie=cookie, remember_me = remember_me, email=email, homepage=homepage)
         user.put()
+      else:
+        logging.info("Found existing user for cookie '%s'" % cookie)
 
-    if url == "http://":
-      url = ""
-
-    # TODO: handle user names, urls
-    # TODO: update comments count on Topic
     if not topic_key:
-      if not is_valid_subject(subject):
+      if not valid_subject(subject):
         tvals['subject_class'] = "error"
         return template_out(self.response, "post.html", tvals)
-      topic = Topic(subject=subject)
+      topic = Topic(forum=forum, subject=subject)
       topic.put()
     else:
-      assert 0 # not yet handled
-      topic = Model.get_by_key_name(topic_key)
+      topic = db.get(db.Topic(topic_key))
+      assert forum == topic.forum
       topic.ncount += 1
-
-    p = Post(body=msg, topic=topic)
-    p.put()
-    if not topic_key:
       topic.put()
+
+    user_ip = get_remote_ip()
+    p = Post(user=user, user_ip=user_ip, topic=topic, message=message)
+    p.put()
     self.redirect(siteroot)
 
 def main():
