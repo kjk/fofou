@@ -29,7 +29,7 @@
 		{% else %}
 		<div class="topics">
 		{% for topic in topics %}
-			<a href="{{ siteroot }}/topic?key={{ topic.key }}" title="{{ topic.msg_short }}">{{ topic.subject }}</a>
+			<a href="{{ siteroot }}topic?key={{ topic.key }}" title="{{ topic.msg_short }}">{{ topic.subject }}</a>
 			<em>{{ topic.user_name }}</em><span>{{ topic.posts }}</span>
 			<br />
 		{% endfor %}
