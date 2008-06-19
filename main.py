@@ -8,9 +8,7 @@ import logging
 
 # TODO:
 #  - /<forumurl>/topic&key=<key> - finish showing a topic
-#  - handle adding comment to existing topic
 #  - send user cookie
-#  - show list of posts
 #  - /<forumurl>/rss - rss feed
 #  - /<forumurl>/rssall - like /rss but shows all posts, not only when a
 #    new topic is created
