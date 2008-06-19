@@ -58,7 +58,7 @@
 			<tr>
 				<th><label for="Message">Message:</label></th>
 				<td colspan="2">
-					<textarea class="{{ message_class }}" name="Message" id="Message" style="width: 39em;" rows="16" cols="60" wrap="virtual">{{ prevMessage }}</textarea>
+					<textarea class="{{ message_class }}" name="Message" id="Message" style="width: 39em;" rows="16" cols="60" wrap="virtual">{{ prevMessage|escape }}</textarea>
 					<div style="width: 300px;">Don't use HTML. Surround URLs with spaces.</div>
 					&nbsp;
 				</td>
@@ -66,7 +66,7 @@
 			<tr>
 				<th><label for="Name">Full name:</label></th>
 				<td style="width: 29em;">
-					<input class="{{ name_class }}" size="60" maxlength="32" name="Name" id="Name" style="width: 29em;" value="{{ prevName }}" type="edit">
+					<input class="{{ name_class }}" size="60" maxlength="32" name="Name" id="Name" style="width: 29em;" value="{{ prevName|escape }}" type="edit">
 				</td>
 				<td style="width: 10em;">
 					<span class="formCheckBoxPair"><input name="Remember" id="Remember" value="{{ prevRemember }}"  checked type="checkbox"> <label for="Remember">Remember me</label></span>
@@ -77,7 +77,7 @@
 					<label for="Email">Email:</label>
 				</th>
 				<td colspan="2">
-					<input class="{{ email_class }}" size="60" maxlength="64" name="Email" id="Email" style="width: 29em;" value="{{ prevEmail }}" type="edit">
+					<input class="{{ email_class }}" size="60" maxlength="64" name="Email" id="Email" style="width: 29em;" value="{{ prevEmail|escape }}" type="edit">
 					<div style="width: 300px;">Allows other people to email you through our web site. Your address is never revealed.</div>
 					&nbsp;
 				</td>
@@ -87,7 +87,7 @@
 					<label for="Url">Home Page:</label>
 				</th>
 				<td colspan="2">
-					<input class="Url" size="60" maxlength="128" name="Url" id="Url" style="width: 29em;" value="{{ prevUrl }}" type="edit">
+					<input class="Url" size="60" maxlength="128" name="Url" id="Url" style="width: 29em;" value="{{ prevUrl|escape }}" type="edit">
 					&nbsp;
 				</td>
 			</tr>

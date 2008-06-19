@@ -50,21 +50,21 @@
 				<table class="form">
 						<tr>
 							<td>Url</td>
-							<td><input class="{{ urlclass }}" type="edit" size="60" maxlength="60" name="url" value="{{ prevurl }}"></input>
+							<td><input class="{{ urlclass }}" type="edit" size="60" maxlength="60" name="url" value="{{ prevurl|escape }}"></input>
 								<div>{{ errmsg }}</div>
 							</td>
 						</tr>
 						<tr>
 							<td>Title</td>
-							<td><input type="edit" size="60" maxlength="128" name="title" value="{{ prevtitle }}"></input></td>
+							<td><input type="edit" size="60" maxlength="128" name="title" value="{{ prevtitle|escape }}"></input></td>
 						</tr>
 						<tr>
 							<td>Tagline</td>
-							<td><input type="edit" size="60" maxlength="256" name="tagline" value="{{ prevtagline }}"></input></td>
+							<td><input type="edit" size="60" maxlength="256" name="tagline" value="{{ prevtagline|escape }}"></input></td>
 						</tr>
 						<tr>
 							<td valign="top">Sidebar</td>
-							<td><textarea name="sidebar" rows="4" cols="45">{{ prevsidebar }}</textarea></td>
+							<td><textarea name="sidebar" rows="4" cols="45">{{ prevsidebar|escape }}</textarea></td>
 						</tr>
 						<tr>
 							<td></td>

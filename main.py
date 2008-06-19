@@ -226,10 +226,10 @@ class ManageForums(webapp.RequestHandler):
         # TODO: the value is passed in but apparently my form is not in the right form
         # need to figure this out
         'urlclass' : "error",
-        'prevurl' : cgi.escape(url, True),
-        'prevtitle' : cgi.escape(title, True),
-        'prevtagline' : cgi.escape(tagline, True),
-        'prevsidebar' : cgi.escape(sidebar, True),
+        'prevurl' : url,
+        'prevtitle' : title,
+        'prevtagline' : tagline,
+        'prevsidebar' : sidebar,
         'forum_key' : forum_key,
         'errmsg' : "Url contains illegal characters"
       }
@@ -299,10 +299,10 @@ class ManageForums(webapp.RequestHandler):
       if forum and f.key() == forum.key():
         # editing existing forum
         f.no_edit_link = True
-        tvals['prevurl'] = cgi.escape(f.url, True)
-        tvals['prevtitle'] = cgi.escape(f.title, True)
-        tvals['prevtagline'] = cgi.escape(f.tagline, True)
-        tvals['prevsidebar'] = cgi.escape(f.sidebar, True)
+        tvals['prevurl'] = f.url
+        tvals['prevtitle'] = f.title
+        tvals['prevtagline'] = f.tagline
+        tvals['prevsidebar'] = f.sidebar
         tvals['forum_key'] = str(f.key())
       forums.append(f)
     tvals['msg'] = self.request.get('msg')
@@ -487,13 +487,12 @@ class PostForm(webapp.RequestHandler):
       'num3' : num1 + num2,
       "prevCaptcha" : captcha,
       "prevSubject" : subject,
-      # TODO: use |escape in template instead
-      "prevMessage" : cgi.escape(message, True),
-      "prevRemember" : cgi.escape(remember_me, True),
-      "prevEmail" : cgi.escape(email, True),
-      "prevUrl" : cgi.escape(homepage, True),
-      "prevName" : cgi.escape(name, True),
-      "prevTopicKey" : cgi.escape(topic_key, True),
+      "prevMessage" : message,
+      "prevRemember" : remember_me,
+      "prevEmail" : email,
+      "prevUrl" : homepage,
+      "prevName" : name,
+      "prevTopicKey" : topic_key,
       "log_in_out" : get_log_in_out(siteroot + "post")
     }
 
