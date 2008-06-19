@@ -7,6 +7,7 @@ from google.appengine.ext.webapp import template
 import logging
 
 # TODO:
+#  - /<forumurl>/topic&key=<key> - show a topic
 #  - handle adding comment to existing topic
 #  - send user cookie
 #  - show list of posts
@@ -15,9 +16,9 @@ import logging
 #    new topic is created
 #  - /rsscombined - all posts for all forums, for forum admins mostly
 #  - deleting/undeleting a post
-#  - sign-in/out links
 #  - search (using google)
 #  - archives (by month?)
+#  - add javascript from fruitshow.js and use it where appropriate
 #  - use template inheritance to reduce duplication of html
 #  - admin features like blocking users (ip address, cookie, user_id)
 #  - per-forum templates
@@ -362,7 +363,27 @@ class TopicForm(webapp.RequestHandler):
       return self.redirect("/")
     siteroot = forum_root(forum)
 
-    # TODO: write me
+    topic_key = self.request.get('key')
+    if not topic_key:
+      return self.redirect(siteroot)
+    topic = db.get(db.Key(topic_key))
+    if not topic:
+      return self.redirect(siteroot)
+    if topic.is_deleted:
+      # TODO: but not if is admin? (in which case we want to be able to 
+      # undelete the topic). But then again, maybe that should be handled
+      # in topic list view or a separate page that just lists deleted topics
+      return self.redirect(siteroot)
+    
+    tvals = {
+      'siteroot' : siteroot,
+      'title' : forum.title or forum.url,
+      'tagline' : forum.tagline,
+      'sidebar' : forum.sidebar,
+      'subject' : cgi.escape(topic.subject, True),
+      'log_in_out' : get_log_in_out(siteroot)
+      }
+    template_out(self.response, "topic.html", tvals)
 
 # responds to /<forumurl>/rss, returns an RSS feed of recent topics
 class RssFeed(webapp.RequestHandler):
@@ -400,7 +421,7 @@ class PostForm(webapp.RequestHandler):
     }
     topic_key = self.request.get('topic_key')
     if topic_key:
-      topic = db.get(db.Topic(topic_key))
+      topic = db.get(db.Key(topic_key))
       if not topic:
         return self.redirect(siteroot)
       tvals['prevTopicKey'] = topic_key
@@ -514,7 +535,7 @@ class PostForm(webapp.RequestHandler):
       topic = Topic(forum=forum, subject=subject)
       topic.put()
     else:
-      topic = db.get(db.Topic(topic_key))
+      topic = db.get(db.Key(topic_key))
       assert forum == topic.forum
       topic.ncount += 1
       topic.put()
