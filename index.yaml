@@ -10,13 +10,20 @@ indexes:
 # automatically uploaded to the admin console when you next deploy
 # your application using appcfg.py.
 
+# Used once in query history.
+- kind: Post
+  properties:
+  - name: topic
+  - name: created_on
+    direction: desc
+
 # Used 26 times in query history.
 - kind: Topic
   properties:
   - name: forum
   - name: created_on
 
-# Used once in query history.
+# Used 6 times in query history.
 - kind: Topic
   properties:
   - name: forum

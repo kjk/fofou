@@ -49,7 +49,7 @@
 			<tr>
 				<th><label for="Subject">Subject:</label></th>
 				<td colspan="2">
-					<input class="{{ subject_class }}" size="60" maxlength="64" name="Subject" id="Subject" style="width: 39em;" value="{{ prevSubject }}" type="edit">
+					<input class="{{ subject_class }}" size="60" maxlength="64" name="Subject" id="Subject" style="width: 39em;" value="{{ prevSubject|escape }}" type="edit">
 					&nbsp;
 				</td>
 			</tr>

@@ -7,7 +7,7 @@ from google.appengine.ext.webapp import template
 import logging
 
 # TODO:
-#  - /<forumurl>/topic&key=<key> - show a topic
+#  - /<forumurl>/topic&key=<key> - finish showing a topic
 #  - handle adding comment to existing topic
 #  - send user cookie
 #  - show list of posts
@@ -107,6 +107,8 @@ class Post(db.Model):
   topic = db.Reference(Topic, required=True)
   created_on = db.DateTimeProperty(auto_now_add=True)
   message = db.TextProperty(required=True)
+  # admin can delete/undelete posts
+  is_deleted = db.BooleanProperty(default=False)
   # ip address from which this post has been made
   user_ip = db.StringProperty(required=True)
   user = db.Reference(FofouUser, required=True)
@@ -339,8 +341,11 @@ class TopicListForm(webapp.RequestHandler):
       return self.redirect("/")
     siteroot = forum_root(forum)
 
-    topics = Topic.gql("WHERE forum = :1 ORDER BY created_on DESC", forum).fetch(MAX_TOPICS)
-    #topics = [massage_topic(t) for t in topics]
+    if users.is_current_user_admin():
+      topics = Topic.gql("WHERE forum = :1 ORDER BY created_on DESC", forum).fetch(MAX_TOPICS)
+    else:
+      topics = Topic.gql("WHERE forum = :1 AND not is_deleted ORDER BY created_on DESC", forum).fetch(MAX_TOPICS)
+
     tvals = {
       'siteroot' : siteroot,
       'title' : forum.title or forum.url,
@@ -374,13 +379,26 @@ class TopicForm(webapp.RequestHandler):
       # undelete the topic). But then again, maybe that should be handled
       # in topic list view or a separate page that just lists deleted topics
       return self.redirect(siteroot)
-    
+
+    # TODO: decide if is archived
+    is_archived = False
+
+    # 200 is more than generous
+    MAX_POSTS = 200
+    if users.is_current_user_admin():
+      posts = Post.gql("WHERE topic = :1 ORDER BY created_on DESC", topic).fetch(MAX_POSTS)
+    else:
+      posts = Post.gql("WHERE topic = :1 AND not is_deleted ORDER BY created_on DESC", topic).fetch(MAX_POSTS)
+
     tvals = {
       'siteroot' : siteroot,
       'title' : forum.title or forum.url,
       'tagline' : forum.tagline,
       'sidebar' : forum.sidebar,
-      'subject' : cgi.escape(topic.subject, True),
+      'subject' : topic.subject,
+      'posturl' : siteroot + "post?key=" + topic_key,
+      'is_archived' : is_archived,
+      'posts' : posts,
       'log_in_out' : get_log_in_out(siteroot)
       }
     template_out(self.response, "topic.html", tvals)
@@ -395,7 +413,7 @@ class RssFeed(webapp.RequestHandler):
 
     topicid = self.request.get('key')
 
-# responds to /<forumurl>/post[?topic_key=<topic_key>]
+# responds to /<forumurl>/post[?key=<topic_key>]
 class PostForm(webapp.RequestHandler):
   def get(self):
     forum = forum_from_url(self.request.path_info)
@@ -419,7 +437,7 @@ class PostForm(webapp.RequestHandler):
       'prevUrl' : "http://",
       "log_in_out" : get_log_in_out(siteroot + "post")
     }
-    topic_key = self.request.get('topic_key')
+    topic_key = self.request.get('key')
     if topic_key:
       topic = db.get(db.Key(topic_key))
       if not topic:
@@ -468,7 +486,8 @@ class PostForm(webapp.RequestHandler):
       'num2' : num2,
       'num3' : num1 + num2,
       "prevCaptcha" : captcha,
-      "prevSubject" : cgi.escape(subject, True),
+      "prevSubject" : subject,
+      # TODO: use |escape in template instead
       "prevMessage" : cgi.escape(message, True),
       "prevRemember" : cgi.escape(remember_me, True),
       "prevEmail" : cgi.escape(email, True),

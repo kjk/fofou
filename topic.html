@@ -22,7 +22,32 @@
 	</td>
 	<td class="contents">
 		<div class="posts">
-			<h3>{{ subject }}</h3>
+			<h3>{{ subject|escape }}</h3>
+			{% for post in posts %}
+				<div>
+					<div class="">{{ post.message|escape }}</div>
+					<div class="signature">
+					</div>
+				</div>
+			{% endfor %}
+		</div>
+
+		<div class="buttons">
+		{% if is_archived %}
+			<p><i>This topic is archived. No further replies will be accepted.</i></p>
+		{% endif %}
+
+		<a accesskey="t" href="{{ siteroot }}">
+			<img src="/graphics/topics.gif" alt="Other recent topics" border="0" height="14" width="13">
+			Other recent <u>t</u>opics
+		</a>
+
+		{% if not is_archived %}
+		<a accesskey="r" href="{{ posturl }}">
+			<img src="/graphics/edit.gif" alt="Reply to this topic" border="0" height="14" width="13">
+			<u>R</u>eply to this topic
+		</a>
+		{% endif %}
 		</div>
 	</td>
 </tr>
