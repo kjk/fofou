@@ -27,9 +27,9 @@
 		<input name="num1" value="{{ num1 }}" type="hidden">
 		<input name="num2" value="{{ num2 }}" type="hidden">
 
-		{% if topic_key %} 
+		{% if prevTopicKey %} 
 			<input name="TopicKey" value="{{ prevTopicKey }}" type="hidden">
-			<h2>Reply to "{{ topic_subject }}"</h2>
+			<h2>Reply to "{{ prevSubject|escape }}"</h2>
 		{% else %}
 			<h2>New topic</h2>
 		{% endif %}
@@ -39,13 +39,13 @@
 			<tr>
 			<th><label for="Captcha">{{ num1 }} + {{ num2 }} is? (hint: {{ num3 }})</label></th>
 			<td colspan="2">
-				<input class="{{ captcha_class }}" size="60" maxlength="64" name="Captcha" id="Captcha" style="width: 39em;" value="{{ prevCaptcha }}" type="edit">&nbsp;
+				<input class="{{ captcha_class }}" size="60" maxlength="64" name="Captcha" id="Captcha" style="width: 39em;" value="{{ prevCaptcha }}" type="edit">
 					<div>Are you human? (sorry we have to ask). Tell us how much
 					is {{ num1 }} + {{ num2 }} by entering <b>{{ num3 }}</b> above.</div>
 					&nbsp;
 			</td>
 			</tr>
-			{% if not topic_id %} 
+			{% if not prevTopicKey %} 
 			<tr>
 				<th><label for="Subject">Subject:</label></th>
 				<td colspan="2">

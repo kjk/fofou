@@ -555,8 +555,13 @@ class PostForm(webapp.RequestHandler):
       topic.put()
     else:
       topic = db.get(db.Key(topic_key))
-      assert forum == topic.forum
-      topic.ncount += 1
+      if forum.key() != topic.forum.key():
+        logging.info("forum.url      : %s" % forum.url)
+        logging.info("topic.forum.url: %s" % topic.forum.url)
+        logging.info("forum.key      : %s" % str(forum.key()))
+        logging.info("topic.forum.key: %s" % str(topic.forum.key()))
+      assert forum.key() == topic.forum.key()
+      topic.ncomments += 1
       topic.put()
 
     user_ip = get_remote_ip()
