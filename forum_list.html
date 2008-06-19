@@ -19,13 +19,10 @@
 		</p>
 	{% else %}
 		<p>There are no forums created yet.</p>
-		{% if loginurl %}
-			<p>You're not logged in. To create a new forum <a href="{{ loginurl }}">log in</a> as admin.</p>
-		{% else %}
-			<p>You're not an admin so you'll have to wait until an admin creates 
-				a forum.
-			</p>
-		{% endif %}
+	{% endif %}
+
+	{% if not isadmin %}
+		<p>Log in as admin to create or manage forums.</p>
 	{% endif %}
 	<hr>
 	<center>Powered by <a href="http://blog.kowalczyk.info/software/fofou">fofou</a> (<b><font color="blue">Fo</font></b>rums <b><font color="blue">Fo</font></b>r Yo<b><font color="blue">u</font></b>)</center>

@@ -320,10 +320,9 @@ class ForumList(webapp.RequestHandler):
       forums.append(f)
     tvals = {
       'forums' : forums,
+      'isadmin' : users.is_current_user_admin(),
+      'log_in_out' : get_log_in_out("/")
     }
-    user = users.get_current_user()
-    if not user:
-      tvals['loginurl'] = users.create_login_url(self.request.uri)
     template_out(self.response,  "forum_list.html", tvals)
 
 def massage_topic(topic):
