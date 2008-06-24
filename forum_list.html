@@ -14,7 +14,7 @@
 		<p>Available forums:
 			<ul>
 				{% for f in forums %}
-				<li> <a href="/{{ f.url }}"> {{ f.title_or_url }}</a></li>
+				<li> <a href="/{{ f.url }}"> {% firstof f.title f.url %}</a></li>
 				{% endfor %}
 			</ul>
 		</p>

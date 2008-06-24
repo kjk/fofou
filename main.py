@@ -256,6 +256,7 @@ class ManageForums(webapp.RequestHandler):
       }
       return self.render_rest(tvals)
 
+    title_or_url = title or url
     if forum:
       # update existing forum
       forum.url = url
@@ -263,13 +264,11 @@ class ManageForums(webapp.RequestHandler):
       forum.tagline = tagline
       forum.sidebar = sidebar
       forum.put()
-      title_or_url = forum.title or forum.url
       msg = "Forum '%s' has been updated." % title_or_url
     else:
       # create a new forum
       forum = Forum(url=url, title=title, tagline=tagline, sidebar=sidebar)
       forum.put()
-      title_or_url = title or url
       msg = "Forum '%s' has been created." % title_or_url
     url = "/manageforums?msg=%s" % urllib.quote(msg)
     return self.redirect(url)
@@ -309,7 +308,6 @@ class ManageForums(webapp.RequestHandler):
     forumsq = db.GqlQuery("SELECT * FROM Forum")
     forums = []
     for f in forumsq:
-      f.title_or_url = f.title or f.url
       f.edit_url = "/manageforums?forum_key=" + str(f.key())
       if f.is_disabled:
         f.enable_disable_txt = "enable"
@@ -337,11 +335,7 @@ class ForumList(webapp.RequestHandler):
   def get(self):
     if users.is_current_user_admin():
       return self.redirect("/manageforums")
-    forumsq = db.GqlQuery("SELECT * FROM Forum")
-    forums = []
-    for f in forumsq:
-      f.title_or_url = f.title or f.url
-      forums.append(f)
+    forums = db.GqlQuery("SELECT * FROM Forum").fetch()
     tvals = {
       'forums' : forums,
       'isadmin' : users.is_current_user_admin(),
@@ -365,7 +359,6 @@ class TopicListForm(webapp.RequestHandler):
 
     tvals = {
       'siteroot' : siteroot,
-      'title' : forum.title or forum.url,
       'forum' : forum,
       'topics' : topics,
       'log_in_out' : get_log_in_out(siteroot)
@@ -415,7 +408,6 @@ class TopicForm(webapp.RequestHandler):
 
     tvals = {
       'siteroot' : siteroot,
-      'title' : forum.title or forum.url,
       'forum' : forum,
       'topic' : topic,
       'is_admin' : users.is_current_user_admin(),
@@ -446,7 +438,6 @@ class PostForm(webapp.RequestHandler):
     (num1, num2) = (random.randint(1,9), random.randint(1,9))
     tvals = {
       'siteroot' : siteroot,
-      'title' : forum.title or forum.url,
       'forum' : forum,
       'num1' : num1,
       'num2' : num2,
@@ -500,7 +491,6 @@ class PostForm(webapp.RequestHandler):
 
     tvals = {
       'siteroot' : siteroot,
-      'title' : forum.title or forum.url,
       'forum' : forum,
       'num1' : num1,
       'num2' : num2,

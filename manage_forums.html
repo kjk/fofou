@@ -34,7 +34,7 @@
 		Existing forums:
 		<ul>
 			{% for f in forums %}
-			<li> <a href="{{ f.url }}">{{ f.title_or_url }}</a>
+			<li> <a href="{{ f.url }}">{% firstof f.title f.url %}</a>
 				{% if f.no_edit_link %}
 					edit
 				{% else %}
@@ -81,8 +81,8 @@
 	</p>
 	<p><b>Url</b> is part of the forum url. Should be short and a valid url.</p>
 	<p><b>Title</b> is what we show at the top of the forum.</p>
-	<p><b>Tagline</b> is shown in smaller font, under title.</p>
-	<p><b>Sidebar</b> is displayed in the left column. HTML allowed (e.g. for links).</p>
+	<p><b>Tagline</b> is shown in smaller font, under title. HTML allowed (e.g. for links).</p>
+	<p><b>Sidebar</b> is displayed in the left column. HTML allowed.</p>
 	<p>
 	Don't stress about choosing the right values - you can change them later.
 	</p>
