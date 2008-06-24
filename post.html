@@ -27,8 +27,8 @@
 		<input name="num1" value="{{ num1 }}" type="hidden">
 		<input name="num2" value="{{ num2 }}" type="hidden">
 
-		{% if prevTopicKey %} 
-			<input name="TopicKey" value="{{ prevTopicKey }}" type="hidden">
+		{% if prevTopicId %} 
+			<input name="TopicId" value="{{ prevTopicId }}" type="hidden">
 			<h2>Reply to "{{ prevSubject|escape }}"</h2>
 		{% else %}
 			<h2>New topic</h2>
@@ -45,7 +45,7 @@
 					&nbsp;
 			</td>
 			</tr>
-			{% if not prevTopicKey %} 
+			{% if not prevTopicId %} 
 			<tr>
 				<th><label for="Subject">Subject:</label></th>
 				<td colspan="2">

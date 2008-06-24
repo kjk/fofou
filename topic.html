@@ -27,6 +27,13 @@
 				<div>
 					<div class="">{{ post.message|escape }}</div>
 					<div class="signature">
+
+						<a href="{{ permalink }}" title="Permalink" onmouseover="rolloverOn('link', '{{ permalink }}');" onmouseout="rolloverOff();"><img align="right" id="link{{ Fixme }}" src="/graphics/link.jpg" alt="Permalink" border="0" height="16" width="16"></a>
+
+						{% if post.user_email %}
+							<a href="{{ post.user_emailurl }}" title="Send private email" onmouseover="rolloverOn('email', '{{ Fixme }}');" onmouseout="rolloverOff();"><img align="right" id="email{{ Fixme }}" src="/graphics/email.jpg" alt="Send private email" border="0" height="16" width="16"></a>
+						{% endif %}
+						{{ post.user_name|escape }}
 					</div>
 				</div>
 			{% endfor %}

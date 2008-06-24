@@ -10,7 +10,7 @@ indexes:
 # automatically uploaded to the admin console when you next deploy
 # your application using appcfg.py.
 
-# Unused in query history -- copied from input.
+# Used once in query history.
 - kind: Post
   properties:
   - name: topic
@@ -23,7 +23,7 @@ indexes:
   - name: forum
   - name: created_on
 
-# Unused in query history -- copied from input.
+# Used 2 times in query history.
 - kind: Topic
   properties:
   - name: forum

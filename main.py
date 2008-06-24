@@ -43,11 +43,11 @@ import logging
 # /<forum_url>/
 #    index, lists recent topics
 #
-# /<forum_url>/post[?topic_key=<id>]
+# /<forum_url>/post[?id=<id>]
 #    form for creating a new post. if "topic" is present, it's a post in
 #    existing topic, otherwise a post starting a new topic
 #
-# /<forum_url>/topic?<id>&comments=<n>
+# /<forum_url>/topic?id=<id>&n=<comments>
 #    shows posts in a given topic, 'comments' is ignored (just a trick to re-use
 #    browser's history to see if the topic has posts that user didn't see yet
 #
@@ -110,6 +110,12 @@ class Post(db.Model):
   # ip address from which this post has been made
   user_ip = db.StringProperty(required=True)
   user = db.Reference(FofouUser, required=True)
+  # user_name, user_email and user_homepage might be different than
+  # name/homepage/email fields in user object, since they can be changed in
+  # FofouUser
+  user_name = db.StringProperty()
+  user_email = db.StringProperty()
+  user_homepage = db.StringProperty()
 
 # cookie code based on http://code.google.com/p/appengine-utitlies/source/browse/trunk/utilities/session.py
 COOKIE_NAME = "fofou-uid"
@@ -325,10 +331,6 @@ class ForumList(webapp.RequestHandler):
       'log_in_out' : get_log_in_out("/")
     }
     template_out(self.response,  "forum_list.html", tvals)
-
-def massage_topic(topic):
-  topic.key_str = str(topic.key())
-  return topic
   
 # responds to /<forumurl>/, shows a list of recent topics
 class TopicListForm(webapp.RequestHandler):
@@ -357,7 +359,7 @@ class TopicListForm(webapp.RequestHandler):
     }
     template_out(self.response,  "topic_list.html", tvals)
 
-# responds to /<forumurl>/topic?key=<key>
+# responds to /<forumurl>/topic?id=<id>
 class TopicForm(webapp.RequestHandler):
 
   def get(self):
@@ -366,12 +368,14 @@ class TopicForm(webapp.RequestHandler):
       return self.redirect("/")
     siteroot = forum_root(forum)
 
-    topic_key = self.request.get('key')
-    if not topic_key:
+    topic_id = self.request.get('id')
+    if not topic_id:
       return self.redirect(siteroot)
-    topic = db.get(db.Key(topic_key))
+
+    topic = db.get(db.Key.from_path('Topic', int(topic_id)))
     if not topic:
       return self.redirect(siteroot)
+
     if topic.is_deleted:
       # TODO: but not if is admin? (in which case we want to be able to 
       # undelete the topic). But then again, maybe that should be handled
@@ -388,15 +392,24 @@ class TopicForm(webapp.RequestHandler):
     else:
       posts = Post.gql("WHERE topic = :1 AND not is_deleted ORDER BY created_on DESC", topic).fetch(MAX_POSTS)
 
+    permalink = siteroot + "topic?id=" + topic_id
+    if topic.ncomments > 0:
+      permalink += "&n=" + str(topic.ncomments)
+
+    for p in posts:
+      p.user_name = p.user.name
+      p.user_email = p.user.email
+
     tvals = {
       'siteroot' : siteroot,
       'title' : forum.title or forum.url,
       'tagline' : forum.tagline,
       'sidebar' : forum.sidebar,
       'subject' : topic.subject,
-      'posturl' : siteroot + "post?key=" + topic_key,
+      'posturl' : siteroot + "post?id=" + topic_id,
       'is_archived' : is_archived,
       'posts' : posts,
+      'permalink' : permalink,
       'log_in_out' : get_log_in_out(siteroot)
       }
     template_out(self.response, "topic.html", tvals)
@@ -409,9 +422,7 @@ class RssFeed(webapp.RequestHandler):
       # TODO: return 404?
       return self.redirect("/")
 
-    topicid = self.request.get('key')
-
-# responds to /<forumurl>/post[?key=<topic_key>]
+# responds to /<forumurl>/post[?id=<topic_id>]
 class PostForm(webapp.RequestHandler):
   def get(self):
     forum = forum_from_url(self.request.path_info)
@@ -435,12 +446,12 @@ class PostForm(webapp.RequestHandler):
       'prevUrl' : "http://",
       "log_in_out" : get_log_in_out(siteroot + "post")
     }
-    topic_key = self.request.get('key')
-    if topic_key:
-      topic = db.get(db.Key(topic_key))
+    topic_id = self.request.get('id')
+    if topic_id:
+      topic = db.get(db.Key.from_path('Topic', int(topic_id)))
       if not topic:
         return self.redirect(siteroot)
-      tvals['prevTopicKey'] = topic_key
+      tvals['prevTopicId'] = topic_id
       tvals['prevSubject'] = topic.subject
     template_out(self.response, "post.html", tvals)
 
@@ -453,7 +464,7 @@ class PostForm(webapp.RequestHandler):
     if self.request.get('Cancel'):
       self.redirect(siteroot)
 
-    topic_key = self.request.get('TopicKey')
+    topic_id = self.request.get('TopicId')
     num1 = self.request.get('num1')
     num2 = self.request.get('num2')
     captcha = self.request.get('Captcha').strip()
@@ -490,7 +501,7 @@ class PostForm(webapp.RequestHandler):
       "prevEmail" : email,
       "prevUrl" : homepage,
       "prevName" : name,
-      "prevTopicKey" : topic_key,
+      "prevTopicId" : topic_id,
       "log_in_out" : get_log_in_out(siteroot + "post")
     }
 
@@ -530,7 +541,7 @@ class PostForm(webapp.RequestHandler):
       user = FofouUser.gql("WHERE user = :1", user_id).get()
       if not user:
         logging.info("Creating new user for '%s'" % str(user_id))
-        user = FofouUser(user=user_id, remember_me = remember_me, email=email, homepage=homepage)
+        user = FofouUser(user=user_id, remember_me = remember_me, email=email, name=name, homepage=homepage)
         user.put()
       else:
         logging.info("Found existing user for '%s'" % str(user_id))
@@ -539,19 +550,19 @@ class PostForm(webapp.RequestHandler):
       user = FofouUser.gql("WHERE cookie = :1", cookie).get()
       if not user:
         logging.info("Creating new user for cookie '%s'" % cookie)
-        user = FofouUser(cookie=cookie, remember_me = remember_me, email=email, homepage=homepage)
+        user = FofouUser(cookie=cookie, remember_me = remember_me, email=email, name=name, homepage=homepage)
         user.put()
       else:
         logging.info("Found existing user for cookie '%s'" % cookie)
 
-    if not topic_key:
+    if not topic_id:
       if not valid_subject(subject):
         tvals['subject_class'] = "error"
         return template_out(self.response, "post.html", tvals)
       topic = Topic(forum=forum, subject=subject)
       topic.put()
     else:
-      topic = db.get(db.Key(topic_key))
+      topic = db.get(db.Key.from_path('Topic', int(topic_id)))
       if forum.key() != topic.forum.key():
         logging.info("forum.url      : %s" % forum.url)
         logging.info("topic.forum.url: %s" % topic.forum.url)
@@ -562,7 +573,7 @@ class PostForm(webapp.RequestHandler):
       topic.put()
 
     user_ip = get_remote_ip()
-    p = Post(user=user, user_ip=user_ip, topic=topic, message=message)
+    p = Post(user=user, user_ip=user_ip, topic=topic, message=message, user_name = name, user_email = email, user_homepage = homepage)
     p.put()
     self.redirect(siteroot)
 
