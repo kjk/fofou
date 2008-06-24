@@ -14,12 +14,12 @@
 	<td colspan="2" class="header">
 		<div>
 			<h1><a href="{{ siteroot }}" class="green">{{ title }}</a></h1>
-			<p>{{ tagline }}</p>
+			<p>{{ forum.tagline }}</p>
 		</div>
 	</td>
 </tr>
 <tr>
-	<td class="sidebar">{{ sidebar}}
+	<td class="sidebar">{{ forum.sidebar}}
 	</td>
 	<td class="contents">
 		<div class="posts">
@@ -34,13 +34,14 @@
 		// -->
 		</script>
 
-			<h3>{{ subject|escape }}</h3>
+			<h3>{{ topic.subject|escape }}</h3>
 			{% for post in posts %}
 				<div>
-					<div class="">{{ post.message|escape }}</div>
+					<a name="{{ post.key.id }}"</a>
+					<div class="post">{{ post.message|escape }}</div>
 					<div class="signature">
 
-						<a href="{{ permalink }}" title="Permalink" onmouseover="rolloverOn('link', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="link{{ post.key.id }}" src="/graphics/link.jpg" alt="Permalink" border="0" height="16" width="16"></a>
+						<a href="{{ siteroot }}topic?id={{ topic.key.id }}#{{ post.key.id }}" title="Permalink" onmouseover="rolloverOn('link', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="link{{ post.key.id }}" src="/graphics/link.jpg" alt="Permalink" border="0" height="16" width="16"></a>
 
 						{% if post.user_email %}
 							<a href="{{ Fixme }}" title="Send private email" onmouseover="rolloverOn('email', '{{ post.key.id }}');" onmouseout="rolloverOff();"><img align="right" id="email{{ post.key.id }}" src="/graphics/email.jpg" alt="Send private email" border="0" height="16" width="16"></a>
@@ -52,7 +53,11 @@
 								<a href="{{ siteroot }}moderate?del={{ post.key.id }}&ret={{ Fixme }}" title="Delete Post" onmouseover="rolloverOn('delete', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="delete{{ post.key.id }}" src="/graphics/delete.jpg" width="16" height="16" border="0" /></a>
 							{% endif %}
 						{% endif %}
-						{{ post.user_name|escape }}
+						{% if post.user_homepage %}
+							<a href="{{ post.user_homepage }}">{{ post.user_name|escape }}</a>
+						{% else %}
+							{{ post.user_name|escape }}
+						{% endif %}
 						<span class="noIE">&nbsp;</span><br />
 						{{ post.posted_on_str }}
 					</div>
@@ -71,7 +76,7 @@
 		</a>
 
 		{% if not is_archived %}
-		<a accesskey="r" href="{{ posturl }}">
+		<a accesskey="r" href="{{ siteroot }}post?id={{ topic.key.id }}">
 			<img src="/graphics/edit.gif" alt="Reply to this topic" border="0" height="14" width="13">
 			<u>R</u>eply to this topic
 		</a>

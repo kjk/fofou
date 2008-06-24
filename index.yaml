@@ -15,6 +15,12 @@ indexes:
   properties:
   - name: topic
   - name: created_on
+
+# Used 34 times in query history.
+- kind: Post
+  properties:
+  - name: topic
+  - name: created_on
     direction: desc
 
 # Unused in query history -- copied from input.
@@ -23,7 +29,7 @@ indexes:
   - name: forum
   - name: created_on
 
-# Used 2 times in query history.
+# Used 9 times in query history.
 - kind: Topic
   properties:
   - name: forum

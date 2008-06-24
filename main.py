@@ -7,6 +7,7 @@ from google.appengine.ext.webapp import template
 import logging
 
 # TODO must have:
+#  - after posting to existing topic, redirect to topic?id=<id> url
 #  - /<forumurl>/topic&key=<key> - finish showing a topic
 #  - send user cookie
 #    new topic is created
@@ -48,7 +49,7 @@ import logging
 #    form for creating a new post. if "topic" is present, it's a post in
 #    existing topic, otherwise a post starting a new topic
 #
-# /<forum_url>/topic?id=<id>&n=<comments>
+# /<forum_url>/topic?id=<id>&comments=<comments>
 #    shows posts in a given topic, 'comments' is ignored (just a trick to re-use
 #    browser's history to see if the topic has posts that user didn't see yet
 #
@@ -354,7 +355,6 @@ class TopicListForm(webapp.RequestHandler):
       'sidebar' : forum.sidebar,
       'posturl' : siteroot + "post",
       'archiveurl' : siteroot + "archive",
-      'rssurl' : siteroot + "rss",
       'topics' : topics,
       'log_in_out' : get_log_in_out(siteroot)
     }
@@ -389,30 +389,25 @@ class TopicForm(webapp.RequestHandler):
     # 200 is more than generous
     MAX_POSTS = 200
     if users.is_current_user_admin():
-      posts = Post.gql("WHERE topic = :1 ORDER BY created_on DESC", topic).fetch(MAX_POSTS)
+      posts = Post.gql("WHERE topic = :1 ORDER BY created_on", topic).fetch(MAX_POSTS)
     else:
-      posts = Post.gql("WHERE topic = :1 AND not is_deleted ORDER BY created_on DESC", topic).fetch(MAX_POSTS)
-
-    permalink = siteroot + "topic?id=" + topic_id
-    if topic.ncomments > 0:
-      permalink += "&n=" + str(topic.ncomments)
+      posts = Post.gql("WHERE topic = :1 AND not is_deleted ORDER BY created_on", topic).fetch(MAX_POSTS)
 
     for p in posts:
-      # TODO: %d isn't as good as jS ("23" vs. "23rd" etc.)
       # <?= tzdate('F jS, Y g:ia', $postRow->PostedOn); ?>
+      # which is gmdate(format, max(0, $date-$_COOKIE['TZ'])) or date(format, date)
+      # TODO: %d isn't as good as jS ("23" vs. "23rd" etc.)
+      # TODO: if 'TZ' cookie is set, use it
       p.posted_on_str = p.created_on.strftime("%B %d, %Y %I:%M%p")
 
     tvals = {
       'siteroot' : siteroot,
       'title' : forum.title or forum.url,
-      'tagline' : forum.tagline,
-      'sidebar' : forum.sidebar,
-      'subject' : topic.subject,
-      'posturl' : siteroot + "post?id=" + topic_id,
+      'forum' : forum,
+      'topic' : topic,
       'is_admin' : users.is_current_user_admin(),
       'is_archived' : is_archived,
       'posts' : posts,
-      'permalink' : permalink,
       'log_in_out' : get_log_in_out(siteroot)
       }
     template_out(self.response, "topic.html", tvals)
@@ -439,15 +434,14 @@ class PostForm(webapp.RequestHandler):
       'title' : forum.title or forum.url,
       'tagline' : forum.tagline,
       'sidebar' : forum.sidebar,
-      'rssurl' : siteroot + "rss",
       'num1' : num1,
       'num2' : num2,
-      'num3' : num1+num2,
+      'num3' : int(num1) + int(num2),
       # TODO: get from FofouUser.remember_me and also values for name, homepage
       # if remember me is set to 1
       'prevRemember' : "1",
       'prevUrl' : "http://",
-      "log_in_out" : get_log_in_out(siteroot + "post")
+      'log_in_out' : get_log_in_out(siteroot + "post")
     }
     topic_id = self.request.get('id')
     if topic_id:
@@ -493,10 +487,9 @@ class PostForm(webapp.RequestHandler):
       'title' : forum.title or forum.url,
       'tagline' : forum.tagline,
       'sidebar' : forum.sidebar,
-      'rssurl' : siteroot + "rss",
       'num1' : num1,
       'num2' : num2,
-      'num3' : num1 + num2,
+      'num3' : int(num1) + int(num2),
       "prevCaptcha" : captcha,
       "prevSubject" : subject,
       "prevMessage" : message,
@@ -578,7 +571,10 @@ class PostForm(webapp.RequestHandler):
     user_ip = get_remote_ip()
     p = Post(user=user, user_ip=user_ip, topic=topic, message=message, user_name = name, user_email = email, user_homepage = homepage)
     p.put()
-    self.redirect(siteroot)
+    if topic_id:
+      self.redirect(siteroot + "topic?id" + topic_id)
+    else:
+      self.redirect(siteroot )
 
 def main():
   application = webapp.WSGIApplication(

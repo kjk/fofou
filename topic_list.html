@@ -4,7 +4,7 @@
 	<title>{{ title }}</title>
 	<link href="/fofou.css" rel="stylesheet" type="text/css">
 	<script language="javascript" src="/fofou.js" type="text/javascript"></script>
-	<link type="application/rss+xml" rel="alternate" title="Discussion Group" href="{{ rssurl }}">
+	<link type="application/rss+xml" rel="alternate" title="Discussion Group" href="{{ siteroot }}rss">
 </head>
 
 <body>
@@ -16,7 +16,7 @@
 		<div>
 			<h1><a href="{{ siteroot }}" class="green">{{ title }}</a></h1>
 			<p>{{ tagline }}</p>
-			<a href="{{ rssurl }}" title="RSS feed"><img src="/graphics/rss.gif" alt="RSS feed" align="right" valign="middle" border="0" height="14" width="36"></a><br />
+			<a href="{{ siteroot }}rss" title="RSS feed"><img src="/graphics/rss.gif" alt="RSS feed" align="right" valign="middle" border="0" height="14" width="36"></a><br />
 		</div>
 	</td>
 </tr>
@@ -30,7 +30,7 @@
 		{% else %}
 		<div class="topics">
 		{% for topic in topics %}
-			<a href="{{ siteroot }}topic?id={{ topic.key.id }}{% if topic.ncomments%}&n=topic.ncomments{% endif %}" title="{{ topic.msg_short }}">{{ topic.subject }}</a>
+			<a href="{{ siteroot }}topic?id={{ topic.key.id }}{% if topic.ncomments %}&comments={{ topic.ncomments }}{% endif %}" title="{{ topic.msg_short }}">{{ topic.subject }}</a>
 			<em>{{ topic.user_name }}</em><span>{{ topic.posts }}</span>
 			<br />
 		{% endfor %}
