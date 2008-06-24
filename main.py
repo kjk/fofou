@@ -7,7 +7,8 @@ from google.appengine.ext.webapp import template
 import logging
 
 # TODO must have:
-#  - send user cookie
+#  - verify user cookie is sent properly
+#  - honor 'remember me' option via cookies
 #  - search (using google)
 #  - archives (by month?)
 #  - import posts from a file (good enough to import fruitshow forums)
@@ -121,17 +122,15 @@ class Post(db.Model):
   user_homepage = db.StringProperty()
 
 # cookie code based on http://code.google.com/p/appengine-utitlies/source/browse/trunk/utilities/session.py
-COOKIE_NAME = "fofou-uid"
-COOKIE_PATH = "/"
+FOFOU_COOKIE = "fofou-uid"
 COOKIE_EXPIRE_TIME = 60*60*24*120 # valid for 60*60*24*120 seconds => 120 days
-HTTP_COOKIE_HDR = "HTTP_COOKIE"
 
 def get_user_agent(): return os.environ['HTTP_USER_AGENT']
 def get_remote_ip(): return os.environ['REMOTE_ADDR']
 
 def get_inbound_cookie():
   c = Cookie.SimpleCookie()
-  cstr = os.environ.get(HTTP_COOKIE_HDR, '')
+  cstr = os.environ.get('HTTP_COOKIE', '')
   c.load(cstr)
   return c
 
@@ -145,14 +144,24 @@ def valid_user_cookie(c):
     return False
   return True
 
-def get_user_cookie():
-  c = get_inbound_cookie()
-  if (COOKIE_NAME not in c) or not valid_user_cookie(c[COOKIE_NAME]):
-    c[COOKIE_NAME] = new_user_id()
-    c[COOKIE_NAME]['path'] = COOKIE_PATH
-    c[COOKIE_NAME]['expires'] = COOKIE_EXPIRE_TIME
+# returns either a FOFOU_COOKIE sent by the browser or a newly created cookie
+def get_fofou_cookie():
+  cookies = get_inbound_cookie()
+  for cookieName in cookies.keys():
+    if FOFOU_COOKIE != cookieName:
+      del cookies[cookieName]
+  if (FOFOU_COOKIE not in cookies) or not valid_user_cookie(cookies[FOFOU_COOKIE]):
+    cookies[FOFOU_COOKIE] = new_user_id()
+    cookies[FOFOU_COOKIE]['path'] = '/'
+    cookies[FOFOU_COOKIE]['expires'] = COOKIE_EXPIRE_TIME
   # TODO: maybe should validate cookie if exists, the way appengine-utilities does
-  return c
+  return cookies
+
+g_fofou_cookie = None
+# remember cookie so that we can send it when we render a template
+def send_fofou_cookie():
+  global g_fofou_cookie
+  g_fofou_cookie = get_fofou_cookie()
 
 g_anonUser = None
 def anonUser():
@@ -163,6 +172,11 @@ def anonUser():
 
 def template_out(response, template_name, template_values):
   response.headers['Content-Type'] = 'text/html'
+  if g_fofou_cookie:
+    # a hack extract the cookie part from the whole "Set-Cookie: val" header
+    c = str(g_fofou_cookie)
+    c = c.split(": ", 1)[1]
+    response.headers["Set-Cookie"] = c
   path = os.path.join(os.path.dirname(__file__), template_name)
   response.out.write(template.render(path, template_values))
 
@@ -356,6 +370,7 @@ class TopicListForm(webapp.RequestHandler):
       'topics' : topics,
       'log_in_out' : get_log_in_out(siteroot)
     }
+    send_fofou_cookie()
     template_out(self.response,  "topic_list.html", tvals)
 
 # responds to /<forumurl>/topic?id=<id>
@@ -408,6 +423,7 @@ class TopicForm(webapp.RequestHandler):
       'posts' : posts,
       'log_in_out' : get_log_in_out(siteroot)
       }
+    send_fofou_cookie()
     template_out(self.response, "topic.html", tvals)
 
 # responds to /<forumurl>/rss, returns an RSS feed of recent topics
@@ -425,6 +441,7 @@ class PostForm(webapp.RequestHandler):
     if not forum or forum.is_disabled:
       return self.redirect("/")
     siteroot = forum_root(forum)
+    send_fofou_cookie()
 
     (num1, num2) = (random.randint(1,9), random.randint(1,9))
     tvals = {
@@ -457,6 +474,8 @@ class PostForm(webapp.RequestHandler):
 
     if self.request.get('Cancel'):
       self.redirect(siteroot)
+
+    send_fofou_cookie()
 
     topic_id = self.request.get('TopicId')
     num1 = self.request.get('num1')
@@ -538,7 +557,7 @@ class PostForm(webapp.RequestHandler):
       else:
         logging.info("Found existing user for '%s'" % str(user_id))
     else:
-      cookie = get_user_cookie()[COOKIE_NAME]
+      cookie = get_fofou_cookie()[FOFOU_COOKIE]
       user = FofouUser.gql("WHERE cookie = :1", cookie).get()
       if not user:
         logging.info("Creating new user for cookie '%s'" % cookie)
@@ -570,7 +589,7 @@ class PostForm(webapp.RequestHandler):
     if topic_id:
       self.redirect(siteroot + "topic?id" + topic_id)
     else:
-      self.redirect(siteroot )
+      self.redirect(siteroot)
 
 def main():
   application = webapp.WSGIApplication(
