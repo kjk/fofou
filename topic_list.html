@@ -15,14 +15,14 @@
 	<td colspan="2" class="header">
 		<div>
 			<h1><a href="{{ siteroot }}" class="green">{{ title }}</a></h1>
-			<p>{{ tagline }}</p>
+			<p>{{ forum.tagline }}</p>
 			<a href="{{ siteroot }}rss" title="RSS feed"><img src="/graphics/rss.gif" alt="RSS feed" align="right" valign="middle" border="0" height="14" width="36"></a><br />
 		</div>
 	</td>
 </tr>
 <tr>
 	<td class="sidebar">
-		{{ sidebar }}
+		{{ forum.sidebar }}
 	</td>
 	<td class="contents">
 		{% if not topics %}
@@ -37,8 +37,8 @@
 		</div>
 		{% endif %}
 		<div class="buttons">
-		<a accesskey="n" href="{{ posturl }}"><img src="/graphics/new.gif" alt="New topic" border="0" height="14" width="13"> <u>N</u>ew topic</a>
-		<a accesskey="t" href="{{ archiveurl }}"><img src="/graphics/archive.gif" alt="Older topics" border="0" height="14" width="13"> Older <u>t</u>opics</a>
+		<a accesskey="n" href="{{ siteroot }}post"><img src="/graphics/new.gif" alt="New topic" border="0" height="14" width="13"> <u>N</u>ew topic</a>
+		<a accesskey="t" href="{{ siteroot }}archive"><img src="/graphics/archive.gif" alt="Older topics" border="0" height="14" width="13"> Older <u>t</u>opics</a>
 		</div>
 	</td>
 </tr>

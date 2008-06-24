@@ -351,10 +351,7 @@ class TopicListForm(webapp.RequestHandler):
     tvals = {
       'siteroot' : siteroot,
       'title' : forum.title or forum.url,
-      'tagline' : forum.tagline,
-      'sidebar' : forum.sidebar,
-      'posturl' : siteroot + "post",
-      'archiveurl' : siteroot + "archive",
+      'forum' : forum,
       'topics' : topics,
       'log_in_out' : get_log_in_out(siteroot)
     }
@@ -432,8 +429,7 @@ class PostForm(webapp.RequestHandler):
     tvals = {
       'siteroot' : siteroot,
       'title' : forum.title or forum.url,
-      'tagline' : forum.tagline,
-      'sidebar' : forum.sidebar,
+      'forum' : forum,
       'num1' : num1,
       'num2' : num2,
       'num3' : int(num1) + int(num2),
@@ -485,8 +481,7 @@ class PostForm(webapp.RequestHandler):
     tvals = {
       'siteroot' : siteroot,
       'title' : forum.title or forum.url,
-      'tagline' : forum.tagline,
-      'sidebar' : forum.sidebar,
+      'forum' : forum,
       'num1' : num1,
       'num2' : num2,
       'num3' : int(num1) + int(num2),
