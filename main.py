@@ -6,26 +6,27 @@ from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
 import logging
 
-# TODO:
+# TODO must have:
 #  - /<forumurl>/topic&key=<key> - finish showing a topic
 #  - send user cookie
-#  - /<forumurl>/rss - rss feed
-#  - /<forumurl>/rssall - like /rss but shows all posts, not only when a
 #    new topic is created
-#  - /rsscombined - all posts for all forums, for forum admins mostly
-#  - deleting/undeleting a post
+#  - /<forumurl>/moderate?del|undel=<postId>&ret=<returnUrl>
+#  - allow html in tagline (for links)
 #  - search (using google)
 #  - archives (by month?)
-#  - add javascript from fruitshow.js and use it where appropriate
-#  - use template inheritance to reduce duplication of html
-#  - admin features like blocking users (ip address, cookie, user_id)
-#  - per-forum templates
 #  - import posts from a file (good enough to import fruitshow forums)
 #  - email form
-#  - figure out why spacing between sections is so small (and fix it)
 #  - write a web page for fofou
 #  - hookup sumatra forums at fofou.org
 #  - handle 'older topics' button
+# TODO less urgent:
+#  - /<forumurl>/rss - rss feed
+#  - /<forumurl>/rssall - like /rss but shows all posts, not only when a
+#  - /rsscombined - all posts for all forums, for forum admins mostly
+#  - admin features like blocking users (ip address, cookie, user_id)
+#  - per-forum templates
+#  - use template inheritance to reduce duplication of html
+#  - figure out why spacing between sections is so small (and fix it)
 # Maybe:
 #  - cookie validation
 #  - alternative forms of integration with a wesite (iframe? return data
@@ -397,8 +398,9 @@ class TopicForm(webapp.RequestHandler):
       permalink += "&n=" + str(topic.ncomments)
 
     for p in posts:
-      p.user_name = p.user.name
-      p.user_email = p.user.email
+      # TODO: %d isn't as good as jS ("23" vs. "23rd" etc.)
+      # <?= tzdate('F jS, Y g:ia', $postRow->PostedOn); ?>
+      p.posted_on_str = p.created_on.strftime("%B %d, %Y %I:%M%p")
 
     tvals = {
       'siteroot' : siteroot,
@@ -407,6 +409,7 @@ class TopicForm(webapp.RequestHandler):
       'sidebar' : forum.sidebar,
       'subject' : topic.subject,
       'posturl' : siteroot + "post?id=" + topic_id,
+      'is_admin' : users.is_current_user_admin(),
       'is_archived' : is_archived,
       'posts' : posts,
       'permalink' : permalink,

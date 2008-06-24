@@ -8,6 +8,10 @@ handlers:
   static_files: fofou.css
   upload: fofou.css
 
+- url: /fofou.js
+  static_files: fofou.js
+  upload: fofou.jss
+
 - url: /graphics
   static_dir: graphics
 
