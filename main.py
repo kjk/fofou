@@ -7,19 +7,17 @@ from google.appengine.ext.webapp import template
 import logging
 
 # TODO must have:
-#  - after posting to existing topic, redirect to topic?id=<id> url
-#  - /<forumurl>/topic&key=<key> - finish showing a topic
 #  - send user cookie
-#    new topic is created
-#  - /<forumurl>/moderate?del|undel=<postId>&ret=<returnUrl>
-#  - allow html in tagline (for links)
 #  - search (using google)
 #  - archives (by month?)
 #  - import posts from a file (good enough to import fruitshow forums)
-#  - email form
 #  - write a web page for fofou
 #  - hookup sumatra forums at fofou.org
 #  - handle 'older topics' button
+#  - determine is_archived
+#  - /<forumurl>/email?postId=<id>
+#  - /<forumurl>/moderate?del|undel=<postId>&ret=<returnUrl>
+#  - after posting to existing topic, redirect to topic?id=<id> url
 # TODO less urgent:
 #  - /<forumurl>/rss - rss feed
 #  - /<forumurl>/rssall - like /rss but shows all posts, not only when a
@@ -52,6 +50,9 @@ import logging
 # /<forum_url>/topic?id=<id>&comments=<comments>
 #    shows posts in a given topic, 'comments' is ignored (just a trick to re-use
 #    browser's history to see if the topic has posts that user didn't see yet
+#
+# /<forum_url>/moderate?del=<postId>&ret=<url>
+# /<forum_url>/moderate?undel=<postId>&ret=<url>
 #
 # /<forum_url>/rss
 #    rss feed for first post in the topic (default)
