@@ -308,13 +308,13 @@ class ManageForums(webapp.RequestHandler):
     forumsq = db.GqlQuery("SELECT * FROM Forum")
     forums = []
     for f in forumsq:
-      f.edit_url = "/manageforums?forum_key=" + str(f.key())
+      edit_url = "/manageforums?forum_key=" + str(f.key())
       if f.is_disabled:
         f.enable_disable_txt = "enable"
-        f.enable_disable_url = f.edit_url + "&enable=yes"
+        f.enable_disable_url = edit_url + "&enable=yes"
       else:
         f.enable_disable_txt = "disable"
-        f.enable_disable_url = f.edit_url + "&disable=yes"      
+        f.enable_disable_url = edit_url + "&disable=yes"      
       if forum and f.key() == forum.key():
         # editing existing forum
         f.no_edit_link = True

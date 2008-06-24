@@ -38,7 +38,7 @@
 				{% if f.no_edit_link %}
 					edit
 				{% else %}
-				<a href="{{ f.edit_url }}">edit</a>
+				  <a href="/manageforums?forum_key={{ f.key }}">edit</a>
 				{% endif %}
 				&nbsp;<a href="{{ f.enable_disable_url }}">{{ f.enable_disable_txt }}</a></li>
 			{% endfor %}
