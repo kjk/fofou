@@ -577,7 +577,7 @@ class PostForm(webapp.RequestHandler):
     p = Post(user=user, user_ip=user_ip, topic=topic, message=message, user_name = name, user_email = email, user_homepage = homepage)
     p.put()
     if topic_id:
-      self.redirect(siteroot + "topic?id" + topic_id)
+      self.redirect(siteroot + "topic?id=" + topic_id)
     else:
       self.redirect(siteroot)
 
