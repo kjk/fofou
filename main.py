@@ -335,7 +335,8 @@ class ForumList(webapp.RequestHandler):
   def get(self):
     if users.is_current_user_admin():
       return self.redirect("/manageforums")
-    forums = db.GqlQuery("SELECT * FROM Forum").fetch()
+    MAX_FORUMS = 256 # if you need more, tough
+    forums = db.GqlQuery("SELECT * FROM Forum").fetch(MAX_FORUMS)
     tvals = {
       'forums' : forums,
       'isadmin' : users.is_current_user_admin(),
@@ -346,16 +347,16 @@ class ForumList(webapp.RequestHandler):
 # responds to /<forumurl>/, shows a list of recent topics
 class TopicListForm(webapp.RequestHandler):
   def get(self):
-    MAX_TOPICS = 25
     forum = forum_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
     siteroot = forum_root(forum)
 
+    MAX_TOPICS = 25
     if users.is_current_user_admin():
       topics = Topic.gql("WHERE forum = :1 ORDER BY created_on DESC", forum).fetch(MAX_TOPICS)
     else:
-      topics = Topic.gql("WHERE forum = :1 AND not is_deleted ORDER BY created_on DESC", forum).fetch(MAX_TOPICS)
+      topics = Topic.gql("WHERE forum = :1 AND is_deleted = False ORDER BY created_on DESC", forum).fetch(MAX_TOPICS)
 
     tvals = {
       'siteroot' : siteroot,
