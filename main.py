@@ -7,8 +7,6 @@ from google.appengine.ext.webapp import template
 import logging
 
 # TODO must have:
-#  - verify user cookie is sent properly
-#  - honor 'remember me' option via cookies
 #  - search (using google)
 #  - archives (by month?)
 #  - import posts from a file (good enough to import fruitshow forums)
@@ -142,26 +140,36 @@ def valid_user_cookie(c):
   # cookie should always be a hex-encoded sha1 checksum
   if len(c) != 40:
     return False
+  # TODO: check that user with that cookie exists, the way appengine-utilities does
   return True
 
+g_fofou_cookie = None
 # returns either a FOFOU_COOKIE sent by the browser or a newly created cookie
 def get_fofou_cookie():
+  global g_fofou_cookie
+  if g_fofou_cookie:
+    return g_fofou_cookie
   cookies = get_inbound_cookie()
   for cookieName in cookies.keys():
     if FOFOU_COOKIE != cookieName:
       del cookies[cookieName]
-  if (FOFOU_COOKIE not in cookies) or not valid_user_cookie(cookies[FOFOU_COOKIE]):
+  if (FOFOU_COOKIE not in cookies) or not valid_user_cookie(cookies[FOFOU_COOKIE].value):
     cookies[FOFOU_COOKIE] = new_user_id()
     cookies[FOFOU_COOKIE]['path'] = '/'
     cookies[FOFOU_COOKIE]['expires'] = COOKIE_EXPIRE_TIME
-  # TODO: maybe should validate cookie if exists, the way appengine-utilities does
-  return cookies
+  g_fofou_cookie = cookies[FOFOU_COOKIE]
+  return g_fofou_cookie
 
-g_fofou_cookie = None
+def get_fofou_cookie_val():
+  c = get_fofou_cookie()
+  return c.value
+
+g_fofou_set_cookie = None
 # remember cookie so that we can send it when we render a template
 def send_fofou_cookie():
-  global g_fofou_cookie
-  g_fofou_cookie = get_fofou_cookie()
+  global g_fofou_set_cookie
+  if not g_fofou_set_cookie:
+    g_fofou_set_cookie = get_fofou_cookie()
 
 g_anonUser = None
 def anonUser():
@@ -172,9 +180,9 @@ def anonUser():
 
 def template_out(response, template_name, template_values):
   response.headers['Content-Type'] = 'text/html'
-  if g_fofou_cookie:
+  if g_fofou_set_cookie:
     # a hack extract the cookie part from the whole "Set-Cookie: val" header
-    c = str(g_fofou_cookie)
+    c = str(g_fofou_set_cookie)
     c = c.split(": ", 1)[1]
     response.headers["Set-Cookie"] = c
   path = os.path.join(os.path.dirname(__file__), template_name)
@@ -364,7 +372,6 @@ class TopicListForm(webapp.RequestHandler):
       'topics' : topics,
       'log_in_out' : get_log_in_out(siteroot)
     }
-    send_fofou_cookie()
     template_out(self.response,  "topic_list.html", tvals)
 
 # responds to /<forumurl>/topic?id=<id>
@@ -398,7 +405,7 @@ class TopicForm(webapp.RequestHandler):
     if users.is_current_user_admin():
       posts = Post.gql("WHERE topic = :1 ORDER BY created_on", topic).fetch(MAX_POSTS)
     else:
-      posts = Post.gql("WHERE topic = :1 AND not is_deleted ORDER BY created_on", topic).fetch(MAX_POSTS)
+      posts = Post.gql("WHERE topic = :1 AND is_deleted = False ORDER BY created_on", topic).fetch(MAX_POSTS)
 
     for p in posts:
       # <?= tzdate('F jS, Y g:ia', $postRow->PostedOn); ?>
@@ -415,8 +422,7 @@ class TopicForm(webapp.RequestHandler):
       'is_archived' : is_archived,
       'posts' : posts,
       'log_in_out' : get_log_in_out(siteroot)
-      }
-    send_fofou_cookie()
+    }
     template_out(self.response, "topic.html", tvals)
 
 # responds to /<forumurl>/rss, returns an RSS feed of recent topics
@@ -427,8 +433,27 @@ class RssFeed(webapp.RequestHandler):
       # TODO: return 404?
       return self.redirect("/")
 
+def get_fofou_user():
+  # get user either by google user id or cookie
+  user_id = users.get_current_user()
+  user = None
+  if user_id:
+    user = FofouUser.gql("WHERE user = :1", user_id).get()
+    if user:
+      logging.info("Found existing user for by user_id '%s'" % str(user_id))
+  else:
+    cookie = get_fofou_cookie_val()
+    if cookie:
+      user = FofouUser.gql("WHERE cookie = :1", cookie).get()
+      if user:
+        logging.info("Found existing user for cookie '%s'" % cookie)
+      else:
+        logging.info("Didn't find user for cookie '%s'" % cookie)
+  return user
+
 # responds to /<forumurl>/post[?id=<topic_id>]
 class PostForm(webapp.RequestHandler):
+
   def get(self):
     forum = forum_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
@@ -436,6 +461,18 @@ class PostForm(webapp.RequestHandler):
     siteroot = forum_root(forum)
     send_fofou_cookie()
 
+    rememberChecked = ""
+    prevUrl = "http://"
+    prevEmail = ""
+    prevName = ""
+    user = get_fofou_user()
+    if user and user.remember_me:
+      rememberChecked = "checked"
+      prevUrl = user.homepage
+      if not prevUrl:
+        prevUrl = "http://"
+      prevName = user.name
+      prevEmail = user.email
     (num1, num2) = (random.randint(1,9), random.randint(1,9))
     tvals = {
       'siteroot' : siteroot,
@@ -443,10 +480,10 @@ class PostForm(webapp.RequestHandler):
       'num1' : num1,
       'num2' : num2,
       'num3' : int(num1) + int(num2),
-      # TODO: get from FofouUser.remember_me and also values for name, homepage
-      # if remember me is set to 1
-      'prevRemember' : "1",
-      'prevUrl' : "http://",
+      'rememberChecked' : rememberChecked,
+      'prevUrl' : prevUrl,
+      'prevEmail' : prevEmail,
+      'prevName' : prevName,
       'log_in_out' : get_log_in_out(siteroot + "post")
     }
     topic_id = self.request.get('id')
@@ -478,6 +515,15 @@ class PostForm(webapp.RequestHandler):
       subject = subject.strip() 
     message = self.request.get('Message').strip()
     remember_me = self.request.get('Remember').strip()
+    logging.info("Remember me is: '%s'" % remember_me)
+    if remember_me == "":
+      remember_me = False
+    else:
+      remember_me = True
+
+    rememberChecked = ""
+    if remember_me:
+      rememberChecked = "checked"
     email = self.request.get('Email').strip()
     name = self.request.get('Name').strip()
     homepage = self.request.get('Url').strip()
@@ -499,7 +545,7 @@ class PostForm(webapp.RequestHandler):
       "prevCaptcha" : captcha,
       "prevSubject" : subject,
       "prevMessage" : message,
-      "prevRemember" : remember_me,
+      "rememberChecked" : rememberChecked,
       "prevEmail" : email,
       "prevUrl" : homepage,
       "prevName" : name,
@@ -511,11 +557,6 @@ class PostForm(webapp.RequestHandler):
     if not validCaptcha or (captcha != (num1 + num2)):
       tvals['captcha_class'] = "error"
       return template_out(self.response, "post.html", tvals)
-
-    if remember_me == "1":
-      remember_me = True
-    else:
-      remember_me = False
 
     # 'http://' is the default value we put, so if unchanged, consider it
     # as not given at all
@@ -538,6 +579,7 @@ class PostForm(webapp.RequestHandler):
 
     # get user either by google user id or cookie. Create user objects if don't
     # already exist
+    existing_user = False
     user_id = users.get_current_user()
     if user_id:
       user = FofouUser.gql("WHERE user = :1", user_id).get()
@@ -546,16 +588,36 @@ class PostForm(webapp.RequestHandler):
         user = FofouUser(user=user_id, remember_me = remember_me, email=email, name=name, homepage=homepage)
         user.put()
       else:
+        existing_user = True
         logging.info("Found existing user for '%s'" % str(user_id))
     else:
-      cookie = get_fofou_cookie()[FOFOU_COOKIE]
+      cookie = get_fofou_cookie_val()
       user = FofouUser.gql("WHERE cookie = :1", cookie).get()
       if not user:
         logging.info("Creating new user for cookie '%s'" % cookie)
         user = FofouUser(cookie=cookie, remember_me = remember_me, email=email, name=name, homepage=homepage)
         user.put()
       else:
+        existing_user = True
         logging.info("Found existing user for cookie '%s'" % cookie)
+
+    if existing_user:
+      need_update = False
+      if user.remember_me != remember_me:
+        user.remember_me = remember_me
+        need_update = True
+      if user.email != email:
+        user.email = email
+        need_update = True
+      if user.name != name:
+        user.name = name
+        need_update = True
+      if user.homepage != homepage:
+        user.homepage = homepage
+        need_update = True
+      if need_update:
+        logging.info("User needed an update")
+        user.put()
 
     if not topic_id:
       if not valid_subject(subject):
