@@ -1,4 +1,4 @@
-import os, string, Cookie, sha, time, random, cgi, urllib
+import os, string, Cookie, sha, time, random, cgi, urllib, datetime
 import wsgiref.handlers
 from google.appengine.ext import db
 from google.appengine.api import users
@@ -7,14 +7,11 @@ from google.appengine.ext.webapp import template
 import logging
 
 # TODO must have:
-#  - figure out why fofou looks different than fruitshow
-#  - fix layout of search box
 #  - import posts from a file (good enough to import fruitshow forums)
 #  - archives (by month?)
 #  - write a web page for fofou
 #  - hookup sumatra forums at fofou.org
 #  - handle 'older topics' button
-#  - determine is_archived
 #  - /<forumurl>/email?postId=<id>
 #  - /<forumurl>/moderate?del|undel=<postId>&ret=<returnUrl>
 #  - after posting to existing topic, redirect to topic?id=<id> url
@@ -25,7 +22,7 @@ import logging
 #  - admin features like blocking users (ip address, cookie, user_id)
 #  - per-forum templates
 #  - use template inheritance to reduce duplication of html
-#  - figure out why spacing between sections is so small (and fix it)
+#  - use ajax google search ui 
 # Maybe:
 #  - cookie validation
 #  - alternative forms of integration with a wesite (iframe? return data
@@ -102,6 +99,9 @@ class Topic(db.Model):
   created_by = db.StringProperty()
   # just in case, not used
   updated_on = db.DateTimeProperty(auto_now=True)
+  # True if first Post in this topic is deleted. Updated on deletion/undeletion
+  # of the topic
+  is_deleted = db.BooleanProperty(default=False)
   # ncomments is redundant but is faster than always quering count of Posts
   ncomments = db.IntegerProperty(default=0)
 
@@ -445,8 +445,12 @@ class TopicForm(webapp.RequestHandler):
       # in topic list view or a separate page that just lists deleted topics
       return self.redirect(siteroot)
 
-    # TODO: decide if is archived
     is_archived = False
+    now = datetime.datetime.now()
+    week = datetime.timedelta(days=7)
+    #week = datetime.timedelta(seconds=7)
+    if now > topic.created_on + week:
+      is_archived = True
 
     # 200 is more than generous
     MAX_POSTS = 200

@@ -23,8 +23,6 @@
 	<td class="sidebar">{{ forum.sidebar}}
 	</td>
 	<td class="contents">
-		<div class="posts">
-
 		<script language="javascript" type="text/javascript">
 		<!--
 		rolloverInit('link', '/graphics/link_over.jpg');
@@ -34,11 +32,11 @@
 		rolloverInit('undo', '/graphics/undo_over.jpg');
 		// -->
 		</script>
-
+		<div class="posts">
 			<h3>{{ topic.subject|escape }}</h3>
 			{% for post in posts %}
-				<div>
 					<a name="{{ post.key.id }}"</a>
+				<div>
 					<div class="post">{{ post.message|escape }}</div>
 					<div class="signature">
 
@@ -64,24 +62,24 @@
 					</div>
 				</div>
 			{% endfor %}
-		</div>
 
-		<div class="buttons">
-		{% if is_archived %}
-			<p><i>This topic is archived. No further replies will be accepted.</i></p>
-		{% endif %}
+			<div class="buttons">
+				{% if is_archived %}
+					<p><i>This topic is archived. No further replies will be accepted.</i></p>
+				{% endif %}
 
-		<a accesskey="t" href="{{ siteroot }}">
-			<img src="/graphics/topics.gif" alt="Other recent topics" border="0" height="14" width="13">
-			Other recent <u>t</u>opics
-		</a>
+				<a accesskey="t" href="{{ siteroot }}">
+					<img src="/graphics/topics.gif" alt="Other recent topics" border="0" height="14" width="13">
+					Other recent <u>t</u>opics
+				</a>
 
-		{% if not is_archived %}
-		<a accesskey="r" href="{{ siteroot }}post?id={{ topic.key.id }}">
-			<img src="/graphics/edit.gif" alt="Reply to this topic" border="0" height="14" width="13">
-			<u>R</u>eply to this topic
-		</a>
-		{% endif %}
+				{% if not is_archived %}
+				<a accesskey="r" href="{{ siteroot }}post?id={{ topic.key.id }}">
+					<img src="/graphics/edit.gif" alt="Reply to this topic" border="0" height="14" width="13">
+					<u>R</u>eply to this topic
+				</a>
+				{% endif %}
+			</div>
 		</div>
 	</td>
 </tr>
