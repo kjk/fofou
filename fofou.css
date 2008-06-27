@@ -12,8 +12,10 @@ body {
 	padding:			0; /* needed for Opera */
 	font-family:		Tahoma,Arial,Helvetica,sans-serif;    
 	font-size:			12px;
-	margin:1em 1em 0em;
-	padding:0pt;
+	margin-left:		1em;
+	margin-top:			1em;
+	margin-right:		1em;	
+	margin-bottom:		0em;
 }
 
 form { margin: 0px; padding: 0px; }
@@ -23,17 +25,13 @@ a:visited {	color: purple; }
 /* To hide things from IE */
 .noIE { _display: none; }
 
-#tbTop {
-	text-align:right;
-}
-
 /*******************************************************************************
  * Header, footer, and body table
  ******************************************************************************/
 
 .header div {
 	color: #ffe;
-	/*margin: 0 0 10 0;*/
+	margin: 0 0 10 0;
 	border: 0;
 	height: 60px;
 	padding: 0px 5px 0px 5px;
@@ -169,11 +167,6 @@ span.formCheckBoxPair label { float: left; margin-top: 3px;	_margin-top: 4px; co
 	font-weight:		bold;
 	color:				#FF0000;
 	vertical-align:		top;
-}
-
-div.manageforumsmsg {
-  color: #ff0000;
-  text-align: center;
 }
 
 /*******************************************************************************
@@ -323,3 +316,13 @@ div.searchBox input.button {
 	width:				30px;
 	margin-left:		4px; 
 }
+
+#tbTop {
+	text-align:right;
+}
+
+div.manageforumsmsg {
+  color: #ff0000;
+  text-align: center;
+}
+

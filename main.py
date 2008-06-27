@@ -7,11 +7,9 @@ from google.appengine.ext.webapp import template
 import logging
 
 # TODO must have:
-#  - show poster name and comment count in topic_list.html
+#  - figure out why fofou looks different than fruitshow
 #  - fix layout of search box
 #  - import posts from a file (good enough to import fruitshow forums)
-#  - determine topic.is_deleted (when deleting a post, delete a topic if all
-#    posts are deleted. when undeleting a post - undelete a topic (if deleted))
 #  - archives (by month?)
 #  - write a web page for fofou
 #  - hookup sumatra forums at fofou.org
@@ -32,6 +30,7 @@ import logging
 #  - cookie validation
 #  - alternative forms of integration with a wesite (iframe? return data
 #    as json and do most of the rendering using javascrip?)
+#  - combine Topic/Post into one object (Post)
 
 # Structure of urls:
 #
@@ -103,8 +102,6 @@ class Topic(db.Model):
   created_by = db.StringProperty()
   # just in case, not used
   updated_on = db.DateTimeProperty(auto_now=True)
-  # admin can delete (and then undelete) topics
-  is_deleted = db.BooleanProperty(default=False)
   # ncomments is redundant but is faster than always quering count of Posts
   ncomments = db.IntegerProperty(default=0)
 
@@ -113,7 +110,8 @@ class Post(db.Model):
   topic = db.Reference(Topic, required=True)
   created_on = db.DateTimeProperty(auto_now_add=True)
   message = db.TextProperty(required=True)
-  # admin can delete/undelete posts
+  # admin can delete/undelete posts. If first post in a topic is deleted,
+  # that means the topic is deleted as well
   is_deleted = db.BooleanProperty(default=False)
   # ip address from which this post has been made
   user_ip = db.StringProperty(required=True)
@@ -124,6 +122,26 @@ class Post(db.Model):
   user_name = db.StringProperty()
   user_email = db.StringProperty()
   user_homepage = db.StringProperty()
+
+"""class PostTopic(db.Model):
+  forum = db.Reference(Forum, required=True)
+  first_post = db.Reference(Post)
+  subject = db.StringProperty(required=True)
+  created_on = db.DateTimeProperty(auto_now_add=True)
+  message = db.TextProperty(required=True)
+  # admin can delete/undelete posts. If first post in a topic is deleted,
+  # that means the topic is deleted as well
+  is_deleted = db.BooleanProperty(default=False)
+  # ip address from which this post has been made
+  user_ip = db.StringProperty(required=True)
+  user = db.Reference(FofouUser, required=True)
+  # user_name, user_email and user_homepage might be different than
+  # name/homepage/email fields in user object, since they can be changed in
+  # FofouUser
+  user_name = db.StringProperty()
+  user_email = db.StringProperty()
+  user_homepage = db.StringProperty()
+  ncomments = db.IntegerProperty()"""
 
 # cookie code based on http://code.google.com/p/appengine-utitlies/source/browse/trunk/utilities/session.py
 FOFOU_COOKIE = "fofou-uid"

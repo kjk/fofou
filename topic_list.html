@@ -8,7 +8,7 @@
 </head>
 
 <body>
-<div id="tbTop"> {{ log_in_out }} </div>
+{# <div id="tbTop"> {{ log_in_out }} </div> #}
 <table>
 <tbody>
 <tr>
@@ -16,8 +16,8 @@
 		<div>
 			<h1><a href="{{ siteroot }}" class="green">{% firstof forum.title forum.url %}</a></h1>
 			<p>{{ forum.tagline }}</p>
-			<a href="{{ siteroot }}rss" title="RSS feed"><img src="/graphics/rss.gif" alt="RSS feed" align="right" valign="middle" border="0" height="14" width="36"></a><br />
 		</div>
+		<a href="{{ siteroot }}rss" title="RSS feed"><img src="/graphics/rss.gif" alt="RSS feed" align="right" valign="middle" border="0" height="14" width="36"></a><br />
 	</td>
 </tr>
 <tr>
@@ -34,10 +34,10 @@
 					</tr>
 					<tr>
 						<td>
-								<input type="hidden" name="IncludeBlogs" value="1" />
-								<input type="hidden" name="as_sitesearch" value="{{ siteurl }}" />
+								<input type="hidden" name="IncludeBlogs" value="1">
+								<input type="hidden" name="as_sitesearch" value="{{ siteurl }}">
 						</td>
-						<td><input id="search" name="q" class="txt" type="text"></td>
+						<td><input name="q" id="search" value="" type="text"></td>
 						<td><input class="button" value="Go" type="submit">&nbsp;</td>
 					</tr>
 				</tbody>
@@ -50,8 +50,11 @@
 		{% else %}
 		{% for topic in topics %}
 			<a href="{{ siteroot }}topic?id={{ topic.key.id }}{% if topic.ncomments %}&comments={{ topic.ncomments }}{% endif %}" title="{{ topic.msg_short }}">{{ topic.subject }}</a>
-			<em>{{ topic.created_by }}</em> <span>({{ topic.ncomments }})</span>
+			<em>{{ topic.created_by }}</em> <span>({{ topic.ncomments }} {% if forloop.first %} comment{{ topic.ncomments|pluralize }}{% endif %})</span>
 			<br />
+			{% if not forloop.first %}
+				<div class="dateline"></div>
+			{% endif %}
 		{% endfor %}
 		</div>
 		{% endif %}
