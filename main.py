@@ -7,6 +7,7 @@ from google.appengine.ext.webapp import template
 import logging
 
 # TODO must have:
+#  - show poster name and comment count in topic_list.html
 #  - fix layout of search box
 #  - import posts from a file (good enough to import fruitshow forums)
 #  - determine topic.is_deleted (when deleting a post, delete a topic if all
@@ -97,6 +98,9 @@ class Topic(db.Model):
   forum = db.Reference(Forum, required=True)
   subject = db.StringProperty(required=True)
   created_on = db.DateTimeProperty(auto_now_add=True)
+  # name of person who created the topic. Duplicates Post.user_name
+  # of the first post in this topic, for speed
+  created_by = db.StringProperty()
   # just in case, not used
   updated_on = db.DateTimeProperty(auto_now=True)
   # admin can delete (and then undelete) topics
@@ -225,7 +229,10 @@ def forum_root(forum): return "/" + forum.url + "/"
 def get_log_in_out(url):
   user = users.get_current_user()
   if user:
-    return "Welcome, %s! <a href=\"%s\">Log out</a>" % (user.nickname(), users.create_logout_url(url))
+    if users.is_current_user_admin():
+      return "Welcome admin, %s! <a href=\"%s\">Log out</a>" % (user.nickname(), users.create_logout_url(url))
+    else:
+      return "Welcome, %s! <a href=\"%s\">Log out</a>" % (user.nickname(), users.create_logout_url(url))
   else:
     return "<a href=\"%s\">Log in or register</a>" % users.create_login_url(url)    
 
@@ -429,13 +436,6 @@ class TopicForm(webapp.RequestHandler):
       posts = Post.gql("WHERE topic = :1 ORDER BY created_on", topic).fetch(MAX_POSTS)
     else:
       posts = Post.gql("WHERE topic = :1 AND is_deleted = False ORDER BY created_on", topic).fetch(MAX_POSTS)
-
-    for p in posts:
-      # <?= tzdate('F jS, Y g:ia', $postRow->PostedOn); ?>
-      # which is gmdate(format, max(0, $date-$_COOKIE['TZ'])) or date(format, date)
-      # TODO: %d isn't as good as jS ("23" vs. "23rd" etc.)
-      # TODO: if 'TZ' cookie is set, use it
-      p.posted_on_str = p.created_on.strftime("%B %d, %Y %I:%M%p")
 
     tvals = {
       'siteroot' : siteroot,
@@ -643,10 +643,11 @@ class PostForm(webapp.RequestHandler):
         user.put()
 
     if not topic_id:
+      # first post in a topic, so create the topic
       if not valid_subject(subject):
         tvals['subject_class'] = "error"
         return template_out(self.response, "post.html", tvals)
-      topic = Topic(forum=forum, subject=subject)
+      topic = Topic(forum=forum, subject=subject, created_by=name)
       topic.put()
     else:
       topic = db.get(db.Key.from_path('Topic', int(topic_id)))

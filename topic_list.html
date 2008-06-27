@@ -50,7 +50,7 @@
 		{% else %}
 		{% for topic in topics %}
 			<a href="{{ siteroot }}topic?id={{ topic.key.id }}{% if topic.ncomments %}&comments={{ topic.ncomments }}{% endif %}" title="{{ topic.msg_short }}">{{ topic.subject }}</a>
-			<em>{{ topic.user_name }}</em><span>{{ topic.posts }}</span>
+			<em>{{ topic.created_by }}</em> <span>({{ topic.ncomments }})</span>
 			<br />
 		{% endfor %}
 		</div>

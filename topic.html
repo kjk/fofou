@@ -59,7 +59,7 @@
 							{{ post.user_name|escape }}
 						{% endif %}
 						<span class="noIE">&nbsp;</span><br />
-						{{ post.posted_on_str }}
+						{{ post.created_on|date:"F jS, Y g:ia" }}
 					</div>
 				</div>
 			{% endfor %}
