@@ -1,3 +1,4 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
 <head>
 	<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
@@ -5,89 +6,82 @@
 	<link href="/fofou.css" rel="stylesheet" type="text/css">
 	<script language="javascript" src="/fofou.js" type="text/javascript"></script>
 </head>
-
 <body>
 <table>
 <tbody>
+	<tr>
+		<td colspan="2" class="header">
+			<div>
+				<h1><a href="{{ siteroot }}" class="green">This is forum title</a></h1>
+				<p>This is forum tagline.</p>
+			</div>
+		</td>
+	</tr>
+	<tr>
+		<td class="sidebar">{{ forum.sidebar}}
+		This is forum sidebar.
+		</td>
+		<td class="contents">
+			<p>Welcome to <b><font color="blue">Fo</font></b>rums <b><font color="blue">Fo</font></b>r Yo<b><font color="blue">u</font></b>!</p>
+			{% if msg %}<div class="manageforumsmsg">{{ msg }}</div>{% endif %}
 
-<tr>
-	<td colspan="2" class="header">
-		<div>
-			<h1><a href="{{ siteroot }}" class="green">{{ title }}</a></h1>
-			<p>{{ forum.tagline }}</p>
-		</div>
-	</td>
-</tr>
-<tr>
-	<td class="sidebar">{{ forum.sidebar}}
-	</td>
-	<td class="contents">
-
-
-	<p>Welcome to <b><font color="blue">Fo</font></b>rums <b><font color="blue">Fo</font></b>r Yo<b><font color="blue">u</font></b>!</p>
-	{% if msg %}<div class="manageforumsmsg">{{ msg }}</div>{% endif %}
-
-	<p>
-		{% if not forums %}
-		You haven't created any forums yet.
-		{% else %}
-		Existing forums:
-		<ul>
-			{% for f in forums %}
-			<li> <a href="{{ f.url }}">{% firstof f.title f.url %}</a>
-				{% if f.no_edit_link %}
-					edit
+			<p>
+				{% if not forums %}
+				You haven't created any forums yet.
 				{% else %}
-				  <a href="/manageforums?forum_key={{ f.key }}">edit</a>
+				Existing forums:
+				<ul>
+					{% for f in forums %}
+					<li> <a href="{{ f.url }}">{% firstof f.title f.url %}</a>
+						{% if f.no_edit_link %}
+							edit
+						{% else %}
+						  <a href="/manageforums?forum_key={{ f.key }}">edit</a>
+						{% endif %}
+						&nbsp;<a href="{{ f.enable_disable_url }}">{{ f.enable_disable_txt }}</a></li>
+					{% endfor %}
+				</ul>
 				{% endif %}
-				&nbsp;<a href="{{ f.enable_disable_url }}">{{ f.enable_disable_txt }}</a></li>
-			{% endfor %}
-		</ul>
-		{% endif %}
-	</p>
-	<p>Create a new forum:</p>
-
-				<form action="/manageforums" method="post">
-				<table class="form">
-						<tr>
-							<td>Url</td>
-							<td><input class="{{ urlclass }}" type="edit" size="60" maxlength="60" name="url" value="{{ prevurl|escape }}"></input>
-								<div>{{ errmsg }}</div>
-							</td>
-						</tr>
-						<tr>
-							<td>Title</td>
-							<td><input type="edit" size="60" maxlength="128" name="title" value="{{ prevtitle|escape }}"></input></td>
-						</tr>
-						<tr>
-							<td>Tagline</td>
-							<td><input type="edit" size="60" maxlength="256" name="tagline" value="{{ prevtagline|escape }}"></input></td>
-						</tr>
-						<tr>
-							<td valign="top">Sidebar</td>
-							<td><textarea name="sidebar" rows="4" cols="45">{{ prevsidebar|escape }}</textarea></td>
-						</tr>
-						<tr>
-							<td></td>
-							{% if forum_key %}
-								<input type="hidden" value="{{ forum_key }}" name="forum_key">
-								<td align="right"><input type="submit" value="Update forum"></td>
-							{% else %}
-								<td align="right"><input type="submit" value="Create forum"></td>
-							{% endif %}
-						</tr>
-				</table>
-				</form>
-	</p>
-	<p><b>Url</b> is part of the forum url. Should be short and a valid url.</p>
-	<p><b>Title</b> is what we show at the top of the forum.</p>
-	<p><b>Tagline</b> is shown in smaller font, under title. HTML allowed (e.g. for links).</p>
-	<p><b>Sidebar</b> is displayed in the left column. HTML allowed.</p>
-	<p>
-	Don't stress about choosing the right values - you can change them later.
-	</p>
-	</td>
-</tr>
+			</p>
+			<p>Create a new forum:</p>
+			<form action="/manageforums" method="post">
+			<table class="form">
+					<tr>
+						<td>Url</td>
+						<td><input class="{{ urlclass }}" type="edit" size="60" maxlength="60" name="url" value="{{ prevurl|escape }}"></input>
+							<div>{{ errmsg }}</div>
+						</td>
+					</tr>
+					<tr>
+						<td>Title</td>
+						<td><input type="edit" size="60" maxlength="128" name="title" value="{{ prevtitle|escape }}"></input></td>
+					</tr>
+					<tr>
+						<td>Tagline</td>
+						<td><input type="edit" size="60" maxlength="256" name="tagline" value="{{ prevtagline|escape }}"></input></td>
+					</tr>
+					<tr>
+						<td valign="top">Sidebar</td>
+						<td><textarea name="sidebar" rows="4" cols="45">{{ prevsidebar|escape }}</textarea></td>
+					</tr>
+					<tr>
+						<td></td>
+						{% if forum_key %}
+							<input type="hidden" value="{{ forum_key }}" name="forum_key">
+							<td align="right"><input type="submit" value="Update forum"></td>
+						{% else %}
+							<td align="right"><input type="submit" value="Create forum"></td>
+						{% endif %}
+					</tr>
+			</table>
+			</form>
+			<p><b>Url</b> is part of the forum url. Should be short and a valid url.</p>
+			<p><b>Title</b> is what we show at the top of the forum.</p>
+			<p><b>Tagline</b> is shown in smaller font, under title. HTML allowed (e.g. for links).</p>
+			<p><b>Sidebar</b> is displayed in the left column. HTML allowed.</p>
+			<p>Don't stress about choosing the right values - you can change them later.</p>
+		</td>
+	</tr>
 </tbody>
 </table>
 <hr>
