@@ -15,8 +15,8 @@ import logging
 #  - /<forumurl>/email?postId=<id>
 #  - /<forumurl>/moderate?del|undel=<postId>&ret=<returnUrl>
 #  - after posting to existing topic, redirect to topic?id=<id> url
-# TODO less urgent:
 #  - /<forumurl>/rss - rss feed
+# TODO less urgent:
 #  - /<forumurl>/rssall - like /rss but shows all posts, not only when a
 #  - /rsscombined - all posts for all forums, for forum admins mostly
 #  - admin features like blocking users (ip address, cookie, user_id)
