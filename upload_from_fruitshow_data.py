@@ -13,18 +13,23 @@ def main():
   fo = bz2.BZ2File(PICKLED_DATA_FILE_NAME, "r")
   data = pickle.load(fo)
   fo.close()
-  topics = data["topics"]
-  posts = data["posts"]
+  all_topics = data["topics"]
+  all_posts = data["posts"]
   topic_posts = data["topic_posts"]
-  print("%d topics" % len(topics))
-  print("%d posts" % len(posts))
+  print("%d topics" % len(all_topics))
+  print("%d posts" % len(all_posts))
   print("%d topic_posts" % len(topic_posts))
 
-  for topic in topics:
+  for topic in all_topics:
     topic_id = topic[TOPIC_ID]
     topic_first_post = topic[TOPIC_FIRST_POST]
     subject = topic[TOPIC_SUBJECT]
     print("Subject: '%s'" % subject)
+    post_ids = [p[TP_POST_ID] for p in topic_posts if topic_id == p[TP_TOPIC_ID]]
+    print post_ids
+    posts = [p for p in all_posts if p[POST_ID] in post_ids]
+    print posts
+    break
 
 if __name__ == "__main__":
   main()
