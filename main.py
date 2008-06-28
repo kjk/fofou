@@ -12,12 +12,12 @@ import logging
 #  - write a web page for fofou
 #  - hookup sumatra forums at fofou.org
 #  - handle 'older topics' button
-#  - /<forumurl>/email?postId=<id>
 #  - /<forumurl>/moderate?del|undel=<postId>&ret=<returnUrl>
 #  - after posting to existing topic, redirect to topic?id=<id> url
 #  - /<forumurl>/rss - rss feed
-# TODO less urgent:
 #  - /<forumurl>/rssall - like /rss but shows all posts, not only when a
+# TODO less urgent:
+#  - /<forumurl>/email?postId=<id>
 #  - /rsscombined - all posts for all forums, for forum admins mostly
 #  - admin features like blocking users (ip address, cookie, user_id)
 #  - per-forum templates

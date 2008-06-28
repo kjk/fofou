@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import MySQLdb, csv
+import MySQLdb, bz2, pickle, os.path
 
 # set the database connection properties
 user = ""
@@ -63,14 +63,27 @@ def get_topics(): return get_from_query("SELECT * From Topic")
 def get_posts(): return get_from_query("SELECT * From Post")
 def get_topic_posts(): return get_from_query("SELECT * FROM TopicPost")
 
+PICKLED_DATA_FILE_NAME = "fruitshow_posts.dat.bz2"
+
 def main():
+  if os.path.exists(PICKLED_DATA_FILE_NAME):
+    print "File %s already exists" % PICKLED_DATA_FILE_NAME
+    return
   topics = get_topics()
   posts = get_posts()
   topic_posts = get_topic_posts()
+  conn_close()
+  data = {}
+  data["topics"] = topics
+  data["posts"] = posts
+  data["topic_posts"] = topic_posts
   print("%d topics" % len(topics))
   print("%d posts" % len(posts))
   print("%d topic_posts" % len(topic_posts))
-  conn_close()
+  fo = bz2.BZ2File(PICKLED_DATA_FILE_NAME, "w")
+  pickle.dump(data, fo)
+  fo.close()
+  print("Pickled fruitshow data to file '%s'" % PICKLED_DATA_FILE_NAME)
 
 if __name__ == "__main__":
   main()
