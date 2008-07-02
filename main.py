@@ -4,6 +4,7 @@ from google.appengine.ext import db
 from google.appengine.api import users
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
+from django.utils import feedgenerator
 import logging
 
 # TODO must have:
@@ -12,10 +13,13 @@ import logging
 #  - write a web page for fofou
 #  - hookup sumatra forums at fofou.org
 #  - handle 'older topics' button
+#  - change /<forumurl>/post?id=<post_id>&<rest> to /<forumurl>/post/<post_id>?<rest>
+#    (to make parsing results of ajax google search simpler)
 #  - /<forumurl>/moderate?del|undel=<postId>&ret=<returnUrl>
 #  - after posting to existing topic, redirect to topic?id=<id> url
 #  - /<forumurl>/rss - rss feed
 #  - /<forumurl>/rssall - like /rss but shows all posts, not only when a
+#  - support for google analytics code
 # TODO less urgent:
 #  - /<forumurl>/email?postId=<id>
 #  - /rsscombined - all posts for all forums, for forum admins mostly
@@ -399,7 +403,7 @@ class ForumList(webapp.RequestHandler):
       'log_in_out' : get_log_in_out("/")
     }
     template_out(self.response,  "forum_list.html", tvals)
-  
+
 # responds to /<forumurl>/, shows a list of recent topics
 class TopicListForm(webapp.RequestHandler):
   def get(self):
@@ -472,11 +476,32 @@ class TopicForm(webapp.RequestHandler):
 
 # responds to /<forumurl>/rss, returns an RSS feed of recent topics
 class RssFeed(webapp.RequestHandler):
+
   def get(self):
     forum = forum_from_url(self.request.path_info)
     if not forum:
       # TODO: return 404?
       return self.redirect("/")
+  siteroot = forum_root(forum)
+
+  feed = feedgenerator.Rss201rev2Feed(
+    title = forum.title or forum.url,
+    link = siteroot + "rss",
+    description = forum.tagline,
+    language = u"en")
+  
+  MAX_TOPICS = 25
+  topics = Topic.gql("WHERE forum = :1 AND is_deleted = False ORDER BY created_on DESC", forum).fetch(MAX_TOPICS)
+  for topic in topics:
+    title = topic.subject
+    link = siteroot + "topic?" + topic.key.id()
+    # TODO: get description out of first post body
+    description = topic.subject
+    pubdate = topic.created_on
+    feed.add_item(title=title, link=link, description=description, pubdate=pubdate)
+  feedtxt = feed.writeString('utf8')
+  response.headers['Content-Type'] = 'text/xml'
+  response.out.write(feedtxt)
 
 def get_fofou_user():
   # get user either by google user id or cookie
