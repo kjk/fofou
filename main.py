@@ -482,26 +482,26 @@ class RssFeed(webapp.RequestHandler):
     if not forum:
       # TODO: return 404?
       return self.redirect("/")
-  siteroot = forum_root(forum)
+    siteroot = forum_root(forum)
 
-  feed = feedgenerator.Rss201rev2Feed(
+    feed = feedgenerator.Rss201rev2Feed(
     title = forum.title or forum.url,
     link = siteroot + "rss",
     description = forum.tagline,
     language = u"en")
   
-  MAX_TOPICS = 25
-  topics = Topic.gql("WHERE forum = :1 AND is_deleted = False ORDER BY created_on DESC", forum).fetch(MAX_TOPICS)
-  for topic in topics:
-    title = topic.subject
-    link = siteroot + "topic?" + topic.key.id()
-    # TODO: get description out of first post body
-    description = topic.subject
-    pubdate = topic.created_on
-    feed.add_item(title=title, link=link, description=description, pubdate=pubdate)
-  feedtxt = feed.writeString('utf8')
-  response.headers['Content-Type'] = 'text/xml'
-  response.out.write(feedtxt)
+    MAX_TOPICS = 25
+    topics = Topic.gql("WHERE forum = :1 AND is_deleted = False ORDER BY created_on DESC", forum).fetch(MAX_TOPICS)
+    for topic in topics:
+      title = topic.subject
+      link = siteroot + "topic?" + topic.key.id()
+      # TODO: get description out of first post body
+      description = topic.subject
+      pubdate = topic.created_on
+      feed.add_item(title=title, link=link, description=description, pubdate=pubdate)
+    feedtxt = feed.writeString('utf8')
+    response.headers['Content-Type'] = 'text/xml'
+    response.out.write(feedtxt)
 
 def get_fofou_user():
   # get user either by google user id or cookie
