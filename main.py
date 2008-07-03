@@ -62,6 +62,9 @@ import logging
 # /<forum_url>/rssall
 #    rss feed for all posts
 
+NOT_ACCEPTABLE = 406
+NOT_FOUND = 404
+
 class FofouUser(db.Model):
   # according to docs UserProperty() cannot be optional, so for anon users
   # we set it to value returned by anonUser() function
@@ -426,6 +429,27 @@ class TopicListForm(webapp.RequestHandler):
     }
     template_out(self.response,  "topic_list.html", tvals)
 
+# responds to /<forumurl>/importpost
+class ImportPostForm(webapp.RequestHandler):
+
+  def post(self):
+    forum = forum_from_url(self.request.path_info)
+    if not forum:
+      return self.error(NOT_ACCEPTABLE)
+    siteroot = forum_root(forum)
+    logging.info("ImportPostForm() started")
+    topic_txt = self.request.get("topicdata")
+    if not topic_txt:
+      logging.info("ImportPostForm() no 'topicdata' field")
+      return self.error(NOT_ACCEPTABLE)
+    lines = topic_txt.split("\n")
+    for l in lines:
+      if is_subject_line(l):
+        subject = l.split(": ", 1)[1]
+        logging.info("Subject: %s" % subject)
+
+def is_subject_line(l): return l.startswith("Subject: ")
+
 # responds to /<forumurl>/topic?id=<id>
 class TopicForm(webapp.RequestHandler):
 
@@ -480,8 +504,7 @@ class RssFeed(webapp.RequestHandler):
   def get(self):
     forum = forum_from_url(self.request.path_info)
     if not forum:
-      # TODO: return 404?
-      return self.redirect("/")
+      return self.error(NOT_FOUND)
     siteroot = forum_root(forum)
 
     feed = feedgenerator.Rss201rev2Feed(
@@ -722,6 +745,7 @@ def main():
         ('/[^/]+/post', PostForm),
         ('/[^/]+/topic', TopicForm),
         ('/[^/]+/rss', RssFeed),
+        ('/[^/]+/importpost', ImportPostForm),
         ('/[^/]+/?', TopicListForm)],
      debug=True)
   wsgiref.handlers.CGIHandler().run(application)

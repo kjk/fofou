@@ -1,7 +1,14 @@
 #!/usr/bin/env python
 import MySQLdb, bz2, pickle, os.path
 
-# set the database connection properties
+# given connection details to fruitshow mysql database, dumps the data into
+# pickled and bzip2ed file that can be used by fruitshow_dump_upload.py
+# to import the posts into fofou
+
+PICKLED_DATA_FILE_NAME = "fruitshow_posts.dat.bz2"
+
+# you need to provide connection info to fruitshow mysql database with
+# permissions to query data
 user = ""
 host = ""
 passwd = ""
@@ -62,8 +69,6 @@ def get_from_query(query):
 def get_topics(): return get_from_query("SELECT * From Topic")
 def get_posts(): return get_from_query("SELECT * From Post")
 def get_topic_posts(): return get_from_query("SELECT * FROM TopicPost")
-
-PICKLED_DATA_FILE_NAME = "fruitshow_posts.dat.bz2"
 
 def main():
   if os.path.exists(PICKLED_DATA_FILE_NAME):
