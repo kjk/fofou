@@ -6,7 +6,10 @@ from offsets import *
 # you need to provide full url to a given forum's posting interface e.g.
 # http://foo.com/myforum/importtopic
 #FOFOU_SERVER = None
+# You need to provide import secret for this forum
+#IMPORT_SECRET = None
 FOFOU_SERVER = "http://localhost:9999/sumatrapdf/importtopic"
+IMPORT_SECRET = "haha"
 
 PICKLED_DATA_FILE_NAME = "fruitshow_posts.dat.bz2"
 
@@ -47,7 +50,7 @@ def post_multipart(host, selector, fields, files, username=None, pwd=None):
     files is a sequence of (name, filename, value) elements for data to be uploaded as files
     Return the server's response page.
     """
-    print "post_multipart selector=%s" % selector
+    #print("post_multipart selector=%s" % selector)
     data = None
     try:
         content_type, body = encode_multipart_formdata(fields, files)
@@ -72,23 +75,25 @@ def post_multipart(host, selector, fields, files, username=None, pwd=None):
     #print data
     return data
 
-def do_http_post_fields(url, field_name, field_data, username=None, pwd=None):
-    print "do_http_post_fields url=%s" % url
+def do_http_post_fields(url, fields, username=None, pwd=None):
+    #print("do_http_post_fields url=%s" % url)
     url_parts = urlparse.urlparse(url)
     host = url_parts.netloc
     selector = url_parts.path
     if url_parts.query:
         selector = selector + "?" + url_parts.query
-    fields = [(field_name, field_data)]
     return post_multipart(host, selector, fields, None, username, pwd)
 
 def upload_post(url, topic_txt):
-  print(topic_txt)
-  do_http_post_fields(url, "topicdata", topic_txt)
+  fields = [('topicdata', topic_txt), ('importsecret', IMPORT_SECRET)]
+  do_http_post_fields(url, fields)
 
 def main():
   if not FOFOU_SERVER:
     print("You need to set FOFOU_SERVER")
+    return
+  if not IMPORT_SECRET:
+    print("You need to set IMPORT_SECRET")
     return
   if "/importtopic" not in FOFOU_SERVER:
     print("FOFOU_SERVER url ('%s') doesn't look valid (doesn't end with '/importtopic')" % FOFOU_SERVER)
@@ -104,37 +109,20 @@ def main():
   all_topics = data["topics"]
   all_posts = data["posts"]
   topic_posts = data["topic_posts"]
-  print("%d topics" % len(all_topics))
-  print("%d posts" % len(all_posts))
-  print("%d topic_posts" % len(topic_posts))
+  print("%d topics, %d posts" % (len(all_topics), len(all_posts)))
 
   for topic in all_topics:
-    #txt = []
     topic_id = topic[TOPIC_ID]
-    #topic_first_post = topic[TOPIC_FIRST_POST]
-    #subject = topic[TOPIC_SUBJECT]
-    #txt.append("Subject: '%s'" % subject)
     post_ids = [p[TP_POST_ID] for p in topic_posts if topic_id == p[TP_TOPIC_ID]]
-    #print post_ids
     posts = [p for p in all_posts if p[POST_ID] in post_ids]
     topic_data = TopicData(topic, posts)
     fo = StringIO.StringIO()
     pickle.dump(topic_data, fo)
     topic_pickled = fo.getvalue()
     fo.close()
+    print("uploading topic %s" % topic_id)
     upload_post(FOFOU_SERVER, topic_pickled)
     break
-
-"""
-    for post in posts:
-      deleted = post[POST_DELETED]
-      txt.append("PostCreatedOn: " + str(p[POST_POSTED_ON])
-      txt.append("PostDeleted: " + str(int(deleted)))
-      txt.append("PostBody:")
-      body = post[POST_MSG]
-      txt.append(body)
-"""
-    
 
 if __name__ == "__main__":
   main()

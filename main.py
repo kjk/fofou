@@ -444,13 +444,19 @@ class ImportTopicForm(webapp.RequestHandler):
     forum = forum_from_url(self.request.path_info)
     if not forum:
       return self.error(NOT_ACCEPTABLE)
-    siteroot = forum_root(forum)
-    logging.info("ImportTopicForm() started")
-    topic_pickled = self.request.get("topicdata")
-    if not topic_pickled:
-      logging.info("ImportTopicForm() no 'topicdata' field")
+    # not active at all if not protected by secret
+    if not forum.import_secret:
+      logging.info("tried to import topic into '%s' forum, but forum has no import_secret" % forum.url)
       return self.error(NOT_ACCEPTABLE)
-
+    siteroot = forum_root(forum)
+    (topic_pickled, import_secret) = req_get_vals(self.request, ["topicdata", 'importsecret'], strip=False)
+    if not topic_pickled:
+      logging.info("tried to import topic into '%s' forum, but no 'topicdata' field" % forum.url)
+      return self.error(NOT_ACCEPTABLE)
+    if import_secret != forum.import_secret:
+        logging.info("tried to import topic into '%s' forum, but import_secret doesn't match" % forum.url)
+        return self.error(NOT_ACCEPTABLE)
+      
     fo = StringIO.StringIO(topic_pickled)
     topic_data = pickle.load(fo)
     fo.close()
