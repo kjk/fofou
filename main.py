@@ -13,20 +13,20 @@ import logging
 #  - write a web page for fofou
 #  - hookup sumatra forums at fofou.org
 #  - handle 'older topics' button
-#  - change /<forumurl>/post?id=<post_id>&<rest> to /<forumurl>/post/<post_id>?<rest>
-#    (to make parsing results of ajax google search simpler)
 #  - /<forumurl>/moderate?del|undel=<postId>&ret=<returnUrl>
 #  - after posting to existing topic, redirect to topic?id=<id> url
 #  - /<forumurl>/rss - rss feed
 #  - /<forumurl>/rssall - like /rss but shows all posts, not only when a
 #  - support for google analytics code
-# TODO less urgent:
 #  - /<forumurl>/email?postId=<id>
+# TODO less urgent:
 #  - /rsscombined - all posts for all forums, for forum admins mostly
 #  - admin features like blocking users (ip address, cookie, user_id)
 #  - per-forum templates
 #  - use template inheritance to reduce duplication of html
 #  - use ajax google search ui 
+#  - change /<forumurl>/post?id=<post_id>&<rest> to /<forumurl>/post/<post_id>?<rest>
+#    (to make parsing results of ajax google search simpler)
 # Maybe:
 #  - cookie validation
 #  - alternative forms of integration with a wesite (iframe? return data
