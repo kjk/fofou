@@ -1,4 +1,4 @@
-import os, string, Cookie, sha, time, random, cgi, urllib, datetime
+import os, string, Cookie, sha, time, random, cgi, urllib, datetime, StringIO, pickle
 import wsgiref.handlers
 from google.appengine.ext import db
 from google.appengine.api import users
@@ -6,6 +6,7 @@ from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
 from django.utils import feedgenerator
 import logging
+from offsets import *
 
 # TODO must have:
 #  - import posts from a file (good enough to import fruitshow forums)
@@ -438,17 +439,18 @@ class ImportPostForm(webapp.RequestHandler):
       return self.error(NOT_ACCEPTABLE)
     siteroot = forum_root(forum)
     logging.info("ImportPostForm() started")
-    topic_txt = self.request.get("topicdata")
-    if not topic_txt:
+    topic_pickled = self.request.get("topicdata")
+    if not topic_pickled:
       logging.info("ImportPostForm() no 'topicdata' field")
       return self.error(NOT_ACCEPTABLE)
-    lines = topic_txt.split("\n")
-    for l in lines:
-      if is_subject_line(l):
-        subject = l.split(": ", 1)[1]
-        logging.info("Subject: %s" % subject)
 
-def is_subject_line(l): return l.startswith("Subject: ")
+    fo = StringIO.StringIO(topic_pickled)
+    topic_data = pickle.load(fo)
+    fo.close()
+
+    topic = topic_data.topic
+    posts = topic_data.posts
+    logging.info("Subject: %s" % topic[TOPIC_SUBJECT])
 
 # responds to /<forumurl>/topic?id=<id>
 class TopicForm(webapp.RequestHandler):

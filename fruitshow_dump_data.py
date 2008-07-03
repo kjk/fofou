@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import MySQLdb, bz2, pickle, os.path
+from offsets import *
 
 # given connection details to fruitshow mysql database, dumps the data into
 # pickled and bzip2ed file that can be used by fruitshow_dump_upload.py
@@ -31,8 +32,6 @@ def conn_close():
       `FirstPostId` int(11) unsigned NOT NULL default '0',
       `Subject` varchar(64) NOT NULL default '',"""
 
-(TOPIC_ID, TOPIC_FIRST_POST, TOPIC_SUBJECT) = range(3)
-
 """  
   `PostId` int(11) unsigned NOT NULL auto_increment,
   `Message` longtext NOT NULL,
@@ -46,13 +45,9 @@ def conn_close():
   `Deleted` tinyint(1) unsigned NOT NULL default '0',
   `LastModeratedBy` int(11) unsigned default NULL,"""
 
-(POST_ID, POST_MSG, POST_NAME, POST_EMAIL, POST_URL, POST_POSTED_ON, POST_POSTER_IP, POST_POSTER_KEY, POST_UNIQUE_KEY, POST_DELETED, POST_LAST_MOD) = range(11)
-
 """
     `TopicId` int(11) unsigned NOT NULL default '0',
     `PostId` int(11) unsigned NOT NULL default '0'"""
-
-(TP_TOPIC_ID, TP_POST_ID) = range(2)
 
 def get_from_query(query):
   res = []

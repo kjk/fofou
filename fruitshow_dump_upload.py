@@ -1,4 +1,5 @@
-import pickle, bz2, os.path, string, urlparse, httplib, traceback
+import pickle, bz2, os.path, string, urlparse, httplib, traceback, StringIO
+from offsets import *
 
 # Uploads posts dumped with fruitshow_dump_data.py to fofou
 
@@ -8,10 +9,6 @@ import pickle, bz2, os.path, string, urlparse, httplib, traceback
 FOFOU_SERVER = "http://localhost:9999/sumatrapdf/importpost"
 
 PICKLED_DATA_FILE_NAME = "fruitshow_posts.dat.bz2"
-
-(POST_ID, POST_MSG, POST_NAME, POST_EMAIL, POST_URL, POST_POSTED_ON, POST_POSTER_IP, POST_POSTER_KEY, POST_UNIQUE_KEY, POST_DELETED, POST_LAST_MOD) = range(11)
-(TOPIC_ID, TOPIC_FIRST_POST, TOPIC_SUBJECT) = range(3)
-(TP_TOPIC_ID, TP_POST_ID) = range(2)
 
 def encode_multipart_formdata(fields, files):
     """
@@ -112,24 +109,32 @@ def main():
   print("%d topic_posts" % len(topic_posts))
 
   for topic in all_topics:
-    txt = []
+    #txt = []
     topic_id = topic[TOPIC_ID]
-    topic_first_post = topic[TOPIC_FIRST_POST]
-    subject = topic[TOPIC_SUBJECT]
-    txt.append("Subject: '%s'" % subject)
+    #topic_first_post = topic[TOPIC_FIRST_POST]
+    #subject = topic[TOPIC_SUBJECT]
+    #txt.append("Subject: '%s'" % subject)
     post_ids = [p[TP_POST_ID] for p in topic_posts if topic_id == p[TP_TOPIC_ID]]
     #print post_ids
     posts = [p for p in all_posts if p[POST_ID] in post_ids]
+    topic_data = TopicData(topic, posts)
+    fo = StringIO.StringIO()
+    pickle.dump(topic_data, fo)
+    topic_pickled = fo.getvalue()
+    fo.close()
+    upload_post(FOFOU_SERVER, topic_pickled)
+    break
+
+"""
     for post in posts:
       deleted = post[POST_DELETED]
+      txt.append("PostCreatedOn: " + str(p[POST_POSTED_ON])
       txt.append("PostDeleted: " + str(int(deleted)))
       txt.append("PostBody:")
       body = post[POST_MSG]
       txt.append(body)
-
-    data_txt = string.join(txt, "\n")
-    upload_post(FOFOU_SERVER, data_txt)
-    break
+"""
+    
 
 if __name__ == "__main__":
   main()
