@@ -1,4 +1,4 @@
-import pickle, bz2, os.path, string, urlparse, httplib, traceback, StringIO
+import pickle, bz2, os.path, string, urlparse, httplib, traceback, StringIO, datetime, sys
 from offsets import *
 
 # Uploads posts dumped with fruitshow_dump_data.py to fofou
@@ -88,6 +88,12 @@ def upload_post(url, topic_txt):
   fields = [('topicdata', topic_txt), ('importsecret', IMPORT_SECRET)]
   do_http_post_fields(url, fields)
 
+def to_datetime(val):
+  #print("type of '%s' is '%s'" % (str(val), type(val)))
+  dt = datetime.datetime.utcfromtimestamp(val)
+  #print("'%s' is '%s'" % (str(val), dt.isoformat()))
+  return dt
+
 def main():
   if not FOFOU_SERVER:
     print("You need to set FOFOU_SERVER")
@@ -107,10 +113,29 @@ def main():
   fo.close()
   print("Finished reading")
   all_topics = data["topics"]
-  all_posts = data["posts"]
-  topic_posts = data["topic_posts"]
-  print("%d topics, %d posts" % (len(all_topics), len(all_posts)))
 
+
+  """# convert topic subject to unicode
+  new_all_topics = []
+  for topic in all_topics:
+    new_topic = [el for el in topic]
+    new_topic[TOPIC_SUBJECT] = to_unicode(new_topic[TOPIC_SUBJECT])
+    new_all_topics.append(new_topic)
+  new_topics = new_all_topics"""
+  # convert dates from numeric value to datetime instance, as required by
+  # /topicimport interface and post body to unicode
+  all_posts = data["posts"]
+  new_all_posts = []
+  for p in all_posts:
+    new_p = [el for el in p]
+    new_p[POST_POSTED_ON] = to_datetime(new_p[POST_POSTED_ON])
+    #new_p[POST_MSG] = to_unicode(new_p[POST_MSG])
+    new_all_posts.append(new_p)
+  all_posts = new_all_posts
+  topic_posts = data["topic_posts"]
+  topics_count = len(all_topics)
+  print("%d topics, %d posts" % (topics_count, len(all_posts)))
+  sent = 0
   for topic in all_topics:
     topic_id = topic[TOPIC_ID]
     post_ids = [p[TP_POST_ID] for p in topic_posts if topic_id == p[TP_TOPIC_ID]]
@@ -120,9 +145,12 @@ def main():
     pickle.dump(topic_data, fo)
     topic_pickled = fo.getvalue()
     fo.close()
-    print("uploading topic %s" % topic_id)
+    #print("Subject: '%s'" % topic[TOPIC_SUBJECT])
+    #print("uploading topic %s" % topic_id)
+    sent = sent + 1
+    print("Uploading topic %d (out of %d)" % (sent, topics_count))
     upload_post(FOFOU_SERVER, topic_pickled)
-    break
+    #break
 
 if __name__ == "__main__":
   main()

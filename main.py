@@ -9,17 +9,18 @@ import logging
 from offsets import *
 
 # TODO must have:
-#  - import posts from a file (good enough to import fruitshow forums)
+#  - auto-formats urls in body
 #  - archives (by month?)
+#  - handle 'older topics' button
 #  - write a web page for fofou
 #  - hookup sumatra forums at fofou.org
-#  - handle 'older topics' button
 #  - /<forumurl>/moderate?del|undel=<postId>&ret=<returnUrl>
 #  - after posting to existing topic, redirect to topic?id=<id> url
 #  - /<forumurl>/rss - rss feed
 #  - /<forumurl>/rssall - like /rss but shows all posts, not only when a
 #  - support for google analytics code
 #  - /<forumurl>/email?postId=<id>
+#  - disallow creating forums with conflicting urls
 # TODO less urgent:
 #  - /rsscombined - all posts for all forums, for forum admins mostly
 #  - admin features like blocking users (ip address, cookie, user_id)
@@ -30,9 +31,47 @@ from offsets import *
 #    (to make parsing results of ajax google search simpler)
 # Maybe:
 #  - cookie validation
-#  - alternative forms of integration with a wesite (iframe? return data
+#  - prevent dups by doing sha1 on post body, remembering it in Post.body_sha1
+#    and not adding if a Post with this body_sha1 already exists
+#  - alternative forms of integration with a website (iframe? return data
 #    as json and do most of the rendering using javascrip?)
-#  - combine Topic/Post into one object (Post)
+
+# TODO: need to port this to python
+"""
+/**
+* Formats a message body.  This function replaces URL's with links and does
+* other formatting.
+*
+* @param	string		Message to format
+* @return	string		HTML formatted message
+* @access	public
+*/	
+function format_body_html($value)
+{
+	// Initial variables for parsing
+	$pattern = '/\b(?:(?:https?:\/\/)|(?:www[.]))([A-Za-z0-9_-]+(?:[.][A-Za-z0-9_-]+)+)([^\s"]*[\w\-\@?^=%&\/~\+#])?/xims';
+	$matches = Array();
+	$startPos = 0;
+	$result = '';
+
+	// Parse the output
+	$matchCount = preg_match_all($pattern, $value, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+	for ($i = 0; $i < $matchCount; ++$i) {
+		$match = $matches[$i][0][0];
+		$matchPos = $matches[$i][0][1];
+		$host = $matches[$i][1][0];
+		$path = (empty($matches[$i][2])) ? '' : $matches[$i][2][0];
+		if ($startPos != $matchPos) $result .= format_html(substr($value, $startPos, ($matchPos - $startPos)));
+		if (Settings::matchHostName($host) && $path != '') $url = $path;
+		elseif (strpos($match, 'http://') === false && strpos($match, 'https://') === false) $url = 'http://'.$match;
+		else $url = $match;
+		$result .= '<a href="'.$url.'">'.format_html($match).'</a>';
+		$startPos = $matchPos + strlen($match);
+	}
+	$result .= format_html(substr($value, $startPos));
+	return $result;
+}
+"""
 
 # Structure of urls:
 #
@@ -63,6 +102,7 @@ from offsets import *
 # /<forum_url>/rssall
 #    rss feed for all posts
 
+# HTTP codes
 NOT_ACCEPTABLE = 406
 NOT_FOUND = 404
 
@@ -111,7 +151,7 @@ class Topic(db.Model):
   # just in case, not used
   updated_on = db.DateTimeProperty(auto_now=True)
   # True if first Post in this topic is deleted. Updated on deletion/undeletion
-  # of the topic
+  # of the post
   is_deleted = db.BooleanProperty(default=False)
   # ncomments is redundant but is faster than always quering count of Posts
   ncomments = db.IntegerProperty(default=0)
@@ -125,7 +165,7 @@ class Post(db.Model):
   # that means the topic is deleted as well
   is_deleted = db.BooleanProperty(default=False)
   # ip address from which this post has been made
-  user_ip = db.StringProperty(required=True)
+  user_ip = db.IntegerProperty(required=True)
   user = db.Reference(FofouUser, required=True)
   # user_name, user_email and user_homepage might be different than
   # name/homepage/email fields in user object, since they can be changed in
@@ -133,26 +173,6 @@ class Post(db.Model):
   user_name = db.StringProperty()
   user_email = db.StringProperty()
   user_homepage = db.StringProperty()
-
-"""class PostTopic(db.Model):
-  forum = db.Reference(Forum, required=True)
-  first_post = db.Reference(Post)
-  subject = db.StringProperty(required=True)
-  created_on = db.DateTimeProperty(auto_now_add=True)
-  message = db.TextProperty(required=True)
-  # admin can delete/undelete posts. If first post in a topic is deleted,
-  # that means the topic is deleted as well
-  is_deleted = db.BooleanProperty(default=False)
-  # ip address from which this post has been made
-  user_ip = db.StringProperty(required=True)
-  user = db.Reference(FofouUser, required=True)
-  # user_name, user_email and user_homepage might be different than
-  # name/homepage/email fields in user object, since they can be changed in
-  # FofouUser
-  user_name = db.StringProperty()
-  user_email = db.StringProperty()
-  user_homepage = db.StringProperty()
-  ncomments = db.IntegerProperty()"""
 
 # cookie code based on http://code.google.com/p/appengine-utitlies/source/browse/trunk/utilities/session.py
 FOFOU_COOKIE = "fofou-uid"
@@ -160,6 +180,11 @@ COOKIE_EXPIRE_TIME = 60*60*24*120 # valid for 60*60*24*120 seconds => 120 days
 
 def get_user_agent(): return os.environ['HTTP_USER_AGENT']
 def get_remote_ip(): return os.environ['REMOTE_ADDR']
+
+def ip2long(ip):
+    ip_array = ip.split('.')
+    ip_long = int(ip_array[0]) * 16777216 + int(ip_array[1]) * 65536 + int(ip_array[2]) * 256 + int(ip_array[3])
+    return ip_long
 
 def req_get_vals(req, names, strip=True): 
   if strip:
@@ -437,6 +462,20 @@ class TopicListForm(webapp.RequestHandler):
     }
     template_out(self.response,  "topic_list.html", tvals)
 
+def to_unicode(val):
+  try:
+    return unicode(val, 'latin-1')
+  except:
+    pass
+  try:
+    return unicode(val, 'ascii')
+  except:
+    pass
+  try:
+    return unicode(val, 'utf-8')
+  except:
+    pass
+    
 # responds to /<forumurl>/importtopic
 class ImportTopicForm(webapp.RequestHandler):
 
@@ -462,8 +501,51 @@ class ImportTopicForm(webapp.RequestHandler):
     fo.close()
 
     topic = topic_data.topic
+    topic_no = topic[TOPIC_ID]
     posts = topic_data.posts
-    logging.info("Subject: %s" % topic[TOPIC_SUBJECT])
+    if 0 == len(posts):
+      logging.info("There are no posts in this topic.")
+      return self.error(NOT_ACCEPTABLE)
+
+    subject = to_unicode(topic[TOPIC_SUBJECT])
+    first_post = posts[0]
+    created_on = first_post[POST_POSTED_ON]
+    #logging.info("subject: %s, created_on: %s" % (subject, str(created_on)))
+    topic = Topic.gql("WHERE forum = :1 AND subject = :2 AND created_on = :3", forum, subject, created_on).get()
+    if topic:
+      logging.info("topic already exists, subject: %s, created_on: %s" % (subject, str(created_on)))
+      return self.error(NOT_ACCEPTABLE)
+    created_by = to_unicode(first_post[POST_NAME])
+    topic = Topic(forum=forum, subject=subject, created_on=created_on, created_by=created_by, updated_on = created_on)
+    topic.ncomments = len(posts)-1
+    topic.updated_on = posts[-1][POST_POSTED_ON]
+    topic.put()
+    #logging.info("created topic, subject: %s, created_on: %s" % (subject, str(created_on)))
+    for post in posts:
+      body = to_unicode(post[POST_MSG])
+      name = to_unicode(post[POST_NAME])
+      email = post[POST_EMAIL]
+      homepage = post[POST_URL]
+      (name, email, homepage) = (name.strip(), email.strip(), homepage.strip())
+      if len(homepage) <= len("http://"):
+        homepage = ""
+      created_on = post[POST_POSTED_ON]
+      # this is already an integer, not string
+      user_ip = post[POST_POSTER_IP]
+      is_deleted = bool(int(post[POST_DELETED]))
+      user = FofouUser.gql("WHERE name = :1 AND email = :2 AND homepage = :3", name, email, homepage).get()
+      if not user:
+        #logging.info("Didn't find user for name='%s', email='%s', homepage='%s'. Creating one." % (name, email, homepage))
+        cookie = new_user_id()
+        user = FofouUser(cookie=cookie, name=name, email=email, homepage=homepage)
+        user.put()
+      new_post = Post(topic=topic, created_on=created_on, message=body, is_deleted=is_deleted, user_ip=user_ip, user=user)
+      new_post.user_name = name
+      new_post.user_email = email
+      new_post.user_homepage = homepage
+      new_post.put()
+      logging.info("Imported post %s" % str(post[POST_ID]))
+    logging.info("Imported topic %s" % str(topic_no))
 
 # responds to /<forumurl>/topic?id=<id>
 class TopicForm(webapp.RequestHandler):
@@ -734,7 +816,7 @@ class PostForm(webapp.RequestHandler):
       topic.ncomments += 1
       topic.put()
 
-    user_ip = get_remote_ip()
+    user_ip = ip2long(get_remote_ip())
     p = Post(user=user, user_ip=user_ip, topic=topic, message=message, user_name = name, user_email = email, user_homepage = homepage)
     p.put()
     if topic_id:
