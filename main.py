@@ -96,6 +96,9 @@ class Forum(db.Model):
   is_disabled = db.BooleanProperty(default=False)
   # just in case, when the forum was created. Not used.
   created_on = db.DateTimeProperty(auto_now_add=True)
+  # secret value that needs to be passed in form data
+  # as 'secret' field to /import
+  import_secret = db.StringProperty()
 
 # A forum is collection of topics
 class Topic(db.Model):
@@ -158,6 +161,12 @@ COOKIE_EXPIRE_TIME = 60*60*24*120 # valid for 60*60*24*120 seconds => 120 days
 def get_user_agent(): return os.environ['HTTP_USER_AGENT']
 def get_remote_ip(): return os.environ['REMOTE_ADDR']
 
+def req_get_vals(req, names, strip=True): 
+  if strip:
+    return [req.get(name).strip() for name in names]
+  else:
+    return [req.get(name) for name in names]
+  
 def get_inbound_cookie():
   c = Cookie.SimpleCookie()
   cstr = os.environ.get('HTTP_COOKIE', '')
@@ -298,13 +307,8 @@ class ManageForums(webapp.RequestHandler):
         # invalid key - should not happen so go to top-level
         return self.redirect("/")
 
-    url = self.request.get('url')
-    if url: url = url.strip()
-    title = self.request.get('title')
-    tagline = self.request.get('tagline')
-    sidebar = self.request.get('sidebar')
-    disable = self.request.get('disable')
-    enable = self.request.get('enable')
+    vals = ['url','title', 'tagline', 'sidebar', 'disable', 'enable', 'importsecret']
+    (url, title, tagline, sidebar, disable, enable, import_secret) = req_get_vals(self.request, vals)
 
     if not valid_forum_url(url):
       tvals = {
@@ -315,6 +319,7 @@ class ManageForums(webapp.RequestHandler):
         'prevtitle' : title,
         'prevtagline' : tagline,
         'prevsidebar' : sidebar,
+        'previmportsecret' : import_secret,
         'forum_key' : forum_key,
         'errmsg' : "Url contains illegal characters"
       }
@@ -327,11 +332,12 @@ class ManageForums(webapp.RequestHandler):
       forum.title = title
       forum.tagline = tagline
       forum.sidebar = sidebar
+      forum.import_secret = import_secret
       forum.put()
       msg = "Forum '%s' has been updated." % title_or_url
     else:
       # create a new forum
-      forum = Forum(url=url, title=title, tagline=tagline, sidebar=sidebar)
+      forum = Forum(url=url, title=title, tagline=tagline, sidebar=sidebar, import_secret = import_secret)
       forum.put()
       msg = "Forum '%s' has been created." % title_or_url
     url = "/manageforums?msg=%s" % urllib.quote(msg)
@@ -386,6 +392,7 @@ class ManageForums(webapp.RequestHandler):
         tvals['prevtitle'] = f.title
         tvals['prevtagline'] = f.tagline
         tvals['prevsidebar'] = f.sidebar
+        tvals['previmportsecret'] = f.import_secret
         tvals['forum_key'] = str(f.key())
       forums.append(f)
     tvals['msg'] = self.request.get('msg')
@@ -430,18 +437,18 @@ class TopicListForm(webapp.RequestHandler):
     }
     template_out(self.response,  "topic_list.html", tvals)
 
-# responds to /<forumurl>/importpost
-class ImportPostForm(webapp.RequestHandler):
+# responds to /<forumurl>/importtopic
+class ImportTopicForm(webapp.RequestHandler):
 
   def post(self):
     forum = forum_from_url(self.request.path_info)
     if not forum:
       return self.error(NOT_ACCEPTABLE)
     siteroot = forum_root(forum)
-    logging.info("ImportPostForm() started")
+    logging.info("ImportTopicForm() started")
     topic_pickled = self.request.get("topicdata")
     if not topic_pickled:
-      logging.info("ImportPostForm() no 'topicdata' field")
+      logging.info("ImportTopicForm() no 'topicdata' field")
       return self.error(NOT_ACCEPTABLE)
 
     fo = StringIO.StringIO(topic_pickled)
@@ -601,27 +608,16 @@ class PostForm(webapp.RequestHandler):
 
     send_fofou_cookie()
 
-    topic_id = self.request.get('TopicId')
-    num1 = self.request.get('num1')
-    num2 = self.request.get('num2')
-    captcha = self.request.get('Captcha').strip()
-    subject = self.request.get('Subject')
-    if subject: # TODO: do I need to check or can I just subject.strip()
-      subject = subject.strip() 
-    message = self.request.get('Message').strip()
-    remember_me = self.request.get('Remember').strip()
-    logging.info("Remember me is: '%s'" % remember_me)
+    vals = ['TopicId', 'num1', 'num2', 'Captcha', 'Subject', 'Message', 'Remember', 'Email', 'Name', 'Url']
+    (topic_id, num1, num2, captcha, subject, message, remember_me, email, name, homepage) = req_get_vals(self.request, vals)
+
+    remember_me = True
     if remember_me == "":
       remember_me = False
-    else:
-      remember_me = True
 
     rememberChecked = ""
     if remember_me:
       rememberChecked = "checked"
-    email = self.request.get('Email').strip()
-    name = self.request.get('Name').strip()
-    homepage = self.request.get('Url').strip()
 
     validCaptcha = True
     try:
@@ -747,7 +743,7 @@ def main():
         ('/[^/]+/post', PostForm),
         ('/[^/]+/topic', TopicForm),
         ('/[^/]+/rss', RssFeed),
-        ('/[^/]+/importpost', ImportPostForm),
+        ('/[^/]+/importtopic', ImportTopicForm),
         ('/[^/]+/?', TopicListForm)],
      debug=True)
   wsgiref.handlers.CGIHandler().run(application)

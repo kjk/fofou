@@ -61,8 +61,12 @@
 						<td><input type="edit" size="60" maxlength="256" name="tagline" value="{{ prevtagline|escape }}"></input></td>
 					</tr>
 					<tr>
+						<td valign="top">Import secret</td>
+						<td><input type="edit" size="60" maxlength="256" name="importsecret" value="{{ previmportsecret|escape }}"></input></td>
+					</tr>
+					<tr>
 						<td valign="top">Sidebar</td>
-						<td><textarea name="sidebar" rows="4" cols="45">{{ prevsidebar|escape }}</textarea></td>
+						<td><textarea name="sidebar" rows="6" cols="45">{{ prevsidebar|escape }}</textarea></td>
 					</tr>
 					<tr>
 						<td></td>
@@ -78,6 +82,8 @@
 			<p><b>Url</b> is part of the forum url. Should be short and a valid url.</p>
 			<p><b>Title</b> is what we show at the top of the forum.</p>
 			<p><b>Tagline</b> is shown in smaller font, under title. HTML allowed (e.g. for links).</p>
+			<p><b>Import secret</b> protects bulk topic import interface. 
+						See <a href="http://blog.kowalczyk.info/software/fofou">docs</a> for more information</p>
 			<p><b>Sidebar</b> is displayed in the left column. HTML allowed.</p>
 			<p>Don't stress about choosing the right values - you can change them later.</p>
 		</td>

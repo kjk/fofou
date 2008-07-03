@@ -4,9 +4,9 @@ from offsets import *
 # Uploads posts dumped with fruitshow_dump_data.py to fofou
 
 # you need to provide full url to a given forum's posting interface e.g.
-# http://foo.com/myforum/importpost
+# http://foo.com/myforum/importtopic
 #FOFOU_SERVER = None
-FOFOU_SERVER = "http://localhost:9999/sumatrapdf/importpost"
+FOFOU_SERVER = "http://localhost:9999/sumatrapdf/importtopic"
 
 PICKLED_DATA_FILE_NAME = "fruitshow_posts.dat.bz2"
 
@@ -90,8 +90,8 @@ def main():
   if not FOFOU_SERVER:
     print("You need to set FOFOU_SERVER")
     return
-  if "/importpost" not in FOFOU_SERVER:
-    print("FOFOU_SERVER url ('%s') doesn't look valid (doesn't end with '/importpost')" % FOFOU_SERVER)
+  if "/importtopic" not in FOFOU_SERVER:
+    print("FOFOU_SERVER url ('%s') doesn't look valid (doesn't end with '/importtopic')" % FOFOU_SERVER)
     return
   if not os.path.exists(PICKLED_DATA_FILE_NAME):
     print("File %s doesn't exists" % PICKLED_DATA_FILE_NAME)
