@@ -1,3 +1,5 @@
+# This code is in Public Domain. Take all the code you want, we'll just write more.
+
 # TODO: rename this file to common.py or sth.
 
 (POST_ID, POST_MSG, POST_NAME, POST_EMAIL, POST_URL, POST_POSTED_ON, POST_POSTER_IP, POST_POSTER_KEY, POST_UNIQUE_KEY, POST_DELETED, POST_LAST_MOD) = range(11)

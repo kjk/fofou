@@ -1,3 +1,4 @@
+# This code is in Public Domain. Take all the code you want, we'll just write more.
 import pickle, bz2, os.path, string, urlparse, httplib, traceback, StringIO, datetime, sys
 from offsets import *
 
@@ -5,11 +6,10 @@ from offsets import *
 
 # you need to provide full url to a given forum's posting interface e.g.
 # http://foo.com/myforum/importfruitshow
-#FOFOU_SERVER = None
-# You need to provide import secret for this forum
-#IMPORT_SECRET = None
-FOFOU_SERVER = "http://localhost:9999/sumatrapdf/importfruitshow"
-IMPORT_SECRET = "haha"
+FOFOU_SERVER = None
+# You need to provide import secret for this forum (can be set by forum
+# admin in forum management web page)
+IMPORT_SECRET = None
 
 PICKLED_DATA_FILE_NAME = "fruitshow_posts.dat.bz2"
 

@@ -1,3 +1,4 @@
+# This code is in Public Domain. Take all the code you want, we'll just write more.
 #!/usr/bin/env python
 import MySQLdb, bz2, pickle, os.path
 from offsets import *
@@ -10,10 +11,10 @@ PICKLED_DATA_FILE_NAME = "fruitshow_posts.dat.bz2"
 
 # you need to provide connection info to fruitshow mysql database with
 # permissions to query data
-user = ""
-host = ""
-passwd = ""
-db = ""
+user = "fs_sumatra"
+host = "blog.kowalczyk.info"
+passwd = "gotard32"
+db = "fruitshow_sumatra"
 
 g_conn = None
 def get_conn():
@@ -85,6 +86,7 @@ def main():
   fo.close()
   print("Pickled fruitshow data to file '%s'" % PICKLED_DATA_FILE_NAME)
 
-if __name__ == "__main__":
+if __name__ == "__main__":
+
   main()
 

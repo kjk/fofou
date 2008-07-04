@@ -1,4 +1,4 @@
-application: fofou
+application: SET_TO_UNIQUE_APPLICATION_NAME
 version: 1
 runtime: python
 api_version: 1
