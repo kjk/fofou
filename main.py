@@ -13,7 +13,6 @@ from offsets import *
 #  - handle 'older topics' button
 #  - write a web page for fofou
 #  - hookup sumatra forums at fofou.org
-#  - after posting to existing topic, redirect to topic?id=<id> url
 #  - /<forumurl>/rss - rss feed
 #  - /<forumurl>/rssall - like /rss but shows all posts, not only when a
 #  - support for google analytics code
@@ -832,7 +831,7 @@ class PostForm(webapp.RequestHandler):
     p = Post(user=user, user_ip=user_ip, topic=topic, message=message, user_name = name, user_email = email, user_homepage = homepage)
     p.put()
     if topic_id:
-      self.redirect(siteroot + "topic?id=" + topic_id)
+      self.redirect(siteroot + "topic?id=" + str(topic_id))
     else:
       self.redirect(siteroot)
 
