@@ -12,8 +12,7 @@ from offsets import *
 # TODO must have:
 #  - write a web page for fofou
 #  - hookup sumatra forums at fofou.org
-#  - support for google analytics code
-#  - /<forumurl>/email?postId=<id>
+ #  - /<forumurl>/email?postId=<id>
 #  - per-forum templates
 # TODO less urgent:
 #  - admin features like blocking users (ip address, cookie, user_id)
@@ -95,6 +94,8 @@ class Forum(db.Model):
   is_disabled = db.BooleanProperty(default=False)
   # just in case, when the forum was created. Not used.
   created_on = db.DateTimeProperty(auto_now_add=True)
+  # Google analytics code
+  analytics_code = db.StringProperty()
   # secret value that needs to be passed in form data
   # as 'secret' field to /import
   import_secret = db.StringProperty()
@@ -292,8 +293,8 @@ class ManageForums(webapp.RequestHandler):
         # invalid key - should not happen so go to top-level
         return self.redirect("/")
 
-    vals = ['url','title', 'tagline', 'sidebar', 'disable', 'enable', 'importsecret']
-    (url, title, tagline, sidebar, disable, enable, import_secret) = req_get_vals(self.request, vals)
+    vals = ['url','title', 'tagline', 'sidebar', 'disable', 'enable', 'importsecret', 'analyticscode']
+    (url, title, tagline, sidebar, disable, enable, import_secret, analytics_code) = req_get_vals(self.request, vals)
 
     errmsg = None
     if not valid_forum_url(url):
@@ -311,6 +312,7 @@ class ManageForums(webapp.RequestHandler):
         'prevtagline' : tagline,
         'prevsidebar' : sidebar,
         'previmportsecret' : import_secret,
+        'prevanalyticscode' : analytics_code,
         'forum_key' : forum_key,
         'errmsg' : errmsg
       }
@@ -324,11 +326,12 @@ class ManageForums(webapp.RequestHandler):
       forum.tagline = tagline
       forum.sidebar = sidebar
       forum.import_secret = import_secret
+      forum.analytics_code = analytics_code
       forum.put()
       msg = "Forum '%s' has been updated." % title_or_url
     else:
       # create a new forum
-      forum = Forum(url=url, title=title, tagline=tagline, sidebar=sidebar, import_secret = import_secret)
+      forum = Forum(url=url, title=title, tagline=tagline, sidebar=sidebar, import_secret = import_secret, analytics_code = analytics_code)
       forum.put()
       msg = "Forum '%s' has been created." % title_or_url
     url = "/manageforums?msg=%s" % urllib.quote(msg)
@@ -384,6 +387,7 @@ class ManageForums(webapp.RequestHandler):
         tvals['prevtagline'] = f.tagline
         tvals['prevsidebar'] = f.sidebar
         tvals['previmportsecret'] = f.import_secret
+        tvals['prevanalyticscode'] = f.analytics_code
         tvals['forum_key'] = str(f.key())
       forums.append(f)
     tvals['msg'] = self.request.get('msg')
@@ -485,6 +489,7 @@ class TopicList(webapp.RequestHandler):
       'siteurl' : self.request.url,
       'forum' : forum,
       'topics' : topics,
+      'analytics_code' : forum.analytics_code or "",
       'from' : start,
       'to' : start + len(topics),
       'new_from' : new_start,
@@ -619,6 +624,7 @@ class TopicForm(webapp.RequestHandler):
     tvals = {
       'siteroot' : siteroot,
       'forum' : forum,
+      'analytics_code' : forum.analytics_code or "",
       'topic' : topic,
       'is_moderator' : is_moderator,
       'is_archived' : is_archived,
