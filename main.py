@@ -13,7 +13,6 @@ from offsets import *
 #  - handle 'older topics' button
 #  - write a web page for fofou
 #  - hookup sumatra forums at fofou.org
-#  - /<forumurl>/moderate?del|undel=<postId>&ret=<returnUrl>
 #  - after posting to existing topic, redirect to topic?id=<id> url
 #  - /<forumurl>/rss - rss feed
 #  - /<forumurl>/rssall - like /rss but shows all posts, not only when a
@@ -55,8 +54,8 @@ from offsets import *
 #    shows posts in a given topic, 'comments' is ignored (just a trick to re-use
 #    browser's history to see if the topic has posts that user didn't see yet
 #
-# /<forum_url>/moderate?del=<postId>&ret=<url>
-# /<forum_url>/moderate?undel=<postId>&ret=<url>
+# /<forum_url>/postdel?<postId>
+# /<forum_url>/postundel?<postId>
 #
 # /<forum_url>/rss
 #    rss feed for first post in the topic (default)
@@ -402,6 +401,50 @@ class ForumList(webapp.RequestHandler):
     }
     template_out(self.response,  "forum_list.html", tvals)
 
+# responds to GET /postdel?<postId> and /postundel?<postId>
+class PostDelUndel(webapp.RequestHandler):
+  def get(self):
+    forum = forum_from_url(self.request.path_info)
+    siteroot = forum_root(forum)
+    is_admin = users.is_current_user_admin()
+    if not is_admin or forum.is_disabled:
+      return self.redirect(siteroot)
+    post_id = self.request.query_string
+    logging.info("PostDelUndel: post_id='%s'" % post_id)
+    post = db.get(db.Key.from_path('Post', int(post_id)))
+    if not post:
+      logging.info("No post with post_id='%s'" % post_id)
+      return self.redirect(siteroot)
+    path = self.request.path
+    if path.endswith("/postdel"):
+      if not post.is_deleted:
+        post.is_deleted = True
+        post.put()
+      else:
+        logging.info("Post '%s' is already deleted" % post_id)
+    elif path.endswith("/postundel"):
+      if post.is_deleted:
+        post.is_deleted = False
+        post.put()
+      else:
+        logging.info("Trying to undelete post '%s' that is not deleted" % post_id)
+    else:
+      logging.info("'%s' is not a valid path" % path)
+
+    topic = post.topic
+    # deleting/undeleting first post also means deleting/undeleting the whole topic
+    first_post =  Post.gql("WHERE topic = :1 ORDER BY created_on", topic).get()
+    if first_post.key() == post.key():
+      if path.endswith("/postdel"):
+        topic.is_deleted = True
+      else:
+        topic.is_deleted = False
+      topic.put()
+
+    # redirect to topic owning this post
+    topic_url = siteroot + "topic?id=" + str(topic.key().id())
+    self.redirect(topic_url)
+    
 # responds to /<forumurl>/, shows a list of recent topics
 class TopicListForm(webapp.RequestHandler):
   def get(self):
@@ -439,7 +482,7 @@ def to_unicode(val):
     pass
     
 # responds to /<forumurl>/importfruitshow
-class ImportFruitshowForm(webapp.RequestHandler):
+class ImportFruitshow(webapp.RequestHandler):
 
   def post(self):
     forum = forum_from_url(self.request.path_info)
@@ -792,10 +835,12 @@ def main():
   application = webapp.WSGIApplication(
      [  ('/', ForumList),
         ('/manageforums', ManageForums),
+        ('/[^/]+/postdel', PostDelUndel),
+        ('/[^/]+/postundel', PostDelUndel),
         ('/[^/]+/post', PostForm),
         ('/[^/]+/topic', TopicForm),
         ('/[^/]+/rss', RssFeed),
-        ('/[^/]+/importfruitshow', ImportFruitshowForm),
+        ('/[^/]+/importfruitshow', ImportFruitshow),
         ('/[^/]+/?', TopicListForm)],
      debug=True)
   wsgiref.handlers.CGIHandler().run(application)

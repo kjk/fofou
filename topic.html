@@ -49,9 +49,9 @@
 						{% endif %}
 						{% if is_admin %}
 							{% if post.is_deleted %}
-								<a href="{{ siteroot }}moderate?undel={{ post.key.id }}&ret={{ Fixme }}" title="Undelete Post" onmouseover="rolloverOn('undo', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="undo{{ post.key.id }}" src="/graphics/undo.jpg" width="16" height="16" border="0" /></a>
+								<a href="{{ siteroot }}postundel?{{ post.key.id }}" title="Undelete Post" onmouseover="rolloverOn('undo', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="undo{{ post.key.id }}" src="/graphics/undo.jpg" width="16" height="16" border="0" /></a>
 							{% else %}
-								<a href="{{ siteroot }}moderate?del={{ post.key.id }}&ret={{ Fixme }}" title="Delete Post" onmouseover="rolloverOn('delete', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="delete{{ post.key.id }}" src="/graphics/delete.jpg" width="16" height="16" border="0" /></a>
+								<a href="{{ siteroot }}postdel?{{ post.key.id }}" title="Delete Post" onmouseover="rolloverOn('delete', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="delete{{ post.key.id }}" src="/graphics/delete.jpg" width="16" height="16" border="0" /></a>
 							{% endif %}
 						{% endif %}
 						{% if post.user_homepage %}

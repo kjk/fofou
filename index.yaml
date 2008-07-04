@@ -17,7 +17,7 @@ indexes:
   - name: topic
   - name: created_on
 
-# Used 9 times in query history.
+# Used 21 times in query history.
 - kind: Post
   properties:
   - name: topic
@@ -36,7 +36,7 @@ indexes:
   - name: forum
   - name: created_on
 
-# Used 9 times in query history.
+# Used 10 times in query history.
 - kind: Topic
   properties:
   - name: forum
