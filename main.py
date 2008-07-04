@@ -18,7 +18,6 @@ from offsets import *
 #  - /<forumurl>/rssall - like /rss but shows all posts, not only when a
 #  - support for google analytics code
 #  - /<forumurl>/email?postId=<id>
-#  - disallow creating forums with conflicting urls
 # TODO less urgent:
 #  - /rsscombined - all posts for all forums, for forum admins mostly
 #  - admin features like blocking users (ip address, cookie, user_id)
@@ -296,10 +295,16 @@ class ManageForums(webapp.RequestHandler):
     vals = ['url','title', 'tagline', 'sidebar', 'disable', 'enable', 'importsecret']
     (url, title, tagline, sidebar, disable, enable, import_secret) = req_get_vals(self.request, vals)
 
+    errmsg = None
     if not valid_forum_url(url):
+      errmsg = "Url contains illegal characters"
+    if not forum:
+      forum_exists = Forum.gql("WHERE url = :1", url).get()
+      if forum_exists:
+        errmsg = "Forum with this url already exists"
+
+    if errmsg:
       tvals = {
-        # TODO: the value is passed in but apparently my form is not in the right form
-        # need to figure this out
         'urlclass' : "error",
         'prevurl' : url,
         'prevtitle' : title,
@@ -307,7 +312,7 @@ class ManageForums(webapp.RequestHandler):
         'prevsidebar' : sidebar,
         'previmportsecret' : import_secret,
         'forum_key' : forum_key,
-        'errmsg' : "Url contains illegal characters"
+        'errmsg' : errmsg
       }
       return self.render_rest(tvals)
 
