@@ -4,11 +4,11 @@ from offsets import *
 # Uploads posts dumped with fruitshow_dump_data.py to fofou
 
 # you need to provide full url to a given forum's posting interface e.g.
-# http://foo.com/myforum/importtopic
+# http://foo.com/myforum/importfruitshow
 #FOFOU_SERVER = None
 # You need to provide import secret for this forum
 #IMPORT_SECRET = None
-FOFOU_SERVER = "http://localhost:9999/sumatrapdf/importtopic"
+FOFOU_SERVER = "http://localhost:9999/sumatrapdf/importfruitshow"
 IMPORT_SECRET = "haha"
 
 PICKLED_DATA_FILE_NAME = "fruitshow_posts.dat.bz2"
@@ -114,14 +114,6 @@ def main():
   print("Finished reading")
   all_topics = data["topics"]
 
-
-  """# convert topic subject to unicode
-  new_all_topics = []
-  for topic in all_topics:
-    new_topic = [el for el in topic]
-    new_topic[TOPIC_SUBJECT] = to_unicode(new_topic[TOPIC_SUBJECT])
-    new_all_topics.append(new_topic)
-  new_topics = new_all_topics"""
   # convert dates from numeric value to datetime instance, as required by
   # /topicimport interface and post body to unicode
   all_posts = data["posts"]
@@ -136,7 +128,7 @@ def main():
   topics_count = len(all_topics)
   print("%d topics, %d posts" % (topics_count, len(all_posts)))
   sent = 0
-  for topic in all_topics:
+  for topic in all_topics[900:]:
     topic_id = topic[TOPIC_ID]
     post_ids = [p[TP_POST_ID] for p in topic_posts if topic_id == p[TP_TOPIC_ID]]
     posts = [p for p in all_posts if p[POST_ID] in post_ids]
@@ -148,7 +140,8 @@ def main():
     #print("Subject: '%s'" % topic[TOPIC_SUBJECT])
     #print("uploading topic %s" % topic_id)
     sent = sent + 1
-    print("Uploading topic %d (out of %d)" % (sent, topics_count))
+    deleted = posts[0][POST_DELETED]
+    print("Uploading topic %d (out of %d), deleted = '%s'" % (sent, topics_count, str(deleted)))
     upload_post(FOFOU_SERVER, topic_pickled)
     #break
 

@@ -10,6 +10,8 @@ from offsets import *
 
 # TODO must have:
 #  - auto-formats urls in body
+#  - show deleted posts as deleted when viewed by admin and don't show them
+#    at all for non-admins
 #  - archives (by month?)
 #  - handle 'older topics' button
 #  - write a web page for fofou
@@ -447,7 +449,7 @@ class TopicListForm(webapp.RequestHandler):
     if not forum or forum.is_disabled:
       return self.redirect("/")
     siteroot = forum_root(forum)
-    MAX_TOPICS = 25
+    MAX_TOPICS = 75
     if users.is_current_user_admin():
       topics = Topic.gql("WHERE forum = :1 ORDER BY created_on DESC", forum).fetch(MAX_TOPICS)
     else:
@@ -476,8 +478,8 @@ def to_unicode(val):
   except:
     pass
     
-# responds to /<forumurl>/importtopic
-class ImportTopicForm(webapp.RequestHandler):
+# responds to /<forumurl>/importfruitshow
+class ImportFruitshowForm(webapp.RequestHandler):
 
   def post(self):
     forum = forum_from_url(self.request.path_info)
@@ -509,6 +511,7 @@ class ImportTopicForm(webapp.RequestHandler):
 
     subject = to_unicode(topic[TOPIC_SUBJECT])
     first_post = posts[0]
+    last_post = posts[-1]
     created_on = first_post[POST_POSTED_ON]
     #logging.info("subject: %s, created_on: %s" % (subject, str(created_on)))
     topic = Topic.gql("WHERE forum = :1 AND subject = :2 AND created_on = :3", forum, subject, created_on).get()
@@ -518,7 +521,10 @@ class ImportTopicForm(webapp.RequestHandler):
     created_by = to_unicode(first_post[POST_NAME])
     topic = Topic(forum=forum, subject=subject, created_on=created_on, created_by=created_by, updated_on = created_on)
     topic.ncomments = len(posts)-1
-    topic.updated_on = posts[-1][POST_POSTED_ON]
+    topic.updated_on = last_post[POST_POSTED_ON]
+    topic.is_deleted = bool(int(first_post[POST_DELETED]))
+    if topic.is_deleted:
+      logging.info("Topic %s is deleted", str(topic_no))
     topic.put()
     #logging.info("created topic, subject: %s, created_on: %s" % (subject, str(created_on)))
     for post in posts:
@@ -831,7 +837,7 @@ def main():
         ('/[^/]+/post', PostForm),
         ('/[^/]+/topic', TopicForm),
         ('/[^/]+/rss', RssFeed),
-        ('/[^/]+/importtopic', ImportTopicForm),
+        ('/[^/]+/importfruitshow', ImportFruitshowForm),
         ('/[^/]+/?', TopicListForm)],
      debug=True)
   wsgiref.handlers.CGIHandler().run(application)
