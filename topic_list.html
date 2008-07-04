@@ -48,7 +48,11 @@
 			There are no topics. You better create one.
 		{% else %}
 		{% for topic in topics %}
-			<a href="{{ siteroot }}topic?id={{ topic.key.id }}{% if topic.ncomments %}&comments={{ topic.ncomments }}{% endif %}" title="{{ topic.msg_short }}">{{ topic.subject }}</a>
+		  {% if topic.is_deleted %}
+				<a class="deleted" href="{{ siteroot }}topic?id={{ topic.key.id }}{% if topic.ncomments %}&comments={{ topic.ncomments }}{% endif %}" title="{{ topic.msg_short }}">{{ topic.subject }}</a>
+			{% else %}
+				<a href="{{ siteroot }}topic?id={{ topic.key.id }}{% if topic.ncomments %}&comments={{ topic.ncomments }}{% endif %}" title="{{ topic.msg_short }}">{{ topic.subject }}</a>
+			{% endif %}
 			<em>{{ topic.created_by }}</em> <span>({{ topic.ncomments }} {% if forloop.first %} comment{{ topic.ncomments|pluralize }}{% endif %})</span>
 			<br />
 			{% if not forloop.first %}

@@ -37,11 +37,13 @@
 			{% for post in posts %}
 					<a name="{{ post.key.id }}"</a>
 				<div>
-					<div class="post">{{ post.message|escape }}</div>
+					{% if post.is_deleted %}
+						<div class="post deleted">{{ post.message|striptags|escape|urlize|linebreaksbr }}</div>
+					{% else %}
+						<div class="post">{{ post.message|striptags|escape|urlize|linebreaksbr }}</div>
+					{% endif %}
 					<div class="signature">
-
 						<a href="{{ siteroot }}topic?id={{ topic.key.id }}#{{ post.key.id }}" title="Permalink" onmouseover="rolloverOn('link', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="link{{ post.key.id }}" src="/graphics/link.jpg" alt="Permalink" border="0" height="16" width="16"></a>
-
 						{% if post.user_email %}
 							<a href="{{ siteroot }}email?postId={{ post.key.id }}" title="Send private email" onmouseover="rolloverOn('email', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="email{{ post.key.id }}" src="/graphics/email.jpg" alt="Send private email" border="0" height="16" width="16"></a>
 						{% endif %}

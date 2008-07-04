@@ -17,7 +17,7 @@ indexes:
   - name: topic
   - name: created_on
 
-# Unused in query history -- copied from input.
+# Used 9 times in query history.
 - kind: Post
   properties:
   - name: topic
@@ -36,14 +36,14 @@ indexes:
   - name: forum
   - name: created_on
 
-# Used 3 times in query history.
+# Used 9 times in query history.
 - kind: Topic
   properties:
   - name: forum
   - name: created_on
     direction: desc
 
-# Unused in query history -- copied from input.
+# Used once in query history.
 - kind: Topic
   properties:
   - name: forum

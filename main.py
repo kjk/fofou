@@ -9,9 +9,6 @@ import logging
 from offsets import *
 
 # TODO must have:
-#  - auto-formats urls in body
-#  - show deleted posts as deleted when viewed by admin and don't show them
-#    at all for non-admins
 #  - archives (by month?)
 #  - handle 'older topics' button
 #  - write a web page for fofou
@@ -37,43 +34,6 @@ from offsets import *
 #    and not adding if a Post with this body_sha1 already exists
 #  - alternative forms of integration with a website (iframe? return data
 #    as json and do most of the rendering using javascrip?)
-
-# TODO: need to port this to python
-"""
-/**
-* Formats a message body.  This function replaces URL's with links and does
-* other formatting.
-*
-* @param	string		Message to format
-* @return	string		HTML formatted message
-* @access	public
-*/	
-function format_body_html($value)
-{
-	// Initial variables for parsing
-	$pattern = '/\b(?:(?:https?:\/\/)|(?:www[.]))([A-Za-z0-9_-]+(?:[.][A-Za-z0-9_-]+)+)([^\s"]*[\w\-\@?^=%&\/~\+#])?/xims';
-	$matches = Array();
-	$startPos = 0;
-	$result = '';
-
-	// Parse the output
-	$matchCount = preg_match_all($pattern, $value, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
-	for ($i = 0; $i < $matchCount; ++$i) {
-		$match = $matches[$i][0][0];
-		$matchPos = $matches[$i][0][1];
-		$host = $matches[$i][1][0];
-		$path = (empty($matches[$i][2])) ? '' : $matches[$i][2][0];
-		if ($startPos != $matchPos) $result .= format_html(substr($value, $startPos, ($matchPos - $startPos)));
-		if (Settings::matchHostName($host) && $path != '') $url = $path;
-		elseif (strpos($match, 'http://') === false && strpos($match, 'https://') === false) $url = 'http://'.$match;
-		else $url = $match;
-		$result .= '<a href="'.$url.'">'.format_html($match).'</a>';
-		$startPos = $matchPos + strlen($match);
-	}
-	$result .= format_html(substr($value, $startPos));
-	return $result;
-}
-"""
 
 # Structure of urls:
 #
@@ -570,10 +530,8 @@ class TopicForm(webapp.RequestHandler):
     if not topic:
       return self.redirect(siteroot)
 
-    if topic.is_deleted:
-      # TODO: but not if is admin? (in which case we want to be able to 
-      # undelete the topic). But then again, maybe that should be handled
-      # in topic list view or a separate page that just lists deleted topics
+    is_admin = users.is_current_user_admin()
+    if topic.is_deleted and not is_admin:
       return self.redirect(siteroot)
 
     is_archived = False
@@ -585,7 +543,7 @@ class TopicForm(webapp.RequestHandler):
 
     # 200 is more than generous
     MAX_POSTS = 200
-    if users.is_current_user_admin():
+    if is_admin:
       posts = Post.gql("WHERE topic = :1 ORDER BY created_on", topic).fetch(MAX_POSTS)
     else:
       posts = Post.gql("WHERE topic = :1 AND is_deleted = False ORDER BY created_on", topic).fetch(MAX_POSTS)
