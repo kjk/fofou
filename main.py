@@ -5,6 +5,7 @@ from google.appengine.api import users
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import template
 from django.utils import feedgenerator
+from django.template import Context, Template
 import logging
 from offsets import *
 
@@ -13,7 +14,6 @@ from offsets import *
 #  - handle 'older topics' button
 #  - write a web page for fofou
 #  - hookup sumatra forums at fofou.org
-#  - /<forumurl>/rss - rss feed
 #  - /<forumurl>/rssall - like /rss but shows all posts, not only when a
 #  - support for google analytics code
 #  - /<forumurl>/email?postId=<id>
@@ -26,6 +26,9 @@ from offsets import *
 #  - change /<forumurl>/post?id=<post_id>&<rest> to /<forumurl>/post/<post_id>?<rest>
 #    (to make parsing results of ajax google search simpler)
 # Maybe:
+#  - cache generated rss feeds using memcached and invalidate them when
+#    there's a new post (invalidate /rss and /rssall feed) or new topic
+#    (invalidate only /rss; also on post delete/undelete)
 #  - cookie validation
 #  - prevent dups by doing sha1 on post body, remembering it in Post.body_sha1
 #    and not adding if a Post with this body_sha1 already exists
@@ -615,24 +618,31 @@ class RssFeed(webapp.RequestHandler):
       return self.error(NOT_FOUND)
     siteroot = forum_root(forum)
 
-    feed = feedgenerator.Rss201rev2Feed(
-    title = forum.title or forum.url,
-    link = siteroot + "rss",
-    description = forum.tagline,
-    language = u"en")
+    feed = feedgenerator.Atom1Feed(
+      title = forum.title or forum.url,
+      link = siteroot + "rss",
+      description = forum.tagline,
+      language = u"en")
   
     MAX_TOPICS = 25
     topics = Topic.gql("WHERE forum = :1 AND is_deleted = False ORDER BY created_on DESC", forum).fetch(MAX_TOPICS)
     for topic in topics:
       title = topic.subject
-      link = siteroot + "topic?" + topic.key.id()
-      # TODO: get description out of first post body
-      description = topic.subject
+      link = siteroot + "topic?id=" + str(topic.key().id())
+      first_post =  Post.gql("WHERE topic = :1 ORDER BY created_on", topic).get()
+      msg = first_post.message
+      # TODO: a hack: using a full template to format message body.
+      # There must be a way to do it using straight django APIs
+      t = Template("{{ msg|striptags|escape|urlize|linebreaksbr }}")
+      c = Context({"msg": msg})
+      msg_formatted = t.render(c)
+      description = u"<strong>%s</strong>: %s" % (topic.created_by, msg_formatted)
+      
       pubdate = topic.created_on
       feed.add_item(title=title, link=link, description=description, pubdate=pubdate)
-    feedtxt = feed.writeString('utf8')
-    response.headers['Content-Type'] = 'text/xml'
-    response.out.write(feedtxt)
+    feedtxt = feed.writeString('utf-8')
+    self.response.headers['Content-Type'] = 'text/xml'
+    self.response.out.write(feedtxt)
 
 def get_fofou_user():
   # get user either by google user id or cookie
