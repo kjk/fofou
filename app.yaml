@@ -4,16 +4,11 @@ runtime: python
 api_version: 1
 
 handlers:
-- url: /fofou.css
-  static_files: fofou.css
-  upload: fofou.css
+- url: /skins
+  static_dir: skins
 
-- url: /fofou.js
-  static_files: fofou.js
-  upload: fofou.jss
-
-- url: /graphics
-  static_dir: graphics
+- url: /img
+  static_dir: img
 
 - url: .*
   script: main.py
