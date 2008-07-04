@@ -36,9 +36,9 @@ account is implicitly an admin for all forums hosted from that account.
 Design philosophy.
 ==================
 
-You'll quickly see that Fofou doesn't look like most forum software, which is
-inspired by early PhpBB system. There are good reasons for the differences and
-Joel Spolsky describes those reason in great detail:
+You'll quickly see that Fofou differs in many ways from most common forum
+software. There are good reasons for the differences and Joel Spolsky describes
+those reason in great detail:
 http://www.joelonsoftware.com/articles/BuildingCommunitieswithSo.html
 
 License.
