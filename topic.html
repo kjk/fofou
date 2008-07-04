@@ -47,7 +47,7 @@
 						{% if post.user_email %}
 							<a href="{{ siteroot }}email?postId={{ post.key.id }}" title="Send private email" onmouseover="rolloverOn('email', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="email{{ post.key.id }}" src="/graphics/email.jpg" alt="Send private email" border="0" height="16" width="16"></a>
 						{% endif %}
-						{% if is_admin %}
+						{% if is_moderator %}
 							{% if post.is_deleted %}
 								<a href="{{ siteroot }}postundel?{{ post.key.id }}" title="Undelete Post" onmouseover="rolloverOn('undo', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="undo{{ post.key.id }}" src="/graphics/undo.jpg" width="16" height="16" border="0" /></a>
 							{% else %}

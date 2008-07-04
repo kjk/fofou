@@ -10,22 +10,17 @@ import logging
 from offsets import *
 
 # TODO must have:
-#  - archives (by month?)
 #  - handle 'older topics' button
 #  - write a web page for fofou
 #  - hookup sumatra forums at fofou.org
-#  - /<forumurl>/rssall - like /rss but shows all posts, not only when a
 #  - support for google analytics code
 #  - /<forumurl>/email?postId=<id>
-# TODO less urgent:
-#  - /rsscombined - all posts for all forums, for forum admins mostly
-#  - admin features like blocking users (ip address, cookie, user_id)
 #  - per-forum templates
-#  - use template inheritance to reduce duplication of html
+# TODO less urgent:
+#  - admin features like blocking users (ip address, cookie, user_id)
 #  - use ajax google search ui 
-#  - change /<forumurl>/post?id=<post_id>&<rest> to /<forumurl>/post/<post_id>?<rest>
-#    (to make parsing results of ajax google search simpler)
 # Maybe:
+#  - /rsscombined - all posts for all forums, for forum admins mostly
 #  - cache generated rss feeds using memcached and invalidate them when
 #    there's a new post (invalidate /rss and /rssall feed) or new topic
 #    (invalidate only /rss; also on post delete/undelete)
@@ -34,6 +29,8 @@ from offsets import *
 #    and not adding if a Post with this body_sha1 already exists
 #  - alternative forms of integration with a website (iframe? return data
 #    as json and do most of the rendering using javascrip?)
+#  - change /<forumurl>/post?id=<post_id>&<rest> to /<forumurl>/post/<post_id>?<rest>
+#    (to make parsing results of ajax google search simpler)
 
 # Structure of urls:
 #
@@ -57,6 +54,7 @@ from offsets import *
 #
 # /<forum_url>/postdel?<postId>
 # /<forum_url>/postundel?<postId>
+#    delete/undelete post
 #
 # /<forum_url>/rss
 #    rss feed for first post in the topic (default)
@@ -121,6 +119,7 @@ class Topic(db.Model):
 # A topic is a collection of posts
 class Post(db.Model):
   topic = db.Reference(Topic, required=True)
+  forum = db.Reference(Forum, required=True)
   created_on = db.DateTimeProperty(auto_now_add=True)
   message = db.TextProperty(required=True)
   # admin can delete/undelete posts. If first post in a topic is deleted,
@@ -413,14 +412,17 @@ class PostDelUndel(webapp.RequestHandler):
   def get(self):
     forum = forum_from_url(self.request.path_info)
     siteroot = forum_root(forum)
-    is_admin = users.is_current_user_admin()
-    if not is_admin or forum.is_disabled:
+    is_moderator = users.is_current_user_admin()
+    if not is_moderator or forum.is_disabled:
       return self.redirect(siteroot)
     post_id = self.request.query_string
     logging.info("PostDelUndel: post_id='%s'" % post_id)
     post = db.get(db.Key.from_path('Post', int(post_id)))
     if not post:
       logging.info("No post with post_id='%s'" % post_id)
+      return self.redirect(siteroot)
+    if post.forum.key() != forum.key():
+      loggin.info("post.forum.key().id() ('%s') != fourm.key().id() ('%s')" % (str(post.forum.key().id()), str(forum.key().id())))
       return self.redirect(siteroot)
     path = self.request.path
     if path.endswith("/postdel"):
@@ -440,7 +442,7 @@ class PostDelUndel(webapp.RequestHandler):
 
     topic = post.topic
     # deleting/undeleting first post also means deleting/undeleting the whole topic
-    first_post =  Post.gql("WHERE topic = :1 ORDER BY created_on", topic).get()
+    first_post = Post.gql("WHERE forum=:1 AND topic = :2 ORDER BY created_on", forum, topic).get()
     if first_post.key() == post.key():
       if path.endswith("/postdel"):
         topic.is_deleted = True
@@ -555,7 +557,7 @@ class ImportFruitshow(webapp.RequestHandler):
         cookie = new_user_id()
         user = FofouUser(cookie=cookie, name=name, email=email, homepage=homepage)
         user.put()
-      new_post = Post(topic=topic, created_on=created_on, message=body, is_deleted=is_deleted, user_ip=user_ip, user=user)
+      new_post = Post(topic=topic, forum=forum, created_on=created_on, message=body, is_deleted=is_deleted, user_ip=user_ip, user=user)
       new_post.user_name = name
       new_post.user_email = email
       new_post.user_homepage = homepage
@@ -580,8 +582,8 @@ class TopicForm(webapp.RequestHandler):
     if not topic:
       return self.redirect(siteroot)
 
-    is_admin = users.is_current_user_admin()
-    if topic.is_deleted and not is_admin:
+    is_moderator = users.is_current_user_admin()
+    if topic.is_deleted and not is_moderator:
       return self.redirect(siteroot)
 
     is_archived = False
@@ -593,16 +595,16 @@ class TopicForm(webapp.RequestHandler):
 
     # 200 is more than generous
     MAX_POSTS = 200
-    if is_admin:
-      posts = Post.gql("WHERE topic = :1 ORDER BY created_on", topic).fetch(MAX_POSTS)
+    if is_moderator:
+      posts = Post.gql("WHERE forum = :1 AND topic = :2 ORDER BY created_on", forum, topic).fetch(MAX_POSTS)
     else:
-      posts = Post.gql("WHERE topic = :1 AND is_deleted = False ORDER BY created_on", topic).fetch(MAX_POSTS)
+      posts = Post.gql("WHERE forum = :1 AND topic = :2 AND is_deleted = False ORDER BY created_on", forum, topic).fetch(MAX_POSTS)
 
     tvals = {
       'siteroot' : siteroot,
       'forum' : forum,
       'topic' : topic,
-      'is_admin' : users.is_current_user_admin(),
+      'is_moderator' : is_moderator,
       'is_archived' : is_archived,
       'posts' : posts,
       'log_in_out' : get_log_in_out(siteroot)
@@ -610,6 +612,8 @@ class TopicForm(webapp.RequestHandler):
     template_out(self.response, "topic.html", tvals)
 
 # responds to /<forumurl>/rss, returns an RSS feed of recent topics
+# (taking into account only the first post in a topic - that's what
+# joelonsoftware forum rss feed does)
 class RssFeed(webapp.RequestHandler):
 
   def get(self):
@@ -621,15 +625,13 @@ class RssFeed(webapp.RequestHandler):
     feed = feedgenerator.Atom1Feed(
       title = forum.title or forum.url,
       link = siteroot + "rss",
-      description = forum.tagline,
-      language = u"en")
+      description = forum.tagline)
   
-    MAX_TOPICS = 25
-    topics = Topic.gql("WHERE forum = :1 AND is_deleted = False ORDER BY created_on DESC", forum).fetch(MAX_TOPICS)
+    topics = Topic.gql("WHERE forum = :1 AND is_deleted = False ORDER BY created_on DESC", forum).fetch(25)
     for topic in topics:
       title = topic.subject
       link = siteroot + "topic?id=" + str(topic.key().id())
-      first_post =  Post.gql("WHERE topic = :1 ORDER BY created_on", topic).get()
+      first_post = Post.gql("WHERE topic = :1 ORDER BY created_on", topic).get()
       msg = first_post.message
       # TODO: a hack: using a full template to format message body.
       # There must be a way to do it using straight django APIs
@@ -639,6 +641,39 @@ class RssFeed(webapp.RequestHandler):
       description = u"<strong>%s</strong>: %s" % (topic.created_by, msg_formatted)
       
       pubdate = topic.created_on
+      feed.add_item(title=title, link=link, description=description, pubdate=pubdate)
+    feedtxt = feed.writeString('utf-8')
+    self.response.headers['Content-Type'] = 'text/xml'
+    self.response.out.write(feedtxt)
+
+# responds to /<forumurl>/rssall, returns an RSS feed of all recent posts
+# This is good for forum admins/moderators who want to monitor all posts
+class RssAllFeed(webapp.RequestHandler):
+
+  def get(self):
+    forum = forum_from_url(self.request.path_info)
+    if not forum:
+      return self.error(NOT_FOUND)
+    siteroot = forum_root(forum)
+
+    feed = feedgenerator.Atom1Feed(
+      title = forum.title or forum.url,
+      link = siteroot + "rssall",
+      description = forum.tagline)
+  
+    posts = Post.gql("WHERE forum = :1 AND is_deleted = False ORDER BY created_on DESC", forum).fetch(25)
+    for post in posts:
+      topic = post.topic
+      title = topic.subject
+      link = siteroot + "topic?id=" + str(topic.key().id())
+      msg = post.message
+      # TODO: a hack: using a full template to format message body.
+      # There must be a way to do it using straight django APIs
+      t = Template("{{ msg|striptags|escape|urlize|linebreaksbr }}")
+      c = Context({"msg": msg})
+      msg_formatted = t.render(c)
+      description = u"<strong>%s</strong>: %s" % (post.user_name, msg_formatted)
+      pubdate = post.created_on
       feed.add_item(title=title, link=link, description=description, pubdate=pubdate)
     feedtxt = feed.writeString('utf-8')
     self.response.headers['Content-Type'] = 'text/xml'
@@ -828,17 +863,12 @@ class PostForm(webapp.RequestHandler):
       topic.put()
     else:
       topic = db.get(db.Key.from_path('Topic', int(topic_id)))
-      if forum.key() != topic.forum.key():
-        logging.info("forum.url      : %s" % forum.url)
-        logging.info("topic.forum.url: %s" % topic.forum.url)
-        logging.info("forum.key      : %s" % str(forum.key()))
-        logging.info("topic.forum.key: %s" % str(topic.forum.key()))
-      assert forum.key() == topic.forum.key()
+      #assert forum.key() == topic.forum.key()
       topic.ncomments += 1
       topic.put()
 
     user_ip = ip2long(get_remote_ip())
-    p = Post(user=user, user_ip=user_ip, topic=topic, message=message, user_name = name, user_email = email, user_homepage = homepage)
+    p = Post(topic=topic, forum=forum, user=user, user_ip=user_ip, message=message, user_name = name, user_email = email, user_homepage = homepage)
     p.put()
     if topic_id:
       self.redirect(siteroot + "topic?id=" + str(topic_id))
@@ -854,6 +884,7 @@ def main():
         ('/[^/]+/post', PostForm),
         ('/[^/]+/topic', TopicForm),
         ('/[^/]+/rss', RssFeed),
+        ('/[^/]+/rssall', RssAllFeed),
         ('/[^/]+/importfruitshow', ImportFruitshow),
         ('/[^/]+/?', TopicListForm)],
      debug=True)

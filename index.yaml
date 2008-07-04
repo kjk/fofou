@@ -13,11 +13,26 @@ indexes:
 # Used once in query history.
 - kind: Post
   properties:
+  - name: forum
+  - name: is_deleted
+  - name: created_on
+    direction: desc
+
+# Used 4 times in query history.
+- kind: Post
+  properties:
+  - name: forum
+  - name: topic
+  - name: created_on
+
+# Used once in query history.
+- kind: Post
+  properties:
   - name: is_deleted
   - name: topic
   - name: created_on
 
-# Used 502 times in query history.
+# Used 578 times in query history.
 - kind: Post
   properties:
   - name: topic
@@ -36,14 +51,14 @@ indexes:
   - name: forum
   - name: created_on
 
-# Used 15 times in query history.
+# Used 34 times in query history.
 - kind: Topic
   properties:
   - name: forum
   - name: created_on
     direction: desc
 
-# Used 33 times in query history.
+# Used 36 times in query history.
 - kind: Topic
   properties:
   - name: forum
