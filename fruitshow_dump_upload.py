@@ -132,7 +132,7 @@ def main():
     topic_id = topic[TOPIC_ID]
     post_ids = [p[TP_POST_ID] for p in topic_posts if topic_id == p[TP_TOPIC_ID]]
     posts = [p for p in all_posts if p[POST_ID] in post_ids]
-    topic_data = TopicData(topic, posts)
+    topic_data = (topic, posts)
     fo = StringIO.StringIO()
     pickle.dump(topic_data, fo)
     topic_pickled = fo.getvalue()

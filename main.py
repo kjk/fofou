@@ -549,9 +549,8 @@ class ImportFruitshow(webapp.RequestHandler):
     topic_data = pickle.load(fo)
     fo.close()
 
-    topic = topic_data.topic
+    (topic, posts) = topic_data
     topic_no = topic[TOPIC_ID]
-    posts = topic_data.posts
     if 0 == len(posts):
       logging.info("There are no posts in this topic.")
       return self.error(NOT_ACCEPTABLE)
