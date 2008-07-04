@@ -17,14 +17,15 @@ from offsets import *
 # TODO less urgent:
 #  - admin features like blocking users (ip address, cookie, user_id)
 #  - use ajax google search ui 
+#  - prevent dups by doing sha1 on post body, remembering it in Post.body_sha1
+#    and not adding if a Post with this body_sha1 already exists
+#  - js to show full url when typing url when creating new forum
 # Maybe:
 #  - /rsscombined - all posts for all forums, for forum admins mostly
 #  - cache generated rss feeds using memcached and invalidate them when
 #    there's a new post (invalidate /rss and /rssall feed) or new topic
 #    (invalidate only /rss; also on post delete/undelete)
 #  - cookie validation
-#  - prevent dups by doing sha1 on post body, remembering it in Post.body_sha1
-#    and not adding if a Post with this body_sha1 already exists
 #  - alternative forms of integration with a website (iframe? return data
 #    as json and do most of the rendering using javascrip?)
 #  - change /<forumurl>/post?id=<post_id>&<rest> to /<forumurl>/post/<post_id>?<rest>
