@@ -499,6 +499,7 @@ class TopicList(webapp.RequestHandler):
     template_out(self.response,  "topic_list.html", tvals)
 
 def to_unicode(val):
+  if isinstance(val, unicode): return val
   try:
     return unicode(val, 'latin-1')
   except:
@@ -510,7 +511,7 @@ def to_unicode(val):
   try:
     return unicode(val, 'utf-8')
   except:
-    pass
+    raise
     
 # responds to /<forumurl>/importfruitshow
 class ImportFruitshow(webapp.RequestHandler):
@@ -658,14 +659,13 @@ class RssFeed(webapp.RequestHandler):
       msg = first_post.message
       # TODO: a hack: using a full template to format message body.
       # There must be a way to do it using straight django APIs
-      t = Template(u"{{ msg|striptags|escape|urlize|linebreaksbr }}")
-      c = Context({"msg": msg})
-      msg_formatted = t.render(c)
-      if topic.created_by:
-        description = u"<strong>%s</strong>: %s" % (topic.created_by, msg_formatted)
+      name = topic.created_by
+      if name:
+        t = Template("<strong>{{ name }}</strong>: {{ msg|striptags|escape|urlize|linebreaksbr }}")
       else:
-        description = msg_formatted
-      
+        t = Template("{{ msg|striptags|escape|urlize|linebreaksbr }}")
+      c = Context({"msg": msg, "name" : name})
+      description = t.render(c)
       pubdate = topic.created_on
       feed.add_item(title=title, link=link, description=description, pubdate=pubdate)
     feedtxt = feed.writeString('utf-8')
@@ -687,7 +687,7 @@ class RssAllFeed(webapp.RequestHandler):
       link = siteroot + "rssall",
       description = forum.tagline)
   
-    posts = Post.gql("WHERE forum = :1 AND is_deleted = False ORDER BY created_on DESC", forum).fetch(125)
+    posts = Post.gql("WHERE forum = :1 AND is_deleted = False ORDER BY created_on DESC", forum).fetch(25)
     for post in posts:
       topic = post.topic
       title = topic.subject
@@ -695,13 +695,13 @@ class RssAllFeed(webapp.RequestHandler):
       msg = post.message
       # TODO: a hack: using a full template to format message body.
       # There must be a way to do it using straight django APIs
-      t = Template(u"{{ msg|striptags|escape|urlize|linebreaksbr }}")
-      c = Context({"msg": msg})
-      msg_formatted = t.render(c)
-      if post.user_name:
-        description = u"<strong>%s</strong>: %s" % (post.user_name, msg_formatted)
+      name = post.user_name
+      if name:
+        t = Template("<strong>{{ name }}</strong>: {{ msg|striptags|escape|urlize|linebreaksbr }}")
       else:
-        description = msg_formatted
+        t = Template("{{ msg|striptags|escape|urlize|linebreaksbr }}")
+      c = Context({"msg": msg, "name" : name})
+      description = t.render(c)
       pubdate = post.created_on
       feed.add_item(title=title, link=link, description=description, pubdate=pubdate)
     feedtxt = feed.writeString('utf-8')
