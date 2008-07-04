@@ -12,15 +12,15 @@ from offsets import *
 # TODO must have:
 #  - write a web page for fofou
 #  - hookup sumatra forums at fofou.org
-#  - /<forumurl>/email?post_id=<post_id>
-#  - per-forum templates
 # TODO less urgent:
-#  - admin features like blocking users (ip address, cookie, user_id)
+#  - finish /<forumurl>/email?post_id=<post_id>
 #  - use ajax google search ui 
 #  - prevent dups by doing sha1 on post body, remembering it in Post.body_sha1
+#  - admin features like blocking users (ip address, cookie, user_id)
 #    and not adding if a Post with this body_sha1 already exists
 #  - js to show full url when typing url when creating new forum
 # Maybe:
+#  - more templates and ability to choose a template in /manageforums
 #  - /rsscombined - all posts for all forums, for forum admins mostly
 #  - cache generated rss feeds using memcached and invalidate them when
 #    there's a new post (invalidate /rss and /rssall feed) or new topic
@@ -28,8 +28,6 @@ from offsets import *
 #  - cookie validation
 #  - alternative forms of integration with a website (iframe? return data
 #    as json and do most of the rendering using javascrip?)
-#  - change /<forumurl>/post?id=<post_id>&<rest> to /<forumurl>/post/<post_id>?<rest>
-#    (to make parsing results of ajax google search simpler)
 
 # Structure of urls:
 #
@@ -95,6 +93,8 @@ class Forum(db.Model):
   is_disabled = db.BooleanProperty(default=False)
   # just in case, when the forum was created. Not used.
   created_on = db.DateTimeProperty(auto_now_add=True)
+  # name of the skin (must be one of SKINS)
+  skin = db.StringProperty()
   # Google analytics code
   analytics_code = db.StringProperty()
   # secret value that needs to be passed in form data
@@ -136,6 +136,8 @@ class Post(db.Model):
   user_email = db.StringProperty()
   user_homepage = db.StringProperty()
 
+SKINS = ["default"]
+
 # cookie code based on http://code.google.com/p/appengine-utitlies/source/browse/trunk/utilities/session.py
 FOFOU_COOKIE = "fofou-uid"
 COOKIE_EXPIRE_TIME = 60*60*24*120 # valid for 60*60*24*120 seconds => 120 days
@@ -144,9 +146,31 @@ def get_user_agent(): return os.environ['HTTP_USER_AGENT']
 def get_remote_ip(): return os.environ['REMOTE_ADDR']
 
 def ip2long(ip):
-    ip_array = ip.split('.')
-    ip_long = int(ip_array[0]) * 16777216 + int(ip_array[1]) * 65536 + int(ip_array[2]) * 256 + int(ip_array[3])
-    return ip_long
+  ip_array = ip.split('.')
+  ip_long = int(ip_array[0]) * 16777216 + int(ip_array[1]) * 65536 + int(ip_array[2]) * 256 + int(ip_array[3])
+  return ip_long
+
+def long2ip(val):
+  # convert long IP addresses to dotted quad notation
+  slist = []
+  for x in range(0,4):
+    slist.append(str(int(val >> (24 - (x * 8)) & 0xFF)))
+  return ".".join(slist)
+
+def to_unicode(val):
+  if isinstance(val, unicode): return val
+  try:
+    return unicode(val, 'latin-1')
+  except:
+    pass
+  try:
+    return unicode(val, 'ascii')
+  except:
+    pass
+  try:
+    return unicode(val, 'utf-8')
+  except:
+    raise
 
 def req_get_vals(req, names, strip=True): 
   if strip:
@@ -248,6 +272,23 @@ def forum_from_url(url):
       
 def forum_root(forum): return "/" + forum.url + "/"
 
+def forum_siteroot_skinurl_from_url(url):
+  assert '/' == url[0]
+  path = url[1:]
+  if '/' in path:
+    (forumurl, rest) = path.split("/", 1)
+  else:
+    forumurl = path
+  forum = Forum.gql("WHERE url = :1", forumurl).get()
+  if not forum:
+    return (None, None, None)
+  siteroot = forum_root(forum)
+  skin_name = forum.skin
+  if skin_name not in SKINS:
+    skin_name = SKINS[0]
+  skinurl = "/skins/" + skin_name + "/"
+  return (forum, siteroot, skinurl)
+
 def get_log_in_out(url):
   user = users.get_current_user()
   if user:
@@ -308,6 +349,7 @@ class ManageForums(webapp.RequestHandler):
     if errmsg:
       tvals = {
         'urlclass' : "error",
+        'skinurl' : "/skins/default/",
         'prevurl' : url,
         'prevtitle' : title,
         'prevtagline' : tagline,
@@ -351,7 +393,9 @@ class ManageForums(webapp.RequestHandler):
         # invalid forum key - should not happen, return to top level
         return self.redirect("/")
 
-    tvals = {}
+    tvals = {
+    'skinurl' : "/skins/default/"    
+    }
     if forum:
       disable = self.request.get('disable')
       enable = self.request.get('enable')
@@ -394,7 +438,7 @@ class ManageForums(webapp.RequestHandler):
     tvals['msg'] = self.request.get('msg')
     tvals['user'] = user
     tvals['forums'] = forums
-    template_out(self.response,  "manage_forums.html", tvals)
+    template_out(self.response, "skins/default/manage_forums.html", tvals)
 
 # responds to /, shows list of available forums or redirects to
 # forum management page if user is admin
@@ -409,13 +453,14 @@ class ForumList(webapp.RequestHandler):
       'isadmin' : users.is_current_user_admin(),
       'log_in_out' : get_log_in_out("/")
     }
-    template_out(self.response,  "forum_list.html", tvals)
+    template_out(self.response, "skins/default/forum_list.html", tvals)
 
 # responds to GET /postdel?<post_id> and /postundel?<post_id>
 class PostDelUndel(webapp.RequestHandler):
   def get(self):
-    forum = forum_from_url(self.request.path_info)
-    siteroot = forum_root(forum)
+    (forum, siteroot, skinurl) = forum_siteroot_skinurl_from_url(self.request.path_info)
+    if not forum or forum.is_disabled:
+      return self.redirect("/")
     is_moderator = users.is_current_user_admin()
     if not is_moderator or forum.is_disabled:
       return self.redirect(siteroot)
@@ -472,10 +517,9 @@ class TopicList(webapp.RequestHandler):
     return (start, topics)
 
   def get(self):
-    forum = forum_from_url(self.request.path_info)
+    (forum, siteroot, skinurl) = forum_siteroot_skinurl_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
-    siteroot = forum_root(forum)
     start = 0
     if self.request.get("from"):
       start = int(self.request.get("from"))
@@ -488,6 +532,7 @@ class TopicList(webapp.RequestHandler):
     tvals = {
       'siteroot' : siteroot,
       'siteurl' : self.request.url,
+      'skinurl' : skinurl,
       'forum' : forum,
       'topics' : topics,
       'analytics_code' : forum.analytics_code or "",
@@ -496,35 +541,20 @@ class TopicList(webapp.RequestHandler):
       'new_from' : new_start,
       'log_in_out' : get_log_in_out(siteroot)
     }
-    template_out(self.response,  "topic_list.html", tvals)
+    logging.info("skinurl: %s" % skinurl)
+    template_out(self.response, skinurl[1:] + "topic_list.html", tvals)
 
-def to_unicode(val):
-  if isinstance(val, unicode): return val
-  try:
-    return unicode(val, 'latin-1')
-  except:
-    pass
-  try:
-    return unicode(val, 'ascii')
-  except:
-    pass
-  try:
-    return unicode(val, 'utf-8')
-  except:
-    raise
-    
 # responds to /<forumurl>/importfruitshow
 class ImportFruitshow(webapp.RequestHandler):
 
   def post(self):
-    forum = forum_from_url(self.request.path_info)
-    if not forum:
+    (forum, siteroot, skinurl) = forum_siteroot_skinurl_from_url(self.request.path_info)
+    if not forum or forum.is_disabled:
       return self.error(NOT_ACCEPTABLE)
     # not active at all if not protected by secret
     if not forum.import_secret:
       logging.info("tried to import topic into '%s' forum, but forum has no import_secret" % forum.url)
       return self.error(NOT_ACCEPTABLE)
-    siteroot = forum_root(forum)
     (topic_pickled, import_secret) = req_get_vals(self.request, ["topicdata", 'importsecret'], strip=False)
     if not topic_pickled:
       logging.info("tried to import topic into '%s' forum, but no 'topicdata' field" % forum.url)
@@ -592,10 +622,9 @@ class ImportFruitshow(webapp.RequestHandler):
 class TopicForm(webapp.RequestHandler):
 
   def get(self):
-    forum = forum_from_url(self.request.path_info)
-    if not forum:
+    (forum, siteroot, skinurl) = forum_siteroot_skinurl_from_url(self.request.path_info)
+    if not forum or forum.is_disabled:
       return self.redirect("/")
-    siteroot = forum_root(forum)
 
     topic_id = self.request.get('id')
     if not topic_id:
@@ -626,6 +655,7 @@ class TopicForm(webapp.RequestHandler):
     tvals = {
       'siteroot' : siteroot,
       'forum' : forum,
+      'skinurl' : skinurl,
       'analytics_code' : forum.analytics_code or "",
       'topic' : topic,
       'is_moderator' : is_moderator,
@@ -633,7 +663,7 @@ class TopicForm(webapp.RequestHandler):
       'posts' : posts,
       'log_in_out' : get_log_in_out(siteroot)
     }
-    template_out(self.response, "topic.html", tvals)
+    template_out(self.response, skinurl[1:] + "topic.html", tvals)
 
 # responds to /<forumurl>/rss, returns an RSS feed of recent topics
 # (taking into account only the first post in a topic - that's what
@@ -641,10 +671,9 @@ class TopicForm(webapp.RequestHandler):
 class RssFeed(webapp.RequestHandler):
 
   def get(self):
-    forum = forum_from_url(self.request.path_info)
-    if not forum:
+    (forum, siteroot, skinurl) = forum_siteroot_skinurl_from_url(self.request.path_info)
+    if not forum or forum.is_disabled:
       return self.error(NOT_FOUND)
-    siteroot = forum_root(forum)
 
     feed = feedgenerator.Atom1Feed(
       title = forum.title or forum.url,
@@ -677,10 +706,9 @@ class RssFeed(webapp.RequestHandler):
 class RssAllFeed(webapp.RequestHandler):
 
   def get(self):
-    forum = forum_from_url(self.request.path_info)
-    if not forum:
+    (forum, siteroot, skinurl) = forum_siteroot_skinurl_from_url(self.request.path_info)
+    if not forum or forum.is_disabled:
       return self.error(NOT_FOUND)
-    siteroot = forum_root(forum)
 
     feed = feedgenerator.Atom1Feed(
       title = forum.title or forum.url,
@@ -730,9 +758,9 @@ def get_fofou_user():
 class EmailForm(webapp.RequestHandler):
 
   def get(self):
-    forum = forum_from_url(self.request.path_info)
-    if not forum or forum.is_disabled: return self.redirect("/")
-    siteroot = forum_root(forum)
+    (forum, siteroot, skinurl) = forum_siteroot_skinurl_from_url(self.request.path_info)
+    if not forum or forum.is_disabled:
+      return self.redirect("/")
     (num1, num2) = (random.randint(1,9), random.randint(1,9))
     post_id = self.request.get("post_id")
     if not post_id: return self.redirect(siteroot)
@@ -743,6 +771,7 @@ class EmailForm(webapp.RequestHandler):
     tvals = {
       'siteroot' : siteroot,
       'forum' : forum,
+      'skinurl' : skinurl,
       'num1' : num1,
       'num2' : num2,
       'num3' : int(num1) + int(num2),
@@ -751,12 +780,12 @@ class EmailForm(webapp.RequestHandler):
       'subject' : subject,
       'log_in_out' : get_log_in_out(siteroot + "post")
     }
-    template_out(self.response, "email.html", tvals)
+    template_out(self.response, skinurl[1:] + "email.html", tvals)
 
   def post(self):
-    forum = forum_from_url(self.request.path_info)
-    if not forum or forum.is_disabled: return self.redirect("/")
-    siteroot = forum_root(forum)
+    (forum, siteroot, skinurl) = forum_siteroot_skinurl_from_url(self.request.path_info)
+    if not forum or forum.is_disabled:
+      return self.redirect("/")
     if self.request.get('Cancel'): self.redirect(siteroot)
     post_id = self.request.get("post_id")
     logging.info("post_id = %s" % str(post_id))
@@ -767,19 +796,19 @@ class EmailForm(webapp.RequestHandler):
     tvals = {
       'siteroot' : siteroot,
       'forum' : forum,
+      'skinurl' : skinurl,
       'topic' : topic,
       'log_in_out' : get_log_in_out(siteroot + "post")
     }    
-    template_out(self.response, "email_sent.html", tvals)
+    template_out(self.response, skinurl[1:] + "email_sent.html", tvals)
 
 # responds to /<forumurl>/post[?id=<topic_id>]
 class PostForm(webapp.RequestHandler):
 
   def get(self):
-    forum = forum_from_url(self.request.path_info)
+    (forum, siteroot, skinurl) = forum_siteroot_skinurl_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
-    siteroot = forum_root(forum)
     send_fofou_cookie()
 
     rememberChecked = ""
@@ -798,6 +827,7 @@ class PostForm(webapp.RequestHandler):
     tvals = {
       'siteroot' : siteroot,
       'forum' : forum,
+      'skinurl' : skinurl,
       'num1' : num1,
       'num2' : num2,
       'num3' : int(num1) + int(num2),
@@ -813,12 +843,12 @@ class PostForm(webapp.RequestHandler):
       if not topic: return self.redirect(siteroot)
       tvals['prevTopicId'] = topic_id
       tvals['prevSubject'] = topic.subject
-    template_out(self.response, "post.html", tvals)
+    template_out(self.response, skinurl[1:] + "post.html", tvals)
 
   def post(self):
-    forum = forum_from_url(self.request.path_info)
-    if not forum: return self.redirect("/")
-    siteroot = forum_root(forum)
+    (forum, siteroot, skinurl) = forum_siteroot_skinurl_from_url(self.request.path_info)
+    if not forum or forum.is_disabled:
+      return self.redirect("/")
     if self.request.get('Cancel'): self.redirect(siteroot)
 
     send_fofou_cookie()
@@ -842,6 +872,7 @@ class PostForm(webapp.RequestHandler):
     tvals = {
       'siteroot' : siteroot,
       'forum' : forum,
+      'skinurl' : skinurl,
       'num1' : num1,
       'num2' : num2,
       'num3' : int(num1) + int(num2),
@@ -856,28 +887,19 @@ class PostForm(webapp.RequestHandler):
       "log_in_out" : get_log_in_out(siteroot + "post")
     }
 
-    # ensure user properly answered math question
-    if not validCaptcha or (captcha != (num1 + num2)):
-      tvals['captcha_class'] = "error"
-      return template_out(self.response, "post.html", tvals)
-
     # 'http://' is the default value we put, so if unchanged, consider it
     # as not given at all
     if homepage == "http://": homepage = ""
 
-    # message cannot be empty
-    if not message:
-      tvals['message_class'] = "error"
-      return template_out(self.response, "post.html", tvals)
-    
-    # name cannot be empty
-    if not name:
-      tvals['name_class'] = "error"
-      return template_out(self.response, "post.html", tvals)
-    
-    if not valid_email(email):
-      tvals['email_class'] = "error"
-      return template_out(self.response, "post.html", tvals)
+    # validate captcha and other values
+    errclass = None
+    if not validCaptcha or (captcha != (num1 + num2)): errclass = 'captcha_class'
+    if not message: errclass = "message_class"
+    if not name: errclass = "name_class"
+    if not valid_email(email): errclass = "email_class"
+    if errclass:
+      tvals[errclass] = "error"
+      return template_out(self.response, skinurl[1:] + "post.html", tvals)
 
     # get user either by google user id or cookie. Create user objects if don't
     # already exist
@@ -925,7 +947,7 @@ class PostForm(webapp.RequestHandler):
       # first post in a topic, so create the topic
       if not valid_subject(subject):
         tvals['subject_class'] = "error"
-        return template_out(self.response, "post.html", tvals)
+        return template_out(self.response, skinurl[1:] + "post.html", tvals)
       topic = Topic(forum=forum, subject=subject, created_by=name)
       topic.put()
     else:

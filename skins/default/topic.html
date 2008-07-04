@@ -3,8 +3,8 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
 	<title>{% firstof forum.title forum.url %}</title>
-	<link href="/fofou.css" rel="stylesheet" type="text/css">
-	<script language="javascript" src="/fofou.js" type="text/javascript"></script>
+	<link href="{{ skinurl }}fofou.css" rel="stylesheet" type="text/css">
+	<script language="javascript" src="{{ skinurl }}fofou.js" type="text/javascript"></script>
 </head>
 
 <body>
@@ -25,11 +25,11 @@
 	<td class="contents">
 		<script language="javascript" type="text/javascript">
 		<!--
-		rolloverInit('link', '/graphics/link_over.jpg');
-		rolloverInit('email', '/graphics/email_over.jpg');
-		rolloverInit('web', '/graphics/web_over.jpg');
-		rolloverInit('delete', '/graphics/delete_over.jpg');
-		rolloverInit('undo', '/graphics/undo_over.jpg');
+		rolloverInit('link', '/img/link_over.jpg');
+		rolloverInit('email', '/img/email_over.jpg');
+		rolloverInit('web', '/img/web_over.jpg');
+		rolloverInit('delete', '/img/delete_over.jpg');
+		rolloverInit('undo', '/img/undo_over.jpg');
 		// -->
 		</script>
 		<div class="posts">
@@ -43,15 +43,15 @@
 						<div class="post">{{ post.message|striptags|escape|urlize|linebreaksbr }}</div>
 					{% endif %}
 					<div class="signature">
-						<a href="{{ siteroot }}topic?id={{ topic.key.id }}#{{ post.key.id }}" title="Permalink" onmouseover="rolloverOn('link', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="link{{ post.key.id }}" src="/graphics/link.jpg" alt="Permalink" border="0" height="16" width="16"></a>
+						<a href="{{ siteroot }}topic?id={{ topic.key.id }}#{{ post.key.id }}" title="Permalink" onmouseover="rolloverOn('link', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="link{{ post.key.id }}" src="/img/link.jpg" alt="Permalink" border="0" height="16" width="16"></a>
 						{% if post.user_email %}
-							<a href="{{ siteroot }}email?post_id={{ post.key.id }}" title="Send private email" onmouseover="rolloverOn('email', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="email{{ post.key.id }}" src="/graphics/email.jpg" alt="Send private email" border="0" height="16" width="16"></a>
+							<a href="{{ siteroot }}email?post_id={{ post.key.id }}" title="Send private email" onmouseover="rolloverOn('email', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="email{{ post.key.id }}" src="/img/email.jpg" alt="Send private email" border="0" height="16" width="16"></a>
 						{% endif %}
 						{% if is_moderator %}
 							{% if post.is_deleted %}
-								<a href="{{ siteroot }}postundel?{{ post.key.id }}" title="Undelete Post" onmouseover="rolloverOn('undo', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="undo{{ post.key.id }}" src="/graphics/undo.jpg" width="16" height="16" border="0" /></a>
+								<a href="{{ siteroot }}postundel?{{ post.key.id }}" title="Undelete Post" onmouseover="rolloverOn('undo', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="undo{{ post.key.id }}" src="/img/undo.jpg" width="16" height="16" border="0" /></a>
 							{% else %}
-								<a href="{{ siteroot }}postdel?{{ post.key.id }}" title="Delete Post" onmouseover="rolloverOn('delete', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="delete{{ post.key.id }}" src="/graphics/delete.jpg" width="16" height="16" border="0" /></a>
+								<a href="{{ siteroot }}postdel?{{ post.key.id }}" title="Delete Post" onmouseover="rolloverOn('delete', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="delete{{ post.key.id }}" src="/img/delete.jpg" width="16" height="16" border="0" /></a>
 							{% endif %}
 						{% endif %}
 						{% if post.user_homepage %}
@@ -71,13 +71,13 @@
 				{% endif %}
 
 				<a accesskey="t" href="{{ siteroot }}">
-					<img src="/graphics/topics.gif" alt="Other recent topics" border="0" height="14" width="13">
+					<img src="/img/topics.gif" alt="Other recent topics" border="0" height="14" width="13">
 					Other recent <u>t</u>opics
 				</a>
 
 				{% if not is_archived %}
 				<a accesskey="r" href="{{ siteroot }}post?id={{ topic.key.id }}">
-					<img src="/graphics/edit.gif" alt="Reply to this topic" border="0" height="14" width="13">
+					<img src="/img/edit.gif" alt="Reply to this topic" border="0" height="14" width="13">
 					<u>R</u>eply to this topic
 				</a>
 				{% endif %}
