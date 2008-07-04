@@ -47,6 +47,10 @@
 		{% if not topics %}
 			There are no topics. You better create one.
 		{% else %}
+				{% if from %}
+					Topics {{ from }}-{{ to }}<br/><br/>
+				{% endif %}
+
 		{% for topic in topics %}
 		  {% if topic.is_deleted %}
 				<a class="deleted" href="{{ siteroot }}topic?id={{ topic.key.id }}{% if topic.ncomments %}&comments={{ topic.ncomments }}{% endif %}" title="{{ topic.msg_short }}">{{ topic.subject }}</a>
@@ -63,7 +67,9 @@
 		{% endif %}
 		<div class="buttons">
 		<a accesskey="n" href="{{ siteroot }}post"><img src="/graphics/new.gif" alt="New topic" border="0" height="14" width="13"> <u>N</u>ew topic</a>
-		<a accesskey="t" href="{{ siteroot }}archive"><img src="/graphics/archive.gif" alt="Older topics" border="0" height="14" width="13"> Older <u>t</u>opics</a>
+		{% if new_from %}
+			<a accesskey="t" href="{{ siteroot }}?from={{ new_from}}"><img src="/graphics/archive.gif" alt="Older topics" border="0" height="14" width="13">Older <u>t</u>opics</a>
+		{% endif %}
 		</div>
 	</td>
 </tr>

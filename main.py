@@ -10,7 +10,6 @@ import logging
 from offsets import *
 
 # TODO must have:
-#  - handle 'older topics' button
 #  - write a web page for fofou
 #  - hookup sumatra forums at fofou.org
 #  - support for google analytics code
@@ -41,8 +40,8 @@ from offsets import *
 #
 # Per-forum urls
 #
-# /<forum_url>/
-#    index, lists recent topics
+# /<forum_url>/[?from=<n>]
+#    index, lists of topics, optionally starting from topic <n>
 #
 # /<forum_url>/post[?id=<id>]
 #    form for creating a new post. if "topic" is present, it's a post in
@@ -454,24 +453,41 @@ class PostDelUndel(webapp.RequestHandler):
     topic_url = siteroot + "topic?id=" + str(topic.key().id())
     self.redirect(topic_url)
     
-# responds to /<forumurl>/, shows a list of recent topics
-class TopicListForm(webapp.RequestHandler):
+# responds to /<forumurl>/[?from=<from>]
+# shows a list of topics, potentially starting from topic N
+class TopicList(webapp.RequestHandler):
+
+  def get_topics(self, forum, is_moderator, start, max_topics):
+    if is_moderator:
+      topics = Topic.gql("WHERE forum = :1 ORDER BY created_on DESC", forum).fetch(max_topics, start)
+    else:
+      topics = Topic.gql("WHERE forum = :1 AND is_deleted = False ORDER BY created_on DESC", forum).fetch(max_topics, start)
+    if 0 == len(topics) and start > 0:
+      return self.get_topics(forum, is_moderator, 0, max_topics)
+    return (start, topics)
+
   def get(self):
     forum = forum_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
     siteroot = forum_root(forum)
+    start = 0
+    if self.request.get("from"):
+      start = int(self.request.get("from"))
+    is_moderator = users.is_current_user_admin()
     MAX_TOPICS = 75
-    if users.is_current_user_admin():
-      topics = Topic.gql("WHERE forum = :1 ORDER BY created_on DESC", forum).fetch(MAX_TOPICS)
-    else:
-      topics = Topic.gql("WHERE forum = :1 AND is_deleted = False ORDER BY created_on DESC", forum).fetch(MAX_TOPICS)
-
+    (start, topics) = self.get_topics(forum, is_moderator, start, MAX_TOPICS)
+    new_start = 0
+    if len(topics) == MAX_TOPICS:
+      new_start = start + MAX_TOPICS
     tvals = {
       'siteroot' : siteroot,
       'siteurl' : self.request.url,
       'forum' : forum,
       'topics' : topics,
+      'from' : start,
+      'to' : start + len(topics),
+      'new_from' : new_start,
       'log_in_out' : get_log_in_out(siteroot)
     }
     template_out(self.response,  "topic_list.html", tvals)
@@ -892,7 +908,7 @@ def main():
         ('/[^/]+/rss', RssFeed),
         ('/[^/]+/rssall', RssAllFeed),
         ('/[^/]+/importfruitshow', ImportFruitshow),
-        ('/[^/]+/?', TopicListForm)],
+        ('/[^/]+/?', TopicList)],
      debug=True)
   wsgiref.handlers.CGIHandler().run(application)
 
