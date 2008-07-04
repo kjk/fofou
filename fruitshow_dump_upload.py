@@ -101,8 +101,8 @@ def main():
   if not IMPORT_SECRET:
     print("You need to set IMPORT_SECRET")
     return
-  if "/importtopic" not in FOFOU_SERVER:
-    print("FOFOU_SERVER url ('%s') doesn't look valid (doesn't end with '/importtopic')" % FOFOU_SERVER)
+  if "/importfruitshow" not in FOFOU_SERVER:
+    print("FOFOU_SERVER url ('%s') doesn't look valid (doesn't end with '/importfruitshow')" % FOFOU_SERVER)
     return
   if not os.path.exists(PICKLED_DATA_FILE_NAME):
     print("File %s doesn't exists" % PICKLED_DATA_FILE_NAME)
