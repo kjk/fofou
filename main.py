@@ -12,7 +12,7 @@ from offsets import *
 # TODO must have:
 #  - write a web page for fofou
 #  - hookup sumatra forums at fofou.org
- #  - /<forumurl>/email?postId=<id>
+#  - /<forumurl>/email?post_id=<post_id>
 #  - per-forum templates
 # TODO less urgent:
 #  - admin features like blocking users (ip address, cookie, user_id)
@@ -50,8 +50,8 @@ from offsets import *
 #    shows posts in a given topic, 'comments' is ignored (just a trick to re-use
 #    browser's history to see if the topic has posts that user didn't see yet
 #
-# /<forum_url>/postdel?<postId>
-# /<forum_url>/postundel?<postId>
+# /<forum_url>/postdel?<post_id>
+# /<forum_url>/postundel?<post_id>
 #    delete/undelete post
 #
 # /<forum_url>/rss
@@ -410,7 +410,7 @@ class ForumList(webapp.RequestHandler):
     }
     template_out(self.response,  "forum_list.html", tvals)
 
-# responds to GET /postdel?<postId> and /postundel?<postId>
+# responds to GET /postdel?<post_id> and /postundel?<post_id>
 class PostDelUndel(webapp.RequestHandler):
   def get(self):
     forum = forum_from_url(self.request.path_info)
@@ -725,6 +725,52 @@ def get_fofou_user():
         logging.info("Didn't find user for cookie '%s'" % cookie)
   return user
 
+# responds to /<forumurl>/email[?post_id=<post_id>]
+class EmailForm(webapp.RequestHandler):
+
+  def get(self):
+    forum = forum_from_url(self.request.path_info)
+    if not forum or forum.is_disabled: return self.redirect("/")
+    siteroot = forum_root(forum)
+    (num1, num2) = (random.randint(1,9), random.randint(1,9))
+    post_id = self.request.get("post_id")
+    if not post_id: return self.redirect(siteroot)
+    post = db.get(db.Key.from_path('Post', int(post_id)))
+    if not post: return self.redirect(siteroot)
+    to_name = post.user_name or post.user_homepage
+    subject = "Re: " + (forum.title or forum.url) + " - " + post.topic.subject
+    tvals = {
+      'siteroot' : siteroot,
+      'forum' : forum,
+      'num1' : num1,
+      'num2' : num2,
+      'num3' : int(num1) + int(num2),
+      'post_id' : post_id,
+      'to' : to_name,
+      'subject' : subject,
+      'log_in_out' : get_log_in_out(siteroot + "post")
+    }
+    template_out(self.response, "email.html", tvals)
+
+  def post(self):
+    forum = forum_from_url(self.request.path_info)
+    if not forum or forum.is_disabled: return self.redirect("/")
+    siteroot = forum_root(forum)
+    if self.request.get('Cancel'): self.redirect(siteroot)
+    post_id = self.request.get("post_id")
+    logging.info("post_id = %s" % str(post_id))
+    if not post_id: return self.redirect(siteroot)
+    post = db.get(db.Key.from_path('Post', int(post_id)))
+    if not post: return self.redirect(siteroot)
+    topic = post.topic
+    tvals = {
+      'siteroot' : siteroot,
+      'forum' : forum,
+      'topic' : topic,
+      'log_in_out' : get_log_in_out(siteroot + "post")
+    }    
+    template_out(self.response, "email_sent.html", tvals)
+
 # responds to /<forumurl>/post[?id=<topic_id>]
 class PostForm(webapp.RequestHandler):
 
@@ -763,20 +809,16 @@ class PostForm(webapp.RequestHandler):
     topic_id = self.request.get('id')
     if topic_id:
       topic = db.get(db.Key.from_path('Topic', int(topic_id)))
-      if not topic:
-        return self.redirect(siteroot)
+      if not topic: return self.redirect(siteroot)
       tvals['prevTopicId'] = topic_id
       tvals['prevSubject'] = topic.subject
     template_out(self.response, "post.html", tvals)
 
   def post(self):
     forum = forum_from_url(self.request.path_info)
-    if not forum:
-      return self.redirect("/")
+    if not forum: return self.redirect("/")
     siteroot = forum_root(forum)
-
-    if self.request.get('Cancel'):
-      self.redirect(siteroot)
+    if self.request.get('Cancel'): self.redirect(siteroot)
 
     send_fofou_cookie()
 
@@ -784,12 +826,9 @@ class PostForm(webapp.RequestHandler):
     (topic_id, num1, num2, captcha, subject, message, remember_me, email, name, homepage) = req_get_vals(self.request, vals)
 
     remember_me = True
-    if remember_me == "":
-      remember_me = False
-
+    if remember_me == "": remember_me = False
     rememberChecked = ""
-    if remember_me:
-      rememberChecked = "checked"
+    if remember_me: rememberChecked = "checked"
 
     validCaptcha = True
     try:
@@ -823,8 +862,7 @@ class PostForm(webapp.RequestHandler):
 
     # 'http://' is the default value we put, so if unchanged, consider it
     # as not given at all
-    if homepage == "http://":
-      homepage = ""
+    if homepage == "http://": homepage = ""
 
     # message cannot be empty
     if not message:
@@ -911,6 +949,7 @@ def main():
         ('/[^/]+/postundel', PostDelUndel),
         ('/[^/]+/post', PostForm),
         ('/[^/]+/topic', TopicForm),
+        ('/[^/]+/email', EmailForm),
         ('/[^/]+/rss', RssFeed),
         ('/[^/]+/rssall', RssAllFeed),
         ('/[^/]+/importfruitshow', ImportFruitshow),

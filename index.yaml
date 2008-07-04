@@ -18,7 +18,7 @@ indexes:
   - name: created_on
     direction: desc
 
-# Used once in query history.
+# Used 2 times in query history.
 - kind: Post
   properties:
   - name: forum
@@ -51,7 +51,7 @@ indexes:
   - name: forum
   - name: created_on
 
-# Used 32 times in query history.
+# Used 41 times in query history.
 - kind: Topic
   properties:
   - name: forum
