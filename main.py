@@ -635,10 +635,13 @@ class RssFeed(webapp.RequestHandler):
       msg = first_post.message
       # TODO: a hack: using a full template to format message body.
       # There must be a way to do it using straight django APIs
-      t = Template("{{ msg|striptags|escape|urlize|linebreaksbr }}")
+      t = Template(u"{{ msg|striptags|escape|urlize|linebreaksbr }}")
       c = Context({"msg": msg})
       msg_formatted = t.render(c)
-      description = u"<strong>%s</strong>: %s" % (topic.created_by, msg_formatted)
+      if topic.created_by:
+        description = u"<strong>%s</strong>: %s" % (topic.created_by, msg_formatted)
+      else:
+        description = msg_formatted
       
       pubdate = topic.created_on
       feed.add_item(title=title, link=link, description=description, pubdate=pubdate)
@@ -661,7 +664,7 @@ class RssAllFeed(webapp.RequestHandler):
       link = siteroot + "rssall",
       description = forum.tagline)
   
-    posts = Post.gql("WHERE forum = :1 AND is_deleted = False ORDER BY created_on DESC", forum).fetch(25)
+    posts = Post.gql("WHERE forum = :1 AND is_deleted = False ORDER BY created_on DESC", forum).fetch(125)
     for post in posts:
       topic = post.topic
       title = topic.subject
@@ -669,10 +672,13 @@ class RssAllFeed(webapp.RequestHandler):
       msg = post.message
       # TODO: a hack: using a full template to format message body.
       # There must be a way to do it using straight django APIs
-      t = Template("{{ msg|striptags|escape|urlize|linebreaksbr }}")
+      t = Template(u"{{ msg|striptags|escape|urlize|linebreaksbr }}")
       c = Context({"msg": msg})
       msg_formatted = t.render(c)
-      description = u"<strong>%s</strong>: %s" % (post.user_name, msg_formatted)
+      if post.user_name:
+        description = u"<strong>%s</strong>: %s" % (post.user_name, msg_formatted)
+      else:
+        description = msg_formatted
       pubdate = post.created_on
       feed.add_item(title=title, link=link, description=description, pubdate=pubdate)
     feedtxt = feed.writeString('utf-8')
