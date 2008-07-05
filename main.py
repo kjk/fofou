@@ -284,27 +284,6 @@ def get_log_in_out(url):
   else:
     return "<a href=\"%s\">Log in or register</a>" % users.create_login_url(url)    
 
-# from http://www.python.org/dev/peps/pep-0333/#url-reconstruction
-def request_url():
-  from urllib import quote
-  url = os.environ['wsgi.url_scheme']+'://'
-
-  if os.environ.get('HTTP_HOST'):
-    url += os.environ['HTTP_HOST']
-  else:
-    url += os.environ['SERVER_NAME']
-
-    if os.environ['wsgi.url_scheme'] == 'https':
-      if os.environ['SERVER_PORT'] != '443':
-         url += ':' + os.environ['SERVER_PORT']
-    else:
-      if os.environ['SERVER_PORT'] != '80':
-         url += ':' + os.environ['SERVER_PORT']
-
-    url += quote(os.environ.get('SCRIPT_NAME',''))
-    url += quote(os.environ.get('PATH_INFO',''))
-    return url
-
 # responds to GET /manageforums[?forum=<key>&disable=yes&enable=yes]
 # and POST /manageforums with values from the form
 class ManageForums(webapp.RequestHandler):
