@@ -7,8 +7,7 @@ Of course, there's always something to improve and below is my whishilist. I'm
 sure you'll have no trouble coming up with your own list of possible
 improvements.
 
-TODO must have:
- - hookup sumatra forums at fofou.org
+TODO must have: nothing
 
 TODO nice to have:
  - use ajax google search ui 
@@ -26,3 +25,4 @@ TODO low priority:
  - alternative forms of integration with a website (iframe? return data
    as json and do most of the rendering using javascript?)
  - document process of importing posts from fruitshow
+
