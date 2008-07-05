@@ -11,10 +11,10 @@ PICKLED_DATA_FILE_NAME = "fruitshow_posts.dat.bz2"
 
 # you need to provide connection info to fruitshow mysql database with
 # permissions to query data
-user = "fs_sumatra"
-host = "blog.kowalczyk.info"
-passwd = "gotard32"
-db = "fruitshow_sumatra"
+user = ""
+host = ""
+passwd = ""
+db = ""
 
 g_conn = None
 def get_conn():
