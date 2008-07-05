@@ -133,7 +133,6 @@ def ip2long(ip):
   return ip_long
 
 def long2ip(val):
-  # convert long IP addresses to dotted quad notation
   slist = []
   for x in range(0,4):
     slist.append(str(int(val >> (24 - (x * 8)) & 0xFF)))

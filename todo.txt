@@ -6,7 +6,6 @@ But it's also your project, by the virtue of being open-source, so feel free
 to add any features that *you* want.
 
 TODO must have:
- - write a web page for fofou
  - hookup sumatra forums at fofou.org
 TODO less urgent:
  - finish /<forumurl>/email?post_id=<post_id>
@@ -16,6 +15,7 @@ TODO less urgent:
    and not adding if a Post with this body_sha1 already exists
  - js to show full url when typing url when creating new forum
 Maybe:
+ - 
  - more templates and ability to choose a template in /manageforums
  - /rsscombined - all posts for all forums, for forum admins mostly
  - cache generated rss feeds using memcached and invalidate them when
@@ -23,4 +23,4 @@ Maybe:
    (invalidate only /rss; also on post delete/undelete)
  - cookie validation
  - alternative forms of integration with a website (iframe? return data
-   as json and do most of the rendering using javascrip?)
+   as json and do most of the rendering using javascript?)
