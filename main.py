@@ -230,11 +230,6 @@ def valid_forum_url(url):
     return False
   return url == urllib.quote_plus(url)
 
-def valid_subject(txt):
-  if not txt:
-    return False
-  return True
-
 # very simplistic check for <txt> being a valid e-mail address
 def valid_email(txt):
   # allow empty strings
@@ -856,7 +851,6 @@ class PostForm(webapp.RequestHandler):
       "log_in_out" : get_log_in_out(siteroot + "post")
     }
 
-
     # 'http://' is the default value we put, so if unchanged, consider it
     # as not given at all
     if homepage == "http://": homepage = ""
@@ -867,6 +861,8 @@ class PostForm(webapp.RequestHandler):
     if not message: errclass = "message_class"
     if not name: errclass = "name_class"
     if not valid_email(email): errclass = "email_class"
+    # first post must have subject
+    if not topic_id and not subject: errclass = "subject_class"
 
     s = sha.new(message)
     sha1_digest = s.hexdigest()
@@ -875,8 +871,8 @@ class PostForm(webapp.RequestHandler):
 
     if errclass:
       tvals[errclass] = "error"
-      tmpl = os.path.join(tmpldir, "topic_list.html")
-      template_out(self.response, tmpl, tvals)
+      tmpl = os.path.join(tmpldir, "post.html")
+      return template_out(self.response, tmpl, tvals)
 
     # get user either by google user id or cookie. Create user objects if don't
     # already exist
@@ -921,11 +917,6 @@ class PostForm(webapp.RequestHandler):
         user.put()
 
     if not topic_id:
-      # first post in a topic, so create the topic
-      if not valid_subject(subject):
-        tvals['subject_class'] = "error"
-        tmpl = os.path.join(tmpldir, "post.html")
-        template_out(self.response, tmpl, tvals)
       topic = Topic(forum=forum, subject=subject, created_by=name)
       topic.put()
     else:
