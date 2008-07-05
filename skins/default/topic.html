@@ -44,9 +44,13 @@
 					{% endif %}
 					<div class="signature">
 						<a href="{{ siteroot }}topic?id={{ topic.key.id }}#{{ post.key.id }}" title="Permalink" onmouseover="rolloverOn('link', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="link{{ post.key.id }}" src="/img/link.jpg" alt="Permalink" border="0" height="16" width="16"></a>
+
+						{% comment %}
 						{% if post.user_email %}
 							<a href="{{ siteroot }}email?post_id={{ post.key.id }}" title="Send private email" onmouseover="rolloverOn('email', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="email{{ post.key.id }}" src="/img/email.jpg" alt="Send private email" border="0" height="16" width="16"></a>
 						{% endif %}
+						{% endcomment %}
+
 						{% if is_moderator %}
 							{% if post.is_deleted %}
 								<a href="{{ siteroot }}postundel?{{ post.key.id }}" title="Undelete Post" onmouseover="rolloverOn('undo', {{ post.key.id }});" onmouseout="rolloverOff();"><img align="right" id="undo{{ post.key.id }}" src="/img/undo.jpg" width="16" height="16" border="0" /></a>
