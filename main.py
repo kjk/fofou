@@ -219,8 +219,11 @@ def template_out(response, template_name, template_values):
     c = str(g_fofou_set_cookie)
     c = c.split(": ", 1)[1]
     response.headers["Set-Cookie"] = c
-  path = os.path.join(os.path.dirname(__file__), template_name)
-  response.out.write(template.render(path, template_values))
+  #path = os.path.join(os.path.dirname(__file__), template_name)
+  path = template_name
+  #logging.info("tmpl: %s" % path)
+  res = template.render(path, template_values)
+  response.out.write(res)
 
 def valid_forum_url(url):
   if not url:
@@ -254,7 +257,7 @@ def forum_from_url(url):
       
 def forum_root(forum): return "/" + forum.url + "/"
 
-def forum_siteroot_skinurl_from_url(url):
+def forum_siteroot_tmpldir_from_url(url):
   assert '/' == url[0]
   path = url[1:]
   if '/' in path:
@@ -268,8 +271,8 @@ def forum_siteroot_skinurl_from_url(url):
   skin_name = forum.skin
   if skin_name not in SKINS:
     skin_name = SKINS[0]
-  skinurl = "/skins/" + skin_name + "/"
-  return (forum, siteroot, skinurl)
+  tmpldir = os.path.join("skins", skin_name)
+  return (forum, siteroot, tmpldir)
 
 def get_log_in_out(url):
   user = users.get_current_user()
@@ -442,14 +445,14 @@ class ForumList(webapp.RequestHandler):
 # responds to GET /postdel?<post_id> and /postundel?<post_id>
 class PostDelUndel(webapp.RequestHandler):
   def get(self):
-    (forum, siteroot, skinurl) = forum_siteroot_skinurl_from_url(self.request.path_info)
+    (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
     is_moderator = users.is_current_user_admin()
     if not is_moderator or forum.is_disabled:
       return self.redirect(siteroot)
     post_id = self.request.query_string
-    logging.info("PostDelUndel: post_id='%s'" % post_id)
+    #logging.info("PostDelUndel: post_id='%s'" % post_id)
     post = db.get(db.Key.from_path('Post', int(post_id)))
     if not post:
       logging.info("No post with post_id='%s'" % post_id)
@@ -501,7 +504,7 @@ class TopicList(webapp.RequestHandler):
     return (start, topics)
 
   def get(self):
-    (forum, siteroot, skinurl) = forum_siteroot_skinurl_from_url(self.request.path_info)
+    (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
     start = 0
@@ -516,7 +519,6 @@ class TopicList(webapp.RequestHandler):
     tvals = {
       'siteroot' : siteroot,
       'siteurl' : self.request.url,
-      'skinurl' : skinurl,
       'forum' : forum,
       'topics' : topics,
       'analytics_code' : forum.analytics_code or "",
@@ -525,14 +527,14 @@ class TopicList(webapp.RequestHandler):
       'new_from' : new_start,
       'log_in_out' : get_log_in_out(siteroot)
     }
-    logging.info("skinurl: %s" % skinurl)
-    template_out(self.response, skinurl[1:] + "topic_list.html", tvals)
+    tmpl = os.path.join(tmpldir, "topic_list.html")
+    template_out(self.response, tmpl, tvals)
 
 # responds to /<forumurl>/importfruitshow
 class ImportFruitshow(webapp.RequestHandler):
 
   def post(self):
-    (forum, siteroot, skinurl) = forum_siteroot_skinurl_from_url(self.request.path_info)
+    (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.error(NOT_ACCEPTABLE)
     # not active at all if not protected by secret
@@ -571,8 +573,6 @@ class ImportFruitshow(webapp.RequestHandler):
     topic.ncomments = len(posts)-1
     topic.updated_on = last_post[POST_POSTED_ON]
     topic.is_deleted = bool(int(first_post[POST_DELETED]))
-    if topic.is_deleted:
-      logging.info("Topic %s is deleted", str(topic_no))
     topic.put()
     #logging.info("created topic, subject: %s, created_on: %s" % (subject, str(created_on)))
     for post in posts:
@@ -613,7 +613,7 @@ class ImportFruitshow(webapp.RequestHandler):
 class TopicForm(webapp.RequestHandler):
 
   def get(self):
-    (forum, siteroot, skinurl) = forum_siteroot_skinurl_from_url(self.request.path_info)
+    (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
 
@@ -646,7 +646,6 @@ class TopicForm(webapp.RequestHandler):
     tvals = {
       'siteroot' : siteroot,
       'forum' : forum,
-      'skinurl' : skinurl,
       'analytics_code' : forum.analytics_code or "",
       'topic' : topic,
       'is_moderator' : is_moderator,
@@ -654,7 +653,8 @@ class TopicForm(webapp.RequestHandler):
       'posts' : posts,
       'log_in_out' : get_log_in_out(siteroot)
     }
-    template_out(self.response, skinurl[1:] + "topic.html", tvals)
+    tmpl = os.path.join(tmpldir, "topic.html")
+    template_out(self.response, tmpl, tvals)
 
 # responds to /<forumurl>/rss, returns an RSS feed of recent topics
 # (taking into account only the first post in a topic - that's what
@@ -662,7 +662,7 @@ class TopicForm(webapp.RequestHandler):
 class RssFeed(webapp.RequestHandler):
 
   def get(self):
-    (forum, siteroot, skinurl) = forum_siteroot_skinurl_from_url(self.request.path_info)
+    (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.error(NOT_FOUND)
 
@@ -697,7 +697,7 @@ class RssFeed(webapp.RequestHandler):
 class RssAllFeed(webapp.RequestHandler):
 
   def get(self):
-    (forum, siteroot, skinurl) = forum_siteroot_skinurl_from_url(self.request.path_info)
+    (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.error(NOT_FOUND)
 
@@ -733,23 +733,22 @@ def get_fofou_user():
   user = None
   if user_id:
     user = FofouUser.gql("WHERE user = :1", user_id).get()
-    if user:
-      logging.info("Found existing user for by user_id '%s'" % str(user_id))
+    #if user: logging.info("Found existing user for by user_id '%s'" % str(user_id))
   else:
     cookie = get_fofou_cookie_val()
     if cookie:
       user = FofouUser.gql("WHERE cookie = :1", cookie).get()
-      if user:
-        logging.info("Found existing user for cookie '%s'" % cookie)
-      else:
-        logging.info("Didn't find user for cookie '%s'" % cookie)
+      #if user:
+      #  logging.info("Found existing user for cookie '%s'" % cookie)
+      #else:
+      #  logging.info("Didn't find user for cookie '%s'" % cookie)
   return user
 
 # responds to /<forumurl>/email[?post_id=<post_id>]
 class EmailForm(webapp.RequestHandler):
 
   def get(self):
-    (forum, siteroot, skinurl) = forum_siteroot_skinurl_from_url(self.request.path_info)
+    (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
     (num1, num2) = (random.randint(1,9), random.randint(1,9))
@@ -762,7 +761,6 @@ class EmailForm(webapp.RequestHandler):
     tvals = {
       'siteroot' : siteroot,
       'forum' : forum,
-      'skinurl' : skinurl,
       'num1' : num1,
       'num2' : num2,
       'num3' : int(num1) + int(num2),
@@ -771,15 +769,16 @@ class EmailForm(webapp.RequestHandler):
       'subject' : subject,
       'log_in_out' : get_log_in_out(siteroot + "post")
     }
-    template_out(self.response, skinurl[1:] + "email.html", tvals)
+    tmpl = os.path.join(tmpldir, "email.html")
+    template_out(self.response, tmpl, tvals)
 
   def post(self):
-    (forum, siteroot, skinurl) = forum_siteroot_skinurl_from_url(self.request.path_info)
+    (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
     if self.request.get('Cancel'): self.redirect(siteroot)
     post_id = self.request.get("post_id")
-    logging.info("post_id = %s" % str(post_id))
+    #logging.info("post_id = %s" % str(post_id))
     if not post_id: return self.redirect(siteroot)
     post = db.get(db.Key.from_path('Post', int(post_id)))
     if not post: return self.redirect(siteroot)
@@ -787,17 +786,17 @@ class EmailForm(webapp.RequestHandler):
     tvals = {
       'siteroot' : siteroot,
       'forum' : forum,
-      'skinurl' : skinurl,
       'topic' : topic,
       'log_in_out' : get_log_in_out(siteroot + "post")
     }    
-    template_out(self.response, skinurl[1:] + "email_sent.html", tvals)
+    tmpl = os.path.join(tmpldir, "email_sent.html")
+    template_out(self.response, tmpl, tvals)
 
 # responds to /<forumurl>/post[?id=<topic_id>]
 class PostForm(webapp.RequestHandler):
 
   def get(self):
-    (forum, siteroot, skinurl) = forum_siteroot_skinurl_from_url(self.request.path_info)
+    (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
     send_fofou_cookie()
@@ -818,7 +817,6 @@ class PostForm(webapp.RequestHandler):
     tvals = {
       'siteroot' : siteroot,
       'forum' : forum,
-      'skinurl' : skinurl,
       'num1' : num1,
       'num2' : num2,
       'num3' : int(num1) + int(num2),
@@ -834,10 +832,11 @@ class PostForm(webapp.RequestHandler):
       if not topic: return self.redirect(siteroot)
       tvals['prevTopicId'] = topic_id
       tvals['prevSubject'] = topic.subject
-    template_out(self.response, skinurl[1:] + "post.html", tvals)
+    tmpl = os.path.join(tmpldir, "post.html")
+    template_out(self.response, tmpl, tvals)
 
   def post(self):
-    (forum, siteroot, skinurl) = forum_siteroot_skinurl_from_url(self.request.path_info)
+    (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
     if self.request.get('Cancel'): self.redirect(siteroot)
@@ -864,7 +863,6 @@ class PostForm(webapp.RequestHandler):
     tvals = {
       'siteroot' : siteroot,
       'forum' : forum,
-      'skinurl' : skinurl,
       'num1' : num1,
       'num2' : num2,
       'num3' : int(num1) + int(num2),
@@ -898,7 +896,8 @@ class PostForm(webapp.RequestHandler):
 
     if errclass:
       tvals[errclass] = "error"
-      return template_out(self.response, skinurl[1:] + "post.html", tvals)
+      tmpl = os.path.join(tmpldir, "topic_list.html")
+      template_out(self.response, tmpl, tvals)
 
     # get user either by google user id or cookie. Create user objects if don't
     # already exist
@@ -907,22 +906,22 @@ class PostForm(webapp.RequestHandler):
     if user_id:
       user = FofouUser.gql("WHERE user = :1", user_id).get()
       if not user:
-        logging.info("Creating new user for '%s'" % str(user_id))
+        #logging.info("Creating new user for '%s'" % str(user_id))
         user = FofouUser(user=user_id, remember_me = remember_me, email=email, name=name, homepage=homepage)
         user.put()
       else:
         existing_user = True
-        logging.info("Found existing user for '%s'" % str(user_id))
+        #logging.info("Found existing user for '%s'" % str(user_id))
     else:
       cookie = get_fofou_cookie_val()
       user = FofouUser.gql("WHERE cookie = :1", cookie).get()
       if not user:
-        logging.info("Creating new user for cookie '%s'" % cookie)
+        #logging.info("Creating new user for cookie '%s'" % cookie)
         user = FofouUser(cookie=cookie, remember_me = remember_me, email=email, name=name, homepage=homepage)
         user.put()
       else:
         existing_user = True
-        logging.info("Found existing user for cookie '%s'" % cookie)
+        #logging.info("Found existing user for cookie '%s'" % cookie)
 
     if existing_user:
       need_update = False
@@ -939,14 +938,15 @@ class PostForm(webapp.RequestHandler):
         user.homepage = homepage
         need_update = True
       if need_update:
-        logging.info("User needed an update")
+        #logging.info("User needed an update")
         user.put()
 
     if not topic_id:
       # first post in a topic, so create the topic
       if not valid_subject(subject):
         tvals['subject_class'] = "error"
-        return template_out(self.response, skinurl[1:] + "post.html", tvals)
+        tmpl = os.path.join(tmpldir, "post.html")
+        template_out(self.response, tmpl, tvals)
       topic = Topic(forum=forum, subject=subject, created_by=name)
       topic.put()
     else:

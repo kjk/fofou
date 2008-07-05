@@ -6,10 +6,10 @@ from offsets import *
 
 # you need to provide full url to a given forum's posting interface e.g.
 # http://foo.com/myforum/importfruitshow
-FOFOU_SERVER = None
+FOFOU_SERVER = "http://localhost:9999/sumatrapdf/importfruitshow"
 # You need to provide import secret for this forum (can be set by forum
 # admin in forum management web page)
-IMPORT_SECRET = None
+IMPORT_SECRET = "harota"
 
 PICKLED_DATA_FILE_NAME = "fruitshow_posts.dat.bz2"
 
@@ -128,7 +128,7 @@ def main():
   topics_count = len(all_topics)
   print("%d topics, %d posts" % (topics_count, len(all_posts)))
   sent = 0
-  for topic in all_topics[800:]:
+  for topic in all_topics:
     topic_id = topic[TOPIC_ID]
     post_ids = [p[TP_POST_ID] for p in topic_posts if topic_id == p[TP_TOPIC_ID]]
     posts = [p for p in all_posts if p[POST_ID] in post_ids]

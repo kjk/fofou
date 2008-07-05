@@ -4,8 +4,8 @@ runtime: python
 api_version: 1
 
 handlers:
-- url: /skins
-  static_dir: skins
+- url: /static
+  static_dir: static
 
 - url: /img
   static_dir: img
