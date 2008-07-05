@@ -10,55 +10,55 @@ indexes:
 # automatically uploaded to the admin console when you next deploy
 # your application using appcfg.py.
 
-# Used 6 times in query history.
+# Used 16 times in query history.
 - kind: Post
   properties:
   - name: forum
   - name: is_deleted
+  - name: created_on
+    direction: desc
+
+# Used 7 times in query history.
+- kind: Post
+  properties:
+  - name: forum
+  - name: topic
+  - name: created_on
+
+# Unused in query history -- copied from input.
+- kind: Post
+  properties:
+  - name: is_deleted
+  - name: topic
+  - name: created_on
+
+# Used 50 times in query history.
+- kind: Post
+  properties:
+  - name: topic
+  - name: created_on
+
+# Unused in query history -- copied from input.
+- kind: Post
+  properties:
+  - name: topic
+  - name: created_on
+    direction: desc
+
+# Unused in query history -- copied from input.
+- kind: Topic
+  properties:
+  - name: forum
+  - name: created_on
+
+# Used 48 times in query history.
+- kind: Topic
+  properties:
+  - name: forum
   - name: created_on
     direction: desc
 
 # Used 2 times in query history.
-- kind: Post
-  properties:
-  - name: forum
-  - name: topic
-  - name: created_on
-
-# Unused in query history -- copied from input.
-- kind: Post
-  properties:
-  - name: is_deleted
-  - name: topic
-  - name: created_on
-
-# Unused in query history -- copied from input.
-- kind: Post
-  properties:
-  - name: topic
-  - name: created_on
-
-# Unused in query history -- copied from input.
-- kind: Post
-  properties:
-  - name: topic
-  - name: created_on
-    direction: desc
-
-# Unused in query history -- copied from input.
-- kind: Topic
-  properties:
-  - name: forum
-  - name: created_on
-
-# Used 41 times in query history.
-- kind: Topic
-  properties:
-  - name: forum
-  - name: created_on
-    direction: desc
-
-# Unused in query history -- copied from input.
 - kind: Topic
   properties:
   - name: forum

@@ -105,6 +105,7 @@ class Post(db.Model):
   forum = db.Reference(Forum, required=True)
   created_on = db.DateTimeProperty(auto_now_add=True)
   message = db.TextProperty(required=True)
+  sha1_digest = db.StringProperty(required=True)
   # admin can delete/undelete posts. If first post in a topic is deleted,
   # that means the topic is deleted as well
   is_deleted = db.BooleanProperty(default=False)
@@ -592,7 +593,9 @@ class ImportFruitshow(webapp.RequestHandler):
         cookie = new_user_id()
         user = FofouUser(cookie=cookie, name=name, email=email, homepage=homepage)
         user.put()
-      new_post = Post(topic=topic, forum=forum, created_on=created_on, message=body, is_deleted=is_deleted, user_ip=user_ip, user=user)
+      s = sha.new(body)
+      sha1_digest = s.hexdigest()
+      new_post = Post(topic=topic, forum=forum, created_on=created_on, message=body, sha1_digest=sha1_digest, is_deleted=is_deleted, user_ip=user_ip, user=user)
       new_post.user_name = name
       new_post.user_email = email
       new_post.user_homepage = homepage
@@ -837,6 +840,7 @@ class PostForm(webapp.RequestHandler):
 
     vals = ['TopicId', 'num1', 'num2', 'Captcha', 'Subject', 'Message', 'Remember', 'Email', 'Name', 'Url']
     (topic_id, num1, num2, captcha, subject, message, remember_me, email, name, homepage) = req_get_vals(self.request, vals)
+    message = to_unicode(message)
 
     remember_me = True
     if remember_me == "": remember_me = False
@@ -869,6 +873,7 @@ class PostForm(webapp.RequestHandler):
       "log_in_out" : get_log_in_out(siteroot + "post")
     }
 
+
     # 'http://' is the default value we put, so if unchanged, consider it
     # as not given at all
     if homepage == "http://": homepage = ""
@@ -879,6 +884,12 @@ class PostForm(webapp.RequestHandler):
     if not message: errclass = "message_class"
     if not name: errclass = "name_class"
     if not valid_email(email): errclass = "email_class"
+
+    s = sha.new(message)
+    sha1_digest = s.hexdigest()
+    duppost = Post.gql("WHERE sha1_digest = :1", sha1_digest).get()
+    if duppost: errclass = "message_class"
+
     if errclass:
       tvals[errclass] = "error"
       return template_out(self.response, skinurl[1:] + "post.html", tvals)
@@ -939,7 +950,7 @@ class PostForm(webapp.RequestHandler):
       topic.put()
 
     user_ip = ip2long(get_remote_ip())
-    p = Post(topic=topic, forum=forum, user=user, user_ip=user_ip, message=message, user_name = name, user_email = email, user_homepage = homepage)
+    p = Post(topic=topic, forum=forum, user=user, user_ip=user_ip, message=message, sha1_digest=sha1_digest, user_name = name, user_email = email, user_homepage = homepage)
     p.put()
     if topic_id:
       self.redirect(siteroot + "topic?id=" + str(topic_id))
