@@ -595,11 +595,12 @@ class ImportFruitshow(webapp.RequestHandler):
         user.put()
       # for whatever reason sha.new(body) throws an exception trying to covert
       # body using 'ascii' codec, even though body should already be unicode
+      sha1_digest = "dummy"
       try:
         s = sha.new(body)
         sha1_digest = s.hexdigest()
       except:
-        sha1_diggest = "dummy"
+        pass
       new_post = Post(topic=topic, forum=forum, created_on=created_on, message=body, sha1_digest=sha1_digest, is_deleted=is_deleted, user_ip=user_ip, user=user)
       new_post.user_name = name
       new_post.user_email = email
