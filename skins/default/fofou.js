@@ -1,3 +1,15 @@
+function $(id) {
+	if (document.all)
+		return document.all[id];
+	if (document.getElementById)
+		return document.getElementById(id);
+	for (var i=1; i<document.layers.length; i++) {
+	    if (document.layers[i].id==id)
+	      return document.layers[i];
+	}
+	return false;
+}
+
 var now = new Date();
 if (now.getTimezoneOffset) document.cookie = "TZ=" + escape(now.getTimezoneOffset() * 60) + "; path=/";
 

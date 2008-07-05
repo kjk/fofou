@@ -3,23 +3,42 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
 	<title>Create a forum</title>
-	<link href="{{ skinurl }}fofou.css" rel="stylesheet" type="text/css">
-	<script language="javascript" src="{{ skinurl }}fofou.js" type="text/javascript"></script>
+	<link href="/skins/default/fofou.css" rel="stylesheet" type="text/css">
+	<script language="javascript" src="/skins/default/fofou.js" type="text/javascript"></script>
 </head>
 <body>
+<script>
+function onUrlFieldChange() {
+	var val = $("urlFieldId").value;
+	$("underUrlTxt").innerHTML = "Full url: {{ hosturl }}/" + val;
+	return true;
+}
+function onTitleFieldChange() {
+	$("titleId").innerHTML = $("titleFieldId").value;
+	return true;
+}
+function onTaglineFieldChange() {
+	$("taglineId").innerHTML = $("taglineFieldId").value;
+	return true;
+}
+function onSidebarFieldChange() {
+	$("sidebarId").innerHTML = $("sidebarFieldId").value;
+	return true;
+}
+</script>
 <table>
 <tbody>
 	<tr>
 		<td colspan="2" class="header">
 			<div>
-				<h1><a href="{{ siteroot }}" class="green">This is forum title</a></h1>
-				<p>This is forum tagline.</p>
+				<h1><a href="" class="green" id="titleId">{% firstof forum.title "Title." %}</a></h1>
+				<p id="taglineId">{% firstof forum.tagline "Tagline." %}</p>
 			</div>
 		</td>
 	</tr>
 	<tr>
-		<td class="sidebar">{{ forum.sidebar}}
-		This is forum sidebar.
+		<td class="sidebar" id="sidebarId">
+			{% firstof forum.sidebar "Sidebar." %}
 		</td>
 		<td class="contents">
 			<p>Welcome to <b><font color="blue">Fo</font></b>rums <b><font color="blue">Fo</font></b>r Yo<b><font color="blue">u</font></b>!</p>
@@ -48,17 +67,18 @@
 			<table class="form">
 					<tr>
 						<td>Url</td>
-						<td><input class="{{ urlclass }}" type="edit" size="60" maxlength="60" name="url" value="{{ prevurl|escape }}"></input>
+						<td><input class="{{ urlclass }}" type="edit" size="60" maxlength="60" name="url" id="urlFieldId" onchange="return onUrlFieldChange();" onkeyup="return onUrlFieldChange();" value="{{ prevurl|escape }}"></input>
 							<div>{{ errmsg }}</div>
+							<div id="underUrlTxt">Full url: {{ hosturl }}/{{ forum.url }}</div>
 						</td>
 					</tr>
 					<tr>
 						<td>Title</td>
-						<td><input type="edit" size="60" maxlength="128" name="title" value="{{ prevtitle|escape }}"></input></td>
+						<td><input type="edit" size="60" maxlength="128" name="title" id="titleFieldId" onchange="return onTitleFieldChange();" onkeyup="return onTitleFieldChange();" value="{{ prevtitle|escape }}"></input></td>
 					</tr>
 					<tr>
 						<td>Tagline</td>
-						<td><input type="edit" size="60" maxlength="256" name="tagline" value="{{ prevtagline|escape }}"></input></td>
+						<td><input type="edit" size="60" maxlength="256" name="tagline" id="taglineFieldId" onchange="return onTaglineFieldChange();" onkeyup="return onTaglineFieldChange();" value="{{ prevtagline|escape }}"></input></td>
 					</tr>
 					<tr>
 						<td valign="top">Analytics code</td>
@@ -70,7 +90,7 @@
 					</tr>
 					<tr>
 						<td valign="top">Sidebar</td>
-						<td><textarea name="sidebar" rows="6" cols="45">{{ prevsidebar|escape }}</textarea></td>
+						<td><textarea name="sidebar" rows="6" cols="45" id="sidebarFieldId" onchange="return onSidebarFieldChange();" onkeyup="return onSidebarFieldChange();">{{ prevsidebar|escape }}</textarea></td>
 					</tr>
 					<tr>
 						<td></td>

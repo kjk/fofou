@@ -304,6 +304,7 @@ def request_url():
 # responds to GET /manageforums[?forum=<key>&disable=yes&enable=yes]
 # and POST /manageforums with values from the form
 class ManageForums(webapp.RequestHandler):
+
   def post(self):
     if not users.is_current_user_admin():
       return self.redirect("/")
@@ -330,7 +331,7 @@ class ManageForums(webapp.RequestHandler):
     if errmsg:
       tvals = {
         'urlclass' : "error",
-        'skinurl' : "/skins/default/",
+        'hosturl' : self.request.host_url,
         'prevurl' : url,
         'prevtitle' : title,
         'prevtagline' : tagline,
@@ -375,7 +376,8 @@ class ManageForums(webapp.RequestHandler):
         return self.redirect("/")
 
     tvals = {
-    'skinurl' : "/skins/default/"    
+      'hosturl' : self.request.host_url,
+      'forum' : forum
     }
     if forum:
       disable = self.request.get('disable')
@@ -419,7 +421,7 @@ class ManageForums(webapp.RequestHandler):
     tvals['msg'] = self.request.get('msg')
     tvals['user'] = user
     tvals['forums'] = forums
-    template_out(self.response, "skins/default/manage_forums.html", tvals)
+    template_out(self.response, "manage_forums.html", tvals)
 
 # responds to /, shows list of available forums or redirects to
 # forum management page if user is admin
@@ -434,7 +436,7 @@ class ForumList(webapp.RequestHandler):
       'isadmin' : users.is_current_user_admin(),
       'log_in_out' : get_log_in_out("/")
     }
-    template_out(self.response, "skins/default/forum_list.html", tvals)
+    template_out(self.response, "forum_list.html", tvals)
 
 # responds to GET /postdel?<post_id> and /postundel?<post_id>
 class PostDelUndel(webapp.RequestHandler):
