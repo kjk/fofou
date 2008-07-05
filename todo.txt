@@ -14,6 +14,7 @@ TODO nice to have:
  - finish /<forumurl>/email?post_id=<post_id>
  - admin features like blocking users (ip address, cookie, user_id)
    and not adding if a Post with this body_sha1 already exists
+ - better anti-spam protection (akismet? captcha?)
 
 TODO low priority:
  - more templates and ability to choose a template in /manageforums
