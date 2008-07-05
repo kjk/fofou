@@ -3,7 +3,7 @@ my Sumatra PDF viewer with Google App Engine-based solution.
 
 It works, it can be used for hosting your own forums and I'm using it myself.
 
-Of course, there's always something to improve and below is my whishilist. I'm
+Of course, there's always something to improve and below is my whishlist. I'm
 sure you'll have no trouble coming up with your own list of possible
 improvements.
 
