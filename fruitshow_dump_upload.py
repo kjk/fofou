@@ -6,10 +6,10 @@ from offsets import *
 
 # you need to provide full url to a given forum's posting interface e.g.
 # http://foo.com/myforum/importfruitshow
-FOFOU_SERVER = "http://fofou.appspot.com/sumatrapdf/importfruitshow"
+FOFOU_SERVER = ""
 # You need to provide import secret for this forum (can be set by forum
 # admin in forum management web page)
-IMPORT_SECRET = "rotaha"
+IMPORT_SECRET = ""
 
 PICKLED_DATA_FILE_NAME = "fruitshow_posts.dat.bz2"
 
