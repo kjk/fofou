@@ -10,6 +10,9 @@ improvements.
 TODO must have: nothing
 
 TODO nice to have:
+ - comment count should only count non-deleted posts
+ - ip address blocking
+ - mass delete of posts from a given ip address and/or user account
  - use ajax google search ui 
  - finish /<forumurl>/email?post_id=<post_id>
  - admin features like blocking users (ip address, cookie, user_id)
@@ -25,5 +28,5 @@ TODO low priority:
  - cookie validation
  - alternative forms of integration with a website (iframe? return data
    as json and do most of the rendering using javascript?)
- - document process of importing posts from fruitshow
+ - document importing posts from fruitshow database
 
