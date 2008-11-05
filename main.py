@@ -567,14 +567,11 @@ class ImportFruitshow(webapp.RequestHandler):
         cookie = new_user_id()
         user = FofouUser(cookie=cookie, name=name, email=email, homepage=homepage)
         user.put()
-      # for whatever reason sha.new(body) throws an exception trying to covert
-      # body using 'ascii' codec, even though body should already be unicode
-      sha1_digest = "dummy"
-      try:
-        s = sha.new(body)
-        sha1_digest = s.hexdigest()
-      except:
-        pass
+
+      # sha.new() doesn't accept Unicode strings, so convert to utf8 first
+      body_utf8 = body.encode('UTF-8')
+      s = sha.new(body_utf8)
+      sha1_digest = s.hexdigest()
       new_post = Post(topic=topic, forum=forum, created_on=created_on, message=body, sha1_digest=sha1_digest, is_deleted=is_deleted, user_ip=user_ip, user=user)
       new_post.user_name = name
       new_post.user_email = email
@@ -864,8 +861,11 @@ class PostForm(webapp.RequestHandler):
     # first post must have subject
     if not topic_id and not subject: errclass = "subject_class"
 
-    s = sha.new(message)
+    # sha.new() doesn't accept Unicode strings, so convert to utf8 first
+    message_utf8 = message.encode('UTF-8')
+    s = sha.new(message_utf8)
     sha1_digest = s.hexdigest()
+
     duppost = Post.gql("WHERE sha1_digest = :1", sha1_digest).get()
     if duppost: errclass = "message_class"
 
