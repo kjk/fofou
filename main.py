@@ -622,7 +622,7 @@ class TopicForm(webapp.RequestHandler):
       'is_moderator' : is_moderator,
       'is_archived' : is_archived,
       'posts' : posts,
-      'log_in_out' : get_log_in_out(siteroot)
+      'log_in_out' : get_log_in_out(self.request.url),
     }
     tmpl = os.path.join(tmpldir, "topic.html")
     template_out(self.response, tmpl, tvals)
@@ -795,7 +795,7 @@ class PostForm(webapp.RequestHandler):
       'prevUrl' : prevUrl,
       'prevEmail' : prevEmail,
       'prevName' : prevName,
-      'log_in_out' : get_log_in_out(siteroot + "post")
+      'log_in_out' : get_log_in_out(self.request.url)
     }
     topic_id = self.request.get('id')
     if topic_id:
