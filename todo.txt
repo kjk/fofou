@@ -26,9 +26,7 @@ TODO nice to have:
 TODO low priority:
  - more templates and ability to choose a template in /manageforums
  - /rsscombined - all posts for all forums, for forum admins mostly
- - cache generated rss feeds using memcached and invalidate them when
-   there's a new post (invalidate /rss and /rssall feed) or new topic
-   (invalidate only /rss; also on post delete/undelete)
+ - cache main page in memcached, similar to rss feeds
  - cookie validation
  - alternative forms of integration with a website (iframe? return data
    as json and do most of the rendering using javascript?)

@@ -1,9 +1,10 @@
 # This code is in Public Domain. Take all the code you want, we'll just write more.
 import os, string, Cookie, sha, time, random, cgi, urllib, datetime, StringIO, pickle
 import wsgiref.handlers
-from google.appengine.ext import db
 from google.appengine.api import users
+from google.appengine.api import memcache
 from google.appengine.ext import webapp
+from google.appengine.ext import db
 from google.appengine.ext.webapp import template
 from django.utils import feedgenerator
 from django.template import Context, Template
@@ -44,6 +45,8 @@ from offsets import *
 # HTTP codes
 NOT_ACCEPTABLE = 406
 NOT_FOUND = 404
+
+RSS_MEMCACHED_KEY = "rss"
 
 class FofouUser(db.Model):
   # according to docs UserProperty() cannot be optional, so for anon users
@@ -439,12 +442,14 @@ class PostDelUndel(webapp.RequestHandler):
       if not post.is_deleted:
         post.is_deleted = True
         post.put()
+        memcache.delete(RSS_MEMCACHED_KEY)
       else:
         logging.info("Post '%s' is already deleted" % post_id)
     elif path.endswith("/postundel"):
       if post.is_deleted:
         post.is_deleted = False
         post.put()
+        memcache.delete(RSS_MEMCACHED_KEY)
       else:
         logging.info("Trying to undelete post '%s' that is not deleted" % post_id)
     else:
@@ -637,6 +642,12 @@ class RssFeed(webapp.RequestHandler):
     if not forum or forum.is_disabled:
       return self.error(NOT_FOUND)
 
+    cached_feed = memcache.get(RSS_MEMCACHED_KEY)
+    if cached_feed is not None:
+      self.response.headers['Content-Type'] = 'text/xml'
+      self.response.out.write(cached_feed)
+      return
+      
     feed = feedgenerator.Atom1Feed(
       title = forum.title or forum.url,
       link = siteroot + "rss",
@@ -662,6 +673,7 @@ class RssFeed(webapp.RequestHandler):
     feedtxt = feed.writeString('utf-8')
     self.response.headers['Content-Type'] = 'text/xml'
     self.response.out.write(feedtxt)
+    memcache.add(RSS_MEMCACHED_KEY, feedtxt)
 
 # responds to /<forumurl>/rssall, returns an RSS feed of all recent posts
 # This is good for forum admins/moderators who want to monitor all posts
@@ -928,6 +940,7 @@ class PostForm(webapp.RequestHandler):
     user_ip = ip2long(get_remote_ip())
     p = Post(topic=topic, forum=forum, user=user, user_ip=user_ip, message=message, sha1_digest=sha1_digest, user_name = name, user_email = email, user_homepage = homepage)
     p.put()
+    memcache.delete(RSS_MEMCACHED_KEY)
     if topic_id:
       self.redirect(siteroot + "topic?id=" + str(topic_id))
     else:
