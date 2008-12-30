@@ -43,8 +43,8 @@ from offsets import *
 #    rss feed for all posts
 
 # HTTP codes
-NOT_ACCEPTABLE = 406
-NOT_FOUND = 404
+HTTP_NOT_ACCEPTABLE = 406
+HTTP_NOT_FOUND = 404
 
 RSS_MEMCACHED_KEY = "rss"
 
@@ -515,18 +515,18 @@ class ImportFruitshow(webapp.RequestHandler):
   def post(self):
     (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
-      return self.error(NOT_ACCEPTABLE)
+      return self.error(HTTP_NOT_ACCEPTABLE)
     # not active at all if not protected by secret
     if not forum.import_secret:
       logging.info("tried to import topic into '%s' forum, but forum has no import_secret" % forum.url)
-      return self.error(NOT_ACCEPTABLE)
+      return self.error(HTTP_NOT_ACCEPTABLE)
     (topic_pickled, import_secret) = req_get_vals(self.request, ["topicdata", 'importsecret'], strip=False)
     if not topic_pickled:
       logging.info("tried to import topic into '%s' forum, but no 'topicdata' field" % forum.url)
-      return self.error(NOT_ACCEPTABLE)
+      return self.error(HTTP_NOT_ACCEPTABLE)
     if import_secret != forum.import_secret:
         logging.info("tried to import topic into '%s' forum, but import_secret doesn't match" % forum.url)
-        return self.error(NOT_ACCEPTABLE)
+        return self.error(HTTP_NOT_ACCEPTABLE)
       
     fo = StringIO.StringIO(topic_pickled)
     topic_data = pickle.load(fo)
@@ -536,7 +536,7 @@ class ImportFruitshow(webapp.RequestHandler):
     topic_no = topic[TOPIC_ID]
     if 0 == len(posts):
       logging.info("There are no posts in this topic.")
-      return self.error(NOT_ACCEPTABLE)
+      return self.error(HTTP_NOT_ACCEPTABLE)
 
     subject = to_unicode(topic[TOPIC_SUBJECT])
     first_post = posts[0]
@@ -546,7 +546,7 @@ class ImportFruitshow(webapp.RequestHandler):
     topic = Topic.gql("WHERE forum = :1 AND subject = :2 AND created_on = :3", forum, subject, created_on).get()
     if topic:
       logging.info("topic already exists, subject: %s, created_on: %s" % (subject, str(created_on)))
-      return self.error(NOT_ACCEPTABLE)
+      return self.error(HTTP_NOT_ACCEPTABLE)
     created_by = to_unicode(first_post[POST_NAME])
     topic = Topic(forum=forum, subject=subject, created_on=created_on, created_by=created_by, updated_on = created_on)
     topic.ncomments = len(posts)-1
@@ -640,7 +640,7 @@ class RssFeed(webapp.RequestHandler):
   def get(self):
     (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
-      return self.error(NOT_FOUND)
+      return self.error(HTTP_NOT_FOUND)
 
     cached_feed = memcache.get(RSS_MEMCACHED_KEY)
     if cached_feed is not None:
@@ -682,7 +682,7 @@ class RssAllFeed(webapp.RequestHandler):
   def get(self):
     (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
-      return self.error(NOT_FOUND)
+      return self.error(HTTP_NOT_FOUND)
 
     feed = feedgenerator.Atom1Feed(
       title = forum.title or forum.url,
