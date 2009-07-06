@@ -65,6 +65,12 @@
 						{% endif %}
 						<span class="noIE">&nbsp;</span><br />
 						{{ post.created_on|date:"F jS, Y g:ia" }}
+
+						{% if is_moderator %}
+							<br />
+							From ip: {{ post.user_ip_str }}
+						{% endif %}
+
 					</div>
 				</div>
 			{% endfor %}

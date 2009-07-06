@@ -619,6 +619,9 @@ class TopicForm(webapp.RequestHandler):
     else:
       posts = Post.gql("WHERE forum = :1 AND topic = :2 AND is_deleted = False ORDER BY created_on", forum, topic).fetch(MAX_POSTS)
 
+    if is_moderator:
+        for p in posts:
+            p.user_ip_str = long2ip(p.user_ip)
     tvals = {
       'siteroot' : siteroot,
       'forum' : forum,
