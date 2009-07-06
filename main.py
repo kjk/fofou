@@ -48,6 +48,11 @@ HTTP_NOT_FOUND = 404
 
 RSS_MEMCACHED_KEY = "rss"
 
+BANNED_IPS = {
+    "59.181.121.8" : 1,
+    #"127.0.0.1" : 1,
+}
+
 class FofouUser(db.Model):
   # according to docs UserProperty() cannot be optional, so for anon users
   # we set it to value returned by anonUser() function
@@ -227,6 +232,10 @@ def template_out(response, template_name, template_values):
   #logging.info("tmpl: %s" % path)
   res = template.render(path, template_values)
   response.out.write(res)
+
+def fake_error(response):
+  response.headers['Content-Type'] = 'text/plain'
+  response.out.write('There was an error processing your request.')
 
 def valid_forum_url(url):
   if not url:
@@ -785,6 +794,11 @@ class PostForm(webapp.RequestHandler):
     (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
+
+    ip = get_remote_ip()
+    if ip in BANNED_IPS:
+      return fake_error(self.response)
+
     send_fofou_cookie()
 
     rememberChecked = ""
@@ -825,7 +839,12 @@ class PostForm(webapp.RequestHandler):
     (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
-    if self.request.get('Cancel'): self.redirect(siteroot)
+    if self.request.get('Cancel'): 
+      return self.redirect(siteroot)
+
+    ip = get_remote_ip()
+    if ip in BANNED_IPS:
+      return self.redirect(siteroot)
 
     send_fofou_cookie()
 
