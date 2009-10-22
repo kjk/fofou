@@ -412,6 +412,8 @@ class ManageForums(webapp.RequestHandler):
     tvals['msg'] = self.request.get('msg')
     tvals['user'] = user
     tvals['forums'] = forums
+    if forum and not forum.tagline:
+      forum.tagline = "Tagline."
     template_out(self.response, "manage_forums.html", tvals)
 
 # responds to /, shows list of available forums or redirects to

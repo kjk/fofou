@@ -32,7 +32,7 @@ function onSidebarFieldChange() {
 		<td colspan="2" class="header">
 			<div>
 				<h1><a href="" class="green" id="titleId">{% firstof forum.title "Title." %}</a></h1>
-				<p id="taglineId">{% firstof forum.tagline "Tagline." %}</p>
+				<p id="taglineId">{{ forum.tagline }}</p>
 			</div>
 		</td>
 	</tr>
