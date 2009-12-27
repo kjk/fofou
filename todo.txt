@@ -12,8 +12,6 @@ TODO must have:
    post form based on a wrong cookie). When not logged in, replying
    to a post fills out user info based on the orignal poster, not the
    person who's replying
- - urllib.quote() on unicode doesn't work, they have to be converted to
-   utf8 (I think).
 
 TODO nice to have:
  - comment count should only count non-deleted posts

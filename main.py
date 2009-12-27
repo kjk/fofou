@@ -163,6 +163,10 @@ def to_unicode(val):
   except:
     raise
 
+def to_utf8(s):
+    s = to_unicode(s)
+    return s.encode("utf-8")
+
 def req_get_vals(req, names, strip=True): 
   if strip:
     return [req.get(name).strip() for name in names]
@@ -241,8 +245,11 @@ def fake_error(response):
 def valid_forum_url(url):
   if not url:
     return False
-  return url == urllib.quote_plus(url)
-
+  try:
+    return url == urllib.quote_plus(url)
+  except:
+    return False
+     
 # very simplistic check for <txt> being a valid e-mail address
 def valid_email(txt):
   # allow empty strings
@@ -350,7 +357,7 @@ class ManageForums(webapp.RequestHandler):
       forum = Forum(url=url, title=title, tagline=tagline, sidebar=sidebar, import_secret = import_secret, analytics_code = analytics_code)
       forum.put()
       msg = "Forum '%s' has been created." % title_or_url
-    url = "/manageforums?msg=%s" % urllib.quote(msg)
+    url = "/manageforums?msg=%s" % urllib.quote(to_utf8(msg))
     return self.redirect(url)
 
   def get(self):
@@ -385,7 +392,7 @@ class ManageForums(webapp.RequestHandler):
           forum.is_disabled = False
           forum.put()
           msg = "Forum %s has been enabled." % title_or_url
-        return self.redirect("/manageforums?msg=%s" % urllib.quote(msg))
+        return self.redirect("/manageforums?msg=%s" % urllib.quote(to_utf8(msg)))
     self.render_rest(tvals, forum)
 
   def render_rest(self, tvals, forum=None):
