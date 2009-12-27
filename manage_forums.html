@@ -31,14 +31,14 @@ function onSidebarFieldChange() {
 	<tr>
 		<td colspan="2" class="header">
 			<div>
-				<h1><a href="" class="green" id="titleId">{% firstof forum.title "Title." %}</a></h1>
+				<h1><a href="" class="green" id="titleId">{{ forum.title_non_empty }}</a></h1>
 				<p id="taglineId">{{ forum.tagline }}</p>
 			</div>
 		</td>
 	</tr>
 	<tr>
 		<td class="sidebar" id="sidebarId">
-			{% firstof forum.sidebar "Sidebar." %}
+			{{ forum.sidebar_non_empty }}
 		</td>
 		<td class="contents">
 			<p>Welcome to <b><font color="blue">Fo</font></b>rums <b><font color="blue">Fo</font></b>r Yo<b><font color="blue">u</font></b>!</p>
@@ -51,7 +51,7 @@ function onSidebarFieldChange() {
 				Existing forums:
 				<ul>
 					{% for f in forums %}
-					<li> <a href="{{ f.url }}">{% firstof f.title f.url %}</a>
+					<li> <a href="{{ f.url }}">{{ f.title_or_url }}</a>
 						{% if f.no_edit_link %}
 							edit
 						{% else %}

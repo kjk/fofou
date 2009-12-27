@@ -371,6 +371,8 @@ class ManageForums(webapp.RequestHandler):
       'forum' : forum
     }
     if forum:
+      forum.title_non_empty = forum.title or "Title."
+      forum.sidebar_non_empty = forum.sidebar or "Sidebar." 
       disable = self.request.get('disable')
       enable = self.request.get('enable')
       if disable or enable:
@@ -391,6 +393,7 @@ class ManageForums(webapp.RequestHandler):
     forumsq = db.GqlQuery("SELECT * FROM Forum")
     forums = []
     for f in forumsq:
+      f.title_or_url = f.title or f.url
       edit_url = "/manageforums?forum_key=" + str(f.key())
       if f.is_disabled:
         f.enable_disable_txt = "enable"
@@ -424,6 +427,8 @@ class ForumList(webapp.RequestHandler):
       return self.redirect("/manageforums")
     MAX_FORUMS = 256 # if you need more, tough
     forums = db.GqlQuery("SELECT * FROM Forum").fetch(MAX_FORUMS)
+    for f in forums:
+        f.title_or_url = f.title or f.url
     tvals = {
       'forums' : forums,
       'isadmin' : users.is_current_user_admin(),
@@ -507,6 +512,7 @@ class TopicList(webapp.RequestHandler):
     new_start = 0
     if len(topics) == MAX_TOPICS:
       new_start = start + MAX_TOPICS
+    forum.title_or_url = forum.title or forum.url
     tvals = {
       'siteroot' : siteroot,
       'siteurl' : self.request.url,
@@ -756,6 +762,7 @@ class EmailForm(webapp.RequestHandler):
     if not post: return self.redirect(siteroot)
     to_name = post.user_name or post.user_homepage
     subject = "Re: " + (forum.title or forum.url) + " - " + post.topic.subject
+    forum.title_or_url = forum.title or forum.url
     tvals = {
       'siteroot' : siteroot,
       'forum' : forum,
@@ -817,6 +824,7 @@ class PostForm(webapp.RequestHandler):
       prevName = user.name
       prevEmail = user.email
     (num1, num2) = (random.randint(1,9), random.randint(1,9))
+    forum.title_or_url = forum.title or forum.url
     tvals = {
       'siteroot' : siteroot,
       'forum' : forum,
