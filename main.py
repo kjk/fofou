@@ -617,6 +617,7 @@ class TopicForm(webapp.RequestHandler):
     (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
+    forum.title_or_url = forum.title or forum.url
 
     topic_id = self.request.get('id')
     if not topic_id:
