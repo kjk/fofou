@@ -497,28 +497,30 @@ class PostDelUndel(webapp.RequestHandler):
 # shows a list of topics, potentially starting from topic N
 class TopicList(webapp.RequestHandler):
 
-  def get_topics(self, forum, is_moderator, start, max_topics):
-    if is_moderator:
-      topics = Topic.gql("WHERE forum = :1 ORDER BY created_on DESC", forum).fetch(max_topics, start)
-    else:
-      topics = Topic.gql("WHERE forum = :1 AND is_deleted = False ORDER BY created_on DESC", forum).fetch(max_topics, start)
-    if 0 == len(topics) and start > 0:
-      return self.get_topics(forum, is_moderator, 0, max_topics)
-    return (start, topics)
+  def get_topics(self, forum, is_moderator, max_topics, cursor):
+    # note: building query manually beccause gql() don't work with cursor
+    # see: http://code.google.com/p/googleappengine/issues/detail?id=2757
+    q = Topic.all()
+    q.filter("forum =", forum)
+    if not is_moderator:
+        q.filter("is_deleted =", False)
+    q.order("-created_on")
+    if not cursor is None:
+      q.with_cursor(cursor)
+    topics = q.fetch(max_topics)
+    new_cursor = q.cursor()
+    if len(topics) < max_topics:
+        new_cursor = None
+    return (new_cursor, topics)
 
   def get(self):
     (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
-    start = 0
-    if self.request.get("from"):
-      start = int(self.request.get("from"))
+    cursor = self.request.get("from") or None
     is_moderator = users.is_current_user_admin()
     MAX_TOPICS = 75
-    (start, topics) = self.get_topics(forum, is_moderator, start, MAX_TOPICS)
-    new_start = 0
-    if len(topics) == MAX_TOPICS:
-      new_start = start + MAX_TOPICS
+    (new_cursor, topics) = self.get_topics(forum, is_moderator, MAX_TOPICS, cursor)
     forum.title_or_url = forum.title or forum.url
     tvals = {
       'siteroot' : siteroot,
@@ -526,9 +528,7 @@ class TopicList(webapp.RequestHandler):
       'forum' : forum,
       'topics' : topics,
       'analytics_code' : forum.analytics_code or "",
-      'from' : start,
-      'to' : start + len(topics),
-      'new_from' : new_start,
+      'new_from' : new_cursor,
       'log_in_out' : get_log_in_out(siteroot)
     }
     tmpl = os.path.join(tmpldir, "topic_list.html")
