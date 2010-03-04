@@ -225,19 +225,6 @@ def anonUser():
     g_anonUser = users.User("dummy@dummy.address.com")
   return g_anonUser
 
-def template_out(response, template_name, template_values):
-  response.headers['Content-Type'] = 'text/html'
-  if g_fofou_set_cookie:
-    # a hack extract the cookie part from the whole "Set-Cookie: val" header
-    c = str(g_fofou_set_cookie)
-    c = c.split(": ", 1)[1]
-    response.headers["Set-Cookie"] = c
-  #path = os.path.join(os.path.dirname(__file__), template_name)
-  path = template_name
-  #logging.info("tmpl: %s" % path)
-  res = template.render(path, template_values)
-  response.out.write(res)
-
 def fake_error(response):
   response.headers['Content-Type'] = 'text/plain'
   response.out.write('There was an error processing your request.')
@@ -299,9 +286,24 @@ def get_log_in_out(url):
   else:
     return "<a href=\"%s\">Log in or register</a>" % users.create_login_url(url)    
 
+class FofouBase(webapp.RequestHandler):
+
+  def template_out(self, template_name, template_values):
+    self.response.headers['Content-Type'] = 'text/html'
+    if g_fofou_set_cookie:
+      # a hack extract the cookie part from the whole "Set-Cookie: val" header
+      c = str(g_fofou_set_cookie)
+      c = c.split(": ", 1)[1]
+      self.response.headers["Set-Cookie"] = c
+    #path = os.path.join(os.path.dirname(__file__), template_name)
+    path = template_name
+    #logging.info("tmpl: %s" % path)
+    res = template.render(path, template_values)
+    self.response.out.write(res)
+
 # responds to GET /manageforums[?forum=<key>&disable=yes&enable=yes]
 # and POST /manageforums with values from the form
-class ManageForums(webapp.RequestHandler):
+class ManageForums(FofouBase):
 
   def post(self):
     if not users.is_current_user_admin():
@@ -424,11 +426,11 @@ class ManageForums(webapp.RequestHandler):
     tvals['forums'] = forums
     if forum and not forum.tagline:
       forum.tagline = "Tagline."
-    template_out(self.response, "manage_forums.html", tvals)
+    self.template_out("manage_forums.html", tvals)
 
 # responds to /, shows list of available forums or redirects to
 # forum management page if user is admin
-class ForumList(webapp.RequestHandler):
+class ForumList(FofouBase):
   def get(self):
     if users.is_current_user_admin():
       return self.redirect("/manageforums")
@@ -441,7 +443,7 @@ class ForumList(webapp.RequestHandler):
       'isadmin' : users.is_current_user_admin(),
       'log_in_out' : get_log_in_out("/")
     }
-    template_out(self.response, "forum_list.html", tvals)
+    self.template_out("forum_list.html", tvals)
 
 # responds to GET /postdel?<post_id> and /postundel?<post_id>
 class PostDelUndel(webapp.RequestHandler):
@@ -495,7 +497,7 @@ class PostDelUndel(webapp.RequestHandler):
     
 # responds to /<forumurl>/[?from=<from>]
 # shows a list of topics, potentially starting from topic N
-class TopicList(webapp.RequestHandler):
+class TopicList(FofouBase):
 
   def get_topics(self, forum, is_moderator, max_topics, cursor):
     # note: building query manually beccause gql() don't work with cursor
@@ -532,10 +534,10 @@ class TopicList(webapp.RequestHandler):
       'log_in_out' : get_log_in_out(siteroot)
     }
     tmpl = os.path.join(tmpldir, "topic_list.html")
-    template_out(self.response, tmpl, tvals)
+    self.template_out(tmpl, tvals)
 
 # responds to /<forumurl>/topic?id=<id>
-class TopicForm(webapp.RequestHandler):
+class TopicForm(FofouBase):
 
   def get(self):
     (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
@@ -583,7 +585,7 @@ class TopicForm(webapp.RequestHandler):
       'log_in_out' : get_log_in_out(self.request.url),
     }
     tmpl = os.path.join(tmpldir, "topic.html")
-    template_out(self.response, tmpl, tvals)
+    self.template_out(tmpl, tvals)
 
 # responds to /<forumurl>/rss, returns an RSS feed of recent topics
 # (taking into account only the first post in a topic - that's what
@@ -681,7 +683,7 @@ def get_fofou_user():
   return user
 
 # responds to /<forumurl>/email[?post_id=<post_id>]
-class EmailForm(webapp.RequestHandler):
+class EmailForm(FofouBase):
 
   def get(self):
     (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
@@ -707,7 +709,7 @@ class EmailForm(webapp.RequestHandler):
       'log_in_out' : get_log_in_out(siteroot + "post")
     }
     tmpl = os.path.join(tmpldir, "email.html")
-    template_out(self.response, tmpl, tvals)
+    self.template_out(tmpl, tvals)
 
   def post(self):
     (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
@@ -727,10 +729,10 @@ class EmailForm(webapp.RequestHandler):
       'log_in_out' : get_log_in_out(siteroot + "post")
     }    
     tmpl = os.path.join(tmpldir, "email_sent.html")
-    template_out(self.response, tmpl, tvals)
+    self.template_out(tmpl, tvals)
 
 # responds to /<forumurl>/post[?id=<topic_id>]
-class PostForm(webapp.RequestHandler):
+class PostForm(FofouBase):
 
   def get(self):
     (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
@@ -776,7 +778,7 @@ class PostForm(webapp.RequestHandler):
       tvals['prevTopicId'] = topic_id
       tvals['prevSubject'] = topic.subject
     tmpl = os.path.join(tmpldir, "post.html")
-    template_out(self.response, tmpl, tvals)
+    self.template_out(tmpl, tvals)
 
   def post(self):
     (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
@@ -849,7 +851,7 @@ class PostForm(webapp.RequestHandler):
     if errclass:
       tvals[errclass] = "error"
       tmpl = os.path.join(tmpldir, "post.html")
-      return template_out(self.response, tmpl, tvals)
+      return self.template_out(tmpl, tvals)
 
     # get user either by google user id or cookie. Create user objects if don't
     # already exist
