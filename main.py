@@ -172,7 +172,7 @@ def req_get_vals(req, names, strip=True):
     return [req.get(name).strip() for name in names]
   else:
     return [req.get(name) for name in names]
-  
+
 def get_inbound_cookie():
   c = Cookie.SimpleCookie()
   cstr = os.environ.get('HTTP_COOKIE', '')
@@ -189,34 +189,6 @@ def valid_user_cookie(c):
     return False
   # TODO: check that user with that cookie exists, the way appengine-utilities does
   return True
-
-g_fofou_cookie = None
-# returns either a FOFOU_COOKIE sent by the browser or a newly created cookie
-def get_fofou_cookie():
-  global g_fofou_cookie
-  if g_fofou_cookie:
-    return g_fofou_cookie
-  cookies = get_inbound_cookie()
-  for cookieName in cookies.keys():
-    if FOFOU_COOKIE != cookieName:
-      del cookies[cookieName]
-  if (FOFOU_COOKIE not in cookies) or not valid_user_cookie(cookies[FOFOU_COOKIE].value):
-    cookies[FOFOU_COOKIE] = new_user_id()
-    cookies[FOFOU_COOKIE]['path'] = '/'
-    cookies[FOFOU_COOKIE]['expires'] = COOKIE_EXPIRE_TIME
-  g_fofou_cookie = cookies[FOFOU_COOKIE]
-  return g_fofou_cookie
-
-def get_fofou_cookie_val():
-  c = get_fofou_cookie()
-  return c.value
-
-g_fofou_set_cookie = None
-# remember cookie so that we can send it when we render a template
-def send_fofou_cookie():
-  global g_fofou_set_cookie
-  if not g_fofou_set_cookie:
-    g_fofou_set_cookie = get_fofou_cookie()
 
 g_anonUser = None
 def anonUser():
@@ -288,11 +260,54 @@ def get_log_in_out(url):
 
 class FofouBase(webapp.RequestHandler):
 
+  _cookie = None
+  # returns either a FOFOU_COOKIE sent by the browser or a newly created cookie
+  def get_cookie(self):
+    if self._cookie != None:
+      return self._cookie
+    cookies = get_inbound_cookie()
+    for cookieName in cookies.keys():
+      if FOFOU_COOKIE != cookieName:
+        del cookies[cookieName]
+    if (FOFOU_COOKIE not in cookies) or not valid_user_cookie(cookies[FOFOU_COOKIE].value):
+      cookies[FOFOU_COOKIE] = new_user_id()
+      cookies[FOFOU_COOKIE]['path'] = '/'
+      cookies[FOFOU_COOKIE]['expires'] = COOKIE_EXPIRE_TIME
+    self._cookie = cookies[FOFOU_COOKIE]
+    return self._cookie
+
+  _cookie_to_set = None
+  # remember cookie so that we can send it when we render a template
+  def send_cookie(self):
+    if None == self._cookie_to_set:
+      self._cookie_to_set = self.get_cookie()
+
+  def get_cookie_val(self):
+    c = self.get_cookie()
+    return c.value
+
+  def get_fofou_user(self):
+    # get user either by google user id or cookie
+    user_id = users.get_current_user()
+    user = None
+    if user_id:
+      user = FofouUser.gql("WHERE user = :1", user_id).get()
+      #if user: logging.info("Found existing user for by user_id '%s'" % str(user_id))
+    else:
+      cookie = self.get_cookie_val()
+      if cookie:
+        user = FofouUser.gql("WHERE cookie = :1", cookie).get()
+        #if user:
+        #  logging.info("Found existing user for cookie '%s'" % cookie)
+        #else:
+        #  logging.info("Didn't find user for cookie '%s'" % cookie)
+    return user
+
   def template_out(self, template_name, template_values):
     self.response.headers['Content-Type'] = 'text/html'
-    if g_fofou_set_cookie:
+    if None != self._cookie_to_set:
       # a hack extract the cookie part from the whole "Set-Cookie: val" header
-      c = str(g_fofou_set_cookie)
+      c = str(self._cookie_to_set)
       c = c.split(": ", 1)[1]
       self.response.headers["Set-Cookie"] = c
     #path = os.path.join(os.path.dirname(__file__), template_name)
@@ -665,22 +680,6 @@ class RssAllFeed(webapp.RequestHandler):
     self.response.headers['Content-Type'] = 'text/xml'
     self.response.out.write(feedtxt)
 
-def get_fofou_user():
-  # get user either by google user id or cookie
-  user_id = users.get_current_user()
-  user = None
-  if user_id:
-    user = FofouUser.gql("WHERE user = :1", user_id).get()
-    #if user: logging.info("Found existing user for by user_id '%s'" % str(user_id))
-  else:
-    cookie = get_fofou_cookie_val()
-    if cookie:
-      user = FofouUser.gql("WHERE cookie = :1", cookie).get()
-      #if user:
-      #  logging.info("Found existing user for cookie '%s'" % cookie)
-      #else:
-      #  logging.info("Didn't find user for cookie '%s'" % cookie)
-  return user
 
 # responds to /<forumurl>/email[?post_id=<post_id>]
 class EmailForm(FofouBase):
@@ -743,13 +742,13 @@ class PostForm(FofouBase):
     if ip in BANNED_IPS:
       return fake_error(self.response)
 
-    send_fofou_cookie()
+    self.send_cookie()
 
     rememberChecked = ""
     prevUrl = "http://"
     prevEmail = ""
     prevName = ""
-    user = get_fofou_user()
+    user = self.get_fofou_user()
     if user and user.remember_me:
       rememberChecked = "checked"
       prevUrl = user.homepage
@@ -791,7 +790,7 @@ class PostForm(FofouBase):
     if ip in BANNED_IPS:
       return self.redirect(siteroot)
 
-    send_fofou_cookie()
+    self.send_cookie()
 
     vals = ['TopicId', 'num1', 'num2', 'Captcha', 'Subject', 'Message', 'Remember', 'Email', 'Name', 'Url']
     (topic_id, num1, num2, captcha, subject, message, remember_me, email, name, homepage) = req_get_vals(self.request, vals)
@@ -867,7 +866,7 @@ class PostForm(FofouBase):
         existing_user = True
         #logging.info("Found existing user for '%s'" % str(user_id))
     else:
-      cookie = get_fofou_cookie_val()
+      cookie = self.get_cookie_val()
       user = FofouUser.gql("WHERE cookie = :1", cookie).get()
       if not user:
         #logging.info("Creating new user for cookie '%s'" % cookie)

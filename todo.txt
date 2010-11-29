@@ -7,15 +7,8 @@ Of course, there's always something to improve and below is my whishlist. I'm
 sure you'll have no trouble coming up with your own list of possible
 improvements.
 
-TODO must have:
- - cookies for anonymous users seem te be messed up (or I'm filling out
-   post form based on a wrong cookie). When not logged in, replying
-   to a post fills out user info based on the orignal poster, not the
-   person who's replying
-
 TODO nice to have:
  - comment count should only count non-deleted posts
- - ip address blocking
  - mass delete of posts from a given ip address and/or user account
  - use ajax google search ui 
  - finish /<forumurl>/email?post_id=<post_id>
@@ -30,5 +23,5 @@ TODO low priority:
  - cookie validation
  - alternative forms of integration with a website (iframe? return data
    as json and do most of the rendering using javascript?)
- - document importing posts from fruitshow database
+ - ip address blocking
 
