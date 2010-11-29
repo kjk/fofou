@@ -85,10 +85,6 @@ function onSidebarFieldChange() {
 						<td><input type="edit" size="60" maxlength="256" name="analyticscode" value="{{ prevanalyticscode|escape }}"></input></td>
 					</tr>
 					<tr>
-						<td valign="top">Import secret</td>
-						<td><input type="edit" size="60" maxlength="256" name="importsecret" value="{{ previmportsecret|escape }}"></input></td>
-					</tr>
-					<tr>
 						<td valign="top">Sidebar</td>
 						<td><textarea name="sidebar" rows="6" cols="45" id="sidebarFieldId" onchange="return onSidebarFieldChange();" onkeyup="return onSidebarFieldChange();">{{ prevsidebar|escape }}</textarea></td>
 					</tr>
@@ -108,8 +104,6 @@ function onSidebarFieldChange() {
 			<p><b>Tagline</b> is shown in smaller font, under title. HTML allowed (e.g. for links).</p>
 			<p><b>Analytics code</b> is Googl Analytics code. If given, key pages will include Google Analytics
 					JavaScript with this code</p>
-			<p><b>Import secret</b> protects bulk topic import interface. 
-						See <a href="http://blog.kowalczyk.info/software/fofou">docs</a> for more information</p>
 			<p><b>Sidebar</b> is displayed in the left column. HTML allowed.</p>
 			<p>Don't stress about choosing the right values - you can change them later.</p>
 		</td>

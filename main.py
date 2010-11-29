@@ -88,8 +88,7 @@ class Forum(db.Model):
   skin = db.StringProperty()
   # Google analytics code
   analytics_code = db.StringProperty()
-  # secret value that needs to be passed in form data
-  # as 'secret' field to /import
+  # Note: import_secret is obsolete
   import_secret = db.StringProperty()
 
 # A forum is collection of topics
@@ -332,8 +331,8 @@ class ManageForums(FofouBase):
         # invalid key - should not happen so go to top-level
         return self.redirect("/")
 
-    vals = ['url','title', 'tagline', 'sidebar', 'disable', 'enable', 'importsecret', 'analyticscode']
-    (url, title, tagline, sidebar, disable, enable, import_secret, analytics_code) = req_get_vals(self.request, vals)
+    vals = ['url','title', 'tagline', 'sidebar', 'disable', 'enable', 'analyticscode']
+    (url, title, tagline, sidebar, disable, enable, analytics_code) = req_get_vals(self.request, vals)
 
     errmsg = None
     if not valid_forum_url(url):
@@ -351,7 +350,6 @@ class ManageForums(FofouBase):
         'prevtitle' : title,
         'prevtagline' : tagline,
         'prevsidebar' : sidebar,
-        'previmportsecret' : import_secret,
         'prevanalyticscode' : analytics_code,
         'forum_key' : forum_key,
         'errmsg' : errmsg
@@ -365,13 +363,12 @@ class ManageForums(FofouBase):
       forum.title = title
       forum.tagline = tagline
       forum.sidebar = sidebar
-      forum.import_secret = import_secret
       forum.analytics_code = analytics_code
       forum.put()
       msg = "Forum '%s' has been updated." % title_or_url
     else:
       # create a new forum
-      forum = Forum(url=url, title=title, tagline=tagline, sidebar=sidebar, import_secret = import_secret, analytics_code = analytics_code)
+      forum = Forum(url=url, title=title, tagline=tagline, sidebar=sidebar, analytics_code = analytics_code)
       forum.put()
       msg = "Forum '%s' has been created." % title_or_url
     url = "/manageforums?msg=%s" % urllib.quote(to_utf8(msg))
@@ -432,7 +429,6 @@ class ManageForums(FofouBase):
         tvals['prevtitle'] = f.title
         tvals['prevtagline'] = f.tagline
         tvals['prevsidebar'] = f.sidebar
-        tvals['previmportsecret'] = f.import_secret
         tvals['prevanalyticscode'] = f.analytics_code
         tvals['forum_key'] = str(f.key())
       forums.append(f)
@@ -923,7 +919,6 @@ def main():
         ('/[^/]+/email', EmailForm),
         ('/[^/]+/rss', RssFeed),
         ('/[^/]+/rssall', RssAllFeed),
-        #('/[^/]+/importfruitshow', ImportFruitshow),
         ('/[^/]+/?', TopicList)],
      debug=True)
   wsgiref.handlers.CGIHandler().run(application)

@@ -8,6 +8,7 @@ sure you'll have no trouble coming up with your own list of possible
 improvements.
 
 TODO nice to have:
+ - unchecking 'remember me' on post doesn't seem to make us forget
  - comment count should only count non-deleted posts
  - mass delete of posts from a given ip address and/or user account
  - use ajax google search ui 
