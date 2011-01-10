@@ -7,7 +7,12 @@ Of course, there's always something to improve and below is my whishlist. I'm
 sure you'll have no trouble coming up with your own list of possible
 improvements.
 
+TODO:
+ - fix cookie expire time as in https://github.com/solsticedhiver/fofou/commit/19b864fde9e0ba3fc9f24e2bb4b11a7408385778
+
 TODO nice to have:
+ - use self.request.remote_addr instead of os.environ['REMOTE_ADDR'] as in
+  https://github.com/solsticedhiver/fofou/commit/0f2b8a46435fa056cc93052ea929db5819eb9b2c
  - unchecking 'remember me' on post doesn't seem to make us forget
  - comment count should only count non-deleted posts
  - mass delete of posts from a given ip address and/or user account

@@ -676,6 +676,14 @@ class RssAllFeed(webapp.RequestHandler):
     self.response.headers['Content-Type'] = 'text/xml'
     self.response.out.write(feedtxt)
 
+def sanitize_homepage(s):
+    # prevent javascript injection
+    if not (s.startswith("http://") or s.startswith("https://")):
+        return ""
+    # 'http://' is the default value we put, so if unchanged, consider it
+    # as not given at all
+    if s == "http://": return ""
+    return s
 
 # responds to /<forumurl>/email[?post_id=<post_id>]
 class EmailForm(FofouBase):
@@ -805,6 +813,7 @@ class PostForm(FofouBase):
     except ValueError:
       validCaptcha = False
 
+    homepage = sanitize_homepage(homepage)
     tvals = {
       'siteroot' : siteroot,
       'forum' : forum,
@@ -821,14 +830,7 @@ class PostForm(FofouBase):
       "prevTopicId" : topic_id,
       "log_in_out" : get_log_in_out(siteroot + "post")
     }
-
-    # 'http://' is the default value we put, so if unchanged, consider it
-    # as not given at all
-    if homepage == "http://": homepage = ""
-    # prevent javascript injection
-    if not (homepage.startswith("http://") or homepage.startswith("https://")):
-        homepage = ""
-
+    
     # validate captcha and other values
     errclass = None
     if not validCaptcha or (captcha != (num1 + num2)): errclass = 'captcha_class'
