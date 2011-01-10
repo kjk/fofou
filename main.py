@@ -207,7 +207,16 @@ def valid_forum_url(url):
     return url == urllib.quote_plus(url)
   except:
     return False
-     
+
+def sanitize_homepage(s):
+    # prevent javascript injection
+    if not (s.startswith("http://") or s.startswith("https://")):
+        return ""
+    # 'http://' is the default value we put, so if unchanged, consider it
+    # as not given at all
+    if s == "http://": return ""
+    return s
+
 # very simplistic check for <txt> being a valid e-mail address
 def valid_email(txt):
   # allow empty strings
@@ -585,6 +594,8 @@ class TopicForm(FofouBase):
     if is_moderator:
         for p in posts:
             p.user_ip_str = long2ip(p.user_ip)
+            if p.user_homepage:
+                p.user_homepage = sanitize_homepage(p.user_homepage)
     tvals = {
       'siteroot' : siteroot,
       'forum' : forum,
@@ -675,15 +686,6 @@ class RssAllFeed(webapp.RequestHandler):
     feedtxt = feed.writeString('utf-8')
     self.response.headers['Content-Type'] = 'text/xml'
     self.response.out.write(feedtxt)
-
-def sanitize_homepage(s):
-    # prevent javascript injection
-    if not (s.startswith("http://") or s.startswith("https://")):
-        return ""
-    # 'http://' is the default value we put, so if unchanged, consider it
-    # as not given at all
-    if s == "http://": return ""
-    return s
 
 # responds to /<forumurl>/email[?post_id=<post_id>]
 class EmailForm(FofouBase):
