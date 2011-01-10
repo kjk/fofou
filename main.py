@@ -825,6 +825,9 @@ class PostForm(FofouBase):
     # 'http://' is the default value we put, so if unchanged, consider it
     # as not given at all
     if homepage == "http://": homepage = ""
+    # prevent javascript injection
+    if not (homepage.startswith("http://") or homepage.startswith("https://")):
+        homepage = ""
 
     # validate captcha and other values
     errclass = None
