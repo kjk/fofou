@@ -49,7 +49,7 @@ HTTP_NOT_FOUND = 404
 RSS_MEMCACHED_KEY = "rss"
 
 def rss_memcache_key(forum):
-    return RSS_MEMCACHED_KEY + forum
+    return RSS_MEMCACHED_KEY + str(forum.key().id)
 
 BANNED_IPS = {
     "59.181.121.8" : 1,
