@@ -48,6 +48,9 @@ HTTP_NOT_FOUND = 404
 
 RSS_MEMCACHED_KEY = "rss"
 
+def rss_memcache_key(forum):
+    return RSS_MEMCACHED_KEY + forum
+
 BANNED_IPS = {
     "59.181.121.8" : 1,
     "62.162.98.194" : 1,
@@ -488,14 +491,14 @@ class PostDelUndel(webapp.RequestHandler):
       if not post.is_deleted:
         post.is_deleted = True
         post.put()
-        memcache.delete(RSS_MEMCACHED_KEY)
+        memcache.delete(rss_memcache_key(forum))
       else:
         logging.info("Post '%s' is already deleted" % post_id)
     elif path.endswith("/postundel"):
       if post.is_deleted:
         post.is_deleted = False
         post.put()
-        memcache.delete(RSS_MEMCACHED_KEY)
+        memcache.delete(rss_memcache_key(forum))
       else:
         logging.info("Trying to undelete post '%s' that is not deleted" % post_id)
     else:
@@ -619,7 +622,7 @@ class RssFeed(webapp.RequestHandler):
     if not forum or forum.is_disabled:
       return self.error(HTTP_NOT_FOUND)
 
-    cached_feed = memcache.get(RSS_MEMCACHED_KEY)
+    cached_feed = memcache.get(rss_memcache_key(forum))
     if cached_feed is not None:
       self.response.headers['Content-Type'] = 'text/xml'
       self.response.out.write(cached_feed)
@@ -650,7 +653,7 @@ class RssFeed(webapp.RequestHandler):
     feedtxt = feed.writeString('utf-8')
     self.response.headers['Content-Type'] = 'text/xml'
     self.response.out.write(feedtxt)
-    memcache.add(RSS_MEMCACHED_KEY, feedtxt)
+    memcache.add(rss_memcache_key(forum), feedtxt)
 
 # responds to /<forumurl>/rssall, returns an RSS feed of all recent posts
 # This is good for forum admins/moderators who want to monitor all posts
@@ -909,7 +912,7 @@ class PostForm(FofouBase):
     user_ip = ip2long(get_remote_ip())
     p = Post(topic=topic, forum=forum, user=user, user_ip=user_ip, message=message, sha1_digest=sha1_digest, user_name = name, user_email = email, user_homepage = homepage)
     p.put()
-    memcache.delete(RSS_MEMCACHED_KEY)
+    memcache.delete(rss_memcache_key(forum))
     if topic_id:
       self.redirect(siteroot + "topic?id=" + str(topic_id))
     else:
