@@ -57,6 +57,14 @@ BANNED_IPS = {
     #"127.0.0.1" : 1,
 }
 
+def my_hostname():
+    # TODO: handle https as well
+    h = "http://" + os.environ["SERVER_NAME"];
+    port = os.environ["SERVER_PORT"]
+    if port != "80":
+        h += ":%s" % port
+    return h
+
 class FofouUser(db.Model):
   # according to docs UserProperty() cannot be optional, so for anon users
   # we set it to value returned by anonUser() function
@@ -630,13 +638,13 @@ class RssFeed(webapp.RequestHandler):
       
     feed = feedgenerator.Atom1Feed(
       title = forum.title or forum.url,
-      link = siteroot + "rss",
+      link = my_hostname() + siteroot + "rss",
       description = forum.tagline)
   
     topics = Topic.gql("WHERE forum = :1 AND is_deleted = False ORDER BY created_on DESC", forum).fetch(25)
     for topic in topics:
       title = topic.subject
-      link = siteroot + "topic?id=" + str(topic.key().id())
+      link = my_hostname() + siteroot + "topic?id=" + str(topic.key().id())
       first_post = Post.gql("WHERE topic = :1 ORDER BY created_on", topic).get()
       msg = first_post.message
       # TODO: a hack: using a full template to format message body.
@@ -666,14 +674,14 @@ class RssAllFeed(webapp.RequestHandler):
 
     feed = feedgenerator.Atom1Feed(
       title = forum.title or forum.url,
-      link = siteroot + "rssall",
+      link = my_hostname() + siteroot + "rssall",
       description = forum.tagline)
   
     posts = Post.gql("WHERE forum = :1 AND is_deleted = False ORDER BY created_on DESC", forum).fetch(25)
     for post in posts:
       topic = post.topic
       title = topic.subject
-      link = siteroot + "topic?id=" + str(topic.key().id())
+      link = my_hostname() + siteroot + "topic?id=" + str(topic.key().id())
       msg = post.message
       # TODO: a hack: using a full template to format message body.
       # There must be a way to do it using straight django APIs
