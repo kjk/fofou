@@ -589,11 +589,12 @@ class TopicForm(FofouBase):
       return self.redirect(siteroot)
 
     is_archived = False
-    now = datetime.datetime.now()
-    week = datetime.timedelta(days=7)
+    # Note: auto-archiving disabled
+    #now = datetime.datetime.now()
+    #week = datetime.timedelta(days=7)
     #week = datetime.timedelta(seconds=7)
-    if now > topic.created_on + week:
-      is_archived = True
+    #if now > topic.created_on + week:
+    #  is_archived = True
 
     # 200 is more than generous
     MAX_POSTS = 200
