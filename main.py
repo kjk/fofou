@@ -52,8 +52,9 @@ def rss_memcache_key(forum):
     return RSS_MEMCACHED_KEY + str(forum.key().id)
 
 BANNED_IPS = {
-    "59.181.121.8" : 1,
+    "59.181.121.8"  : 1,
     "62.162.98.194" : 1,
+    "93.191.0.129"  : 1,
     #"127.0.0.1" : 1,
 }
 
