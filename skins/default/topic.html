@@ -59,9 +59,9 @@
 							{% endif %}
 						{% endif %}
 						{% if post.user_homepage %}
-							<a href="{{ post.user_homepage }}">{{ post.user_name|escape }}</a>
+							<a href="{{ post.user_homepage }}">{{ post.user_name|striptags|escape }}</a>
 						{% else %}
-							{{ post.user_name|escape }}
+							{{ post.user_name|striptags|escape }}
 						{% endif %}
 						<span class="noIE">&nbsp;</span><br />
 						{{ post.created_on|date:"F jS, Y g:ia" }}

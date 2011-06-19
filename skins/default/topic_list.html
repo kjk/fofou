@@ -48,12 +48,12 @@
 			There are no topics. You better create one.
 		{% else %}
 		{% for topic in topics %}
-		  {% if topic.is_deleted %}
-				<a class="deleted" href="{{ siteroot }}topic?id={{ topic.key.id }}{% if topic.ncomments %}&comments={{ topic.ncomments }}{% endif %}" title="{{ topic.msg_short }}">{{ topic.subject|escape }}</a>
+		    {% if topic.is_deleted %}
+				<a class="deleted" href="{{ siteroot }}topic?id={{ topic.key.id }}{% if topic.ncomments %}&comments={{ topic.ncomments }}{% endif %}" title="{{ topic.msg_short|striptags|escape }}">{{ topic.subject|escape }} </a>
 			{% else %}
-				<a href="{{ siteroot }}topic?id={{ topic.key.id }}{% if topic.ncomments %}&comments={{ topic.ncomments }}{% endif %}" title="{{ topic.msg_short }}">{{ topic.subject|escape }}</a>
+				<a href="{{ siteroot }}topic?id={{ topic.key.id }}{% if topic.ncomments %}&comments={{ topic.ncomments }}{% endif %}" title="{{ topic.msg_short|striptags|escape }}">{{ topic.subject|escape }} </a>
 			{% endif %}
-			<em>{{ topic.created_by }}</em> <span>({{ topic.ncomments }}{% if forloop.first %} comment{{ topic.ncomments|pluralize }}{% endif %})</span>
+			<em>{{ topic.created_by|striptags|escape }}</em> <span>({{ topic.ncomments }}{% if forloop.first %} comment{{ topic.ncomments|pluralize }}{% endif %})</span>
 			<br />
 			{% if not forloop.first %}
 				<div class="dateline"></div>
