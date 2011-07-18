@@ -130,7 +130,12 @@ class Post(db.Model):
   # that means the topic is deleted as well
   is_deleted = db.BooleanProperty(default=False)
   # ip address from which this post has been made
+  user_ip_str = db.StringProperty(required=True)
+  # user_ip is an obsolete value, only used for compat with entries created before
+  # we introduced user_ip_str. If it's 0, we assume we'll use user_ip_str, otherwise
+  # we'll user user_ip
   user_ip = db.IntegerProperty(required=True)
+
   user = db.Reference(FofouUser, required=True)
   # user_name, user_email and user_homepage might be different than
   # name/homepage/email fields in user object, since they can be changed in
@@ -147,11 +152,6 @@ COOKIE_EXPIRE_TIME = 60*60*24*120 # valid for 60*60*24*120 seconds => 120 days
 
 def get_user_agent(): return os.environ['HTTP_USER_AGENT']
 def get_remote_ip(): return os.environ['REMOTE_ADDR']
-
-def ip2long(ip):
-  ip_array = ip.split('.')
-  ip_long = int(ip_array[0]) * 16777216 + int(ip_array[1]) * 65536 + int(ip_array[2]) * 256 + int(ip_array[3])
-  return ip_long
 
 def long2ip(val):
   slist = []
@@ -606,7 +606,8 @@ class TopicForm(FofouBase):
 
     if is_moderator:
         for p in posts:
-            p.user_ip_str = long2ip(p.user_ip)
+            if 0 != p.user_ip:
+              p.user_ip_str = long2ip(p.user_ip)
             if p.user_homepage:
                 p.user_homepage = sanitize_homepage(p.user_homepage)
     tvals = {
@@ -919,8 +920,8 @@ class PostForm(FofouBase):
       topic.ncomments += 1
       topic.put()
 
-    user_ip = ip2long(get_remote_ip())
-    p = Post(topic=topic, forum=forum, user=user, user_ip=user_ip, message=message, sha1_digest=sha1_digest, user_name = name, user_email = email, user_homepage = homepage)
+    user_ip_str = get_remote_ip()
+    p = Post(topic=topic, forum=forum, user=user, user_ip=0, user_ip_str=user_ip_str, message=message, sha1_digest=sha1_digest, user_name = name, user_email = email, user_homepage = homepage)
     p.put()
     memcache.delete(rss_memcache_key(forum))
     if topic_id:
