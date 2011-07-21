@@ -130,7 +130,7 @@ class Post(db.Model):
   # that means the topic is deleted as well
   is_deleted = db.BooleanProperty(default=False)
   # ip address from which this post has been made
-  user_ip_str = db.StringProperty(required=True)
+  user_ip_str = db.StringProperty(required=False)
   # user_ip is an obsolete value, only used for compat with entries created before
   # we introduced user_ip_str. If it's 0, we assume we'll use user_ip_str, otherwise
   # we'll user user_ip
