@@ -46,10 +46,11 @@ from offsets import *
 HTTP_NOT_ACCEPTABLE = 406
 HTTP_NOT_FOUND = 404
 
-RSS_MEMCACHED_KEY = "rss"
+FORUMS_MEMCACHE_KEY = "fo"
+RSS_MEMCACHE_KEY = "rss"
 
 def rss_memcache_key(forum):
-    return RSS_MEMCACHED_KEY + str(forum.key().id)
+    return RSS_MEMCACHE_KEY + str(forum.key().id)
 
 BANNED_IPS = {
     "59.181.121.8"  : 1,
@@ -239,17 +240,25 @@ def valid_email(txt):
   if '.' not in txt:
     return False
   return True
-
-def forum_from_url(url):
-  assert '/' == url[0]
-  path = url[1:]
-  if '/' in path:
-    (forumurl, rest) = path.split("/", 1)
-  else:
-    forumurl = path
-  return Forum.gql("WHERE url = :1", forumurl).get()
       
 def forum_root(forum): return "/" + forum.url + "/"
+
+def clear_forums_memcache():
+  memcache.delete(FORUMS_MEMCACHE_KEY)
+
+def get_forum_by_url(forumurl):
+  # number of forums is small, so we cache all of them
+  forums = memcache.get(FORUMS_MEMCACHE_KEY)
+  if not forums:
+    forums = Forum.all().fetch(200) # this effectively limits number of forums to 200
+    if not forums:
+      return None
+    
+    memcache.set(FORUMS_MEMCACHE_KEY, forums)
+  for forum in forums:
+    if forumurl == forum.url:
+      return forum
+  return None
 
 def forum_siteroot_tmpldir_from_url(url):
   assert '/' == url[0]
@@ -258,7 +267,7 @@ def forum_siteroot_tmpldir_from_url(url):
     (forumurl, rest) = path.split("/", 1)
   else:
     forumurl = path
-  forum = Forum.gql("WHERE url = :1", forumurl).get()
+  forum = get_forum_by_url(forumurl)
   if not forum:
     return (None, None, None)
   siteroot = forum_root(forum)
@@ -377,6 +386,7 @@ class ManageForums(FofouBase):
       }
       return self.render_rest(tvals)
 
+    clear_forums_memcache()
     title_or_url = title or url
     if forum:
       # update existing forum
@@ -385,7 +395,7 @@ class ManageForums(FofouBase):
       forum.tagline = tagline
       forum.sidebar = sidebar
       forum.analytics_code = analytics_code
-      forum.put()
+      forum()
       msg = "Forum '%s' has been updated." % title_or_url
     else:
       # create a new forum
