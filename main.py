@@ -47,10 +47,12 @@ HTTP_NOT_ACCEPTABLE = 406
 HTTP_NOT_FOUND = 404
 
 FORUMS_MEMCACHE_KEY = "fo"
-RSS_MEMCACHE_KEY = "rss"
 
 def rss_memcache_key(forum):
-    return RSS_MEMCACHE_KEY + str(forum.key().id)
+    return "rss" + str(forum.key().id)
+
+def topics_memcache_key(forum):
+  return "to" + str(forum.key().id())
 
 BANNED_IPS = {
     "59.181.121.8"  : 1,
@@ -245,6 +247,9 @@ def forum_root(forum): return "/" + forum.url + "/"
 
 def clear_forums_memcache():
   memcache.delete(FORUMS_MEMCACHE_KEY)
+
+def clear_topics_memcache(forum):
+  memcache.delete(topics_memcache_key(forum))
 
 def get_forum_by_url(forumurl):
   # number of forums is small, so we cache all of them
@@ -536,35 +541,38 @@ class PostDelUndel(webapp.RequestHandler):
     # redirect to topic owning this post
     topic_url = siteroot + "topic?id=" + str(topic.key().id())
     self.redirect(topic_url)
-    
+
+# returns (topics, new_off)
+def get_topics_for_forum(forum, is_moderator, off, count):
+  key = topics_memcache_key(forum)
+  topics = memcache.get(key)
+  if not topics:
+    q = Topic.gql("WHERE forum = :1 ORDER BY created_on DESC", forum)
+    topics = q.fetch(1000)
+    if topics:
+      memcache.set(key, topics) # TODO: should I pickle?
+  if not topics:
+    return (None, 0)
+  if topics and not is_moderator:
+    topics = [t for t in topics if not t.is_deleted]
+  topics = topics[off:off+count]
+  new_off = off + len(topics)
+  if len(topics) < count:
+    new_off = None # signal this is the last page
+  return (topics, new_off)
+
 # responds to /<forumurl>/[?from=<from>]
 # shows a list of topics, potentially starting from topic N
 class TopicList(FofouBase):
-
-  def get_topics(self, forum, is_moderator, max_topics, cursor):
-    # note: building query manually beccause gql() don't work with cursor
-    # see: http://code.google.com/p/googleappengine/issues/detail?id=2757
-    q = Topic.all()
-    q.filter("forum =", forum)
-    if not is_moderator:
-        q.filter("is_deleted =", False)
-    q.order("-created_on")
-    if not cursor is None:
-      q.with_cursor(cursor)
-    topics = q.fetch(max_topics)
-    new_cursor = q.cursor()
-    if len(topics) < max_topics:
-        new_cursor = None
-    return (new_cursor, topics)
 
   def get(self):
     (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
-    cursor = self.request.get("from") or None
+    off = self.request.get("from") or 0
     is_moderator = users.is_current_user_admin()
     MAX_TOPICS = 75
-    (new_cursor, topics) = self.get_topics(forum, is_moderator, MAX_TOPICS, cursor)
+    (topics, new_off) = get_topics_for_forum(forum, is_moderator, off, MAX_TOPICS)
     forum.title_or_url = forum.title or forum.url
     tvals = {
       'siteroot' : siteroot,
@@ -572,7 +580,7 @@ class TopicList(FofouBase):
       'forum' : forum,
       'topics' : topics,
       'analytics_code' : forum.analytics_code or "",
-      'new_from' : new_cursor,
+      'new_from' : new_off,
       'log_in_out' : get_log_in_out(siteroot)
     }
     tmpl = os.path.join(tmpldir, "topic_list.html")
@@ -934,6 +942,7 @@ class PostForm(FofouBase):
     p = Post(topic=topic, forum=forum, user=user, user_ip=0, user_ip_str=user_ip_str, message=message, sha1_digest=sha1_digest, user_name = name, user_email = email, user_homepage = homepage)
     p.put()
     memcache.delete(rss_memcache_key(forum))
+    clear_topics_memcache(forum)
     if topic_id:
       self.redirect(siteroot + "topic?id=" + str(topic_id))
     else:
