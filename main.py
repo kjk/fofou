@@ -544,6 +544,7 @@ class PostDelUndel(webapp.RequestHandler):
 
 # returns (topics, new_off)
 def get_topics_for_forum(forum, is_moderator, off, count):
+  off = int(off)
   key = topics_memcache_key(forum)
   topics = memcache.get(key)
   if not topics:
