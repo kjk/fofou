@@ -537,6 +537,7 @@ class PostDelUndel(webapp.RequestHandler):
       else:
         topic.is_deleted = False
       topic.put()
+      clear_topics_memcache(forum)
 
     # redirect to topic owning this post
     topic_url = siteroot + "topic?id=" + str(topic.key().id())
