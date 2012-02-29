@@ -400,7 +400,7 @@ class ManageForums(FofouBase):
       forum.tagline = tagline
       forum.sidebar = sidebar
       forum.analytics_code = analytics_code
-      forum()
+      forum.put()
       msg = "Forum '%s' has been updated." % title_or_url
     else:
       # create a new forum
