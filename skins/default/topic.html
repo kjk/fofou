@@ -35,7 +35,7 @@
 		<div class="posts">
 			<h3>{{ topic.subject|escape }}</h3>
 			{% for post in posts %}
-					<a name="{{ post.key.id }}"</a>
+					<a name="{{ post.key.id }}"></a>
 				<div>
 					{% if post.is_deleted %}
 						<div class="post deleted">{{ post.message|striptags|escape|urlize|linebreaksbr }}</div>
