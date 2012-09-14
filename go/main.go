@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "code.google.com/p/gorilla/mux"
+	"code.google.com/p/gorilla/mux"
 	"code.google.com/p/gorilla/securecookie"
 	"encoding/hex"
 	"encoding/json"
@@ -66,9 +66,9 @@ var (
 
 // a static configuration of a single forum
 type ForumConfig struct {
-	Name string
-	// url for the application's website (shown in the UI)
-	Url     string
+	Title string
+	SiteUrl     string
+	Sidebar string
 	DataDir string
 	// we authenticate only with Twitter, this is the twitter user name
 	// of the admin user
@@ -80,7 +80,7 @@ type User struct {
 }
 
 type Forum struct {
-	config *ForumConfig
+	ForumConfig
 }
 
 type AppState struct {
@@ -89,13 +89,9 @@ type AppState struct {
 }
 
 func NewForum(config *ForumConfig) *Forum {
-	forum := &Forum{config: config}
-	logger.Printf("Created %s forum\n", forum.Name())
+	forum := &Forum{ForumConfig:*config}
+	logger.Printf("Created %s forum\n", forum.Title)
 	return forum
-}
-
-func (f *Forum) Name() string {
-	return f.config.Name
 }
 
 // data dir is ../data on the server or ../apptranslatordata locally
@@ -115,9 +111,9 @@ func getDataDir() string {
 	return ""
 }
 
-func forumAlreadyExists(forumName string) bool {
+func forumAlreadyExists(title string) bool {
 	for _, forum := range appState.Forums {
-		if forum.Name() == forumName {
+		if forum.Title == title {
 			return true
 		}
 	}
@@ -125,14 +121,17 @@ func forumAlreadyExists(forumName string) bool {
 }
 
 func forumInvalidField(forum *Forum) string {
-	forum.config.Name = strings.TrimSpace(forum.config.Name)
-	if forum.Name() == "" {
-		return "Name"
+	forum.Title = strings.TrimSpace(forum.Title)
+	if forum.Title == "" {
+		return "Title"
 	}
-	if forum.config.DataDir == "" {
+	if forum.SiteUrl == "" {
+		return "SiteUrl"
+	}
+	if forum.DataDir == "" {
 		return "DataDir"
 	}
-	if forum.config.AdminTwitterUser == "" {
+	if forum.AdminTwitterUser == "" {
 		return "AdminTwitterUser"
 	}
 	return ""
@@ -142,7 +141,7 @@ func addForum(forum *Forum) error {
 	if invalidField := forumInvalidField(forum); invalidField != "" {
 		return errors.New(fmt.Sprintf("Forum has invalid field '%s'", invalidField))
 	}
-	if forumAlreadyExists(forum.Name()) {
+	if forumAlreadyExists(forum.Title) {
 		return errors.New("Forum already exists")
 	}
 
@@ -153,9 +152,9 @@ func addForum(forum *Forum) error {
 	return nil
 }
 
-func findForum(name string) *Forum {
+func findForum(title string) *Forum {
 	for _, f := range appState.Forums {
-		if f.Name() == name {
+		if f.Title == title {
 			return f
 		}
 	}
@@ -196,7 +195,7 @@ func serveErrorMsg(w http.ResponseWriter, msg string) {
 }
 
 func userIsAdmin(f *Forum, user string) bool {
-	return user == f.config.AdminTwitterUser
+	return user == f.AdminTwitterUser
 }
 
 // readSecrets reads the configuration file from the path specified by
@@ -273,7 +272,7 @@ func main() {
 	for _, forumData := range config.Forums {
 		f := NewForum(&forumData)
 		if err := addForum(f); err != nil {
-			log.Fatalf("Failed to add the forum: %s, err: %s\n", f.Name(), err.Error())
+			log.Fatalf("Failed to add the forum: %s, err: %s\n", f.Title, err.Error())
 		}
 	}
 
@@ -282,27 +281,27 @@ func main() {
 	}
 
 	/*
-		r := mux.NewRouter()
-		r.HandleFunc("/app/{appname}", makeTimingHandler(handleApp))
-		r.HandleFunc("/app/{appname}/{lang}", makeTimingHandler(handleAppTranslations))
-		r.HandleFunc("/user/{user}", makeTimingHandler(handleUser))
-		r.HandleFunc("/edittranslation", makeTimingHandler(handleEditTranslation))
-		r.HandleFunc("/downloadtranslations", makeTimingHandler(handleDownloadTranslations))
-		r.HandleFunc("/uploadstrings", makeTimingHandler(handleUploadStrings))
-		r.HandleFunc("/atom", makeTimingHandler(handleAtom))
-
-		r.HandleFunc("/login", handleLogin)
-		r.HandleFunc("/oauthtwittercb", handleOauthTwitterCallback)
-		r.HandleFunc("/logout", handleLogout)
-		r.HandleFunc("/", makeTimingHandler(handleMain))
-
-		http.HandleFunc("/s/", makeTimingHandler(handleStatic))
-		http.Handle("/", r)
-
-		logger.Printf("Running on %s\n", *httpAddr)
-		if err := http.ListenAndServe(*httpAddr, nil); err != nil {
-			fmt.Printf("http.ListendAndServer() failed with %s\n", err.Error())
-		}
+	r.HandleFunc("/app/{appname}", makeTimingHandler(handleApp))
+	r.HandleFunc("/app/{appname}/{lang}", makeTimingHandler(handleAppTranslations))
+	r.HandleFunc("/user/{user}", makeTimingHandler(handleUser))
+	r.HandleFunc("/edittranslation", makeTimingHandler(handleEditTranslation))
+	r.HandleFunc("/downloadtranslations", makeTimingHandler(handleDownloadTranslations))
+	r.HandleFunc("/uploadstrings", makeTimingHandler(handleUploadStrings))
+	r.HandleFunc("/atom", makeTimingHandler(handleAtom))
 	*/
+	r := mux.NewRouter()
+	r.HandleFunc("/", makeTimingHandler(handleMain))
+	http.HandleFunc("/s/", makeTimingHandler(handleStatic))
+
+	r.HandleFunc("/login", handleLogin)
+	r.HandleFunc("/oauthtwittercb", handleOauthTwitterCallback)
+	r.HandleFunc("/logout", handleLogout)
+
+	http.Handle("/", r)
+	logger.Printf("Running on %s\n", *httpAddr)
+	if err := http.ListenAndServe(*httpAddr, nil); err != nil {
+		fmt.Printf("http.ListendAndServer() failed with %s\n", err.Error())
+	}
+
 	fmt.Printf("Exited\n")
 }
