@@ -64,7 +64,7 @@ var (
 	reloadTemplates = true
 )
 
-// a static configuration of a single app
+// a static configuration of a single forum
 type ForumConfig struct {
 	Name string
 	// url for the application's website (shown in the UI)
@@ -90,7 +90,7 @@ type AppState struct {
 
 func NewForum(config *ForumConfig) *Forum {
 	forum := &Forum{config: config}
-	logger.Printf("Created %s forum\n", forum.config.Name)
+	logger.Printf("Created %s forum\n", forum.Name())
 	return forum
 }
 
@@ -113,7 +113,7 @@ func getDataDir() string {
 
 func forumAlreadyExists(forumName string) bool {
 	for _, forum := range appState.Forums {
-		if forum.config.Name == forumName {
+		if forum.Name() == forumName {
 			return true
 		}
 	}
@@ -122,7 +122,7 @@ func forumAlreadyExists(forumName string) bool {
 
 func forumInvalidField(forum *Forum) string {
 	forum.config.Name = strings.TrimSpace(forum.config.Name)
-	if forum.config.Name == "" {
+	if forum.Name() == "" {
 		return "Name"
 	}
 	if forum.config.DataDir == "" {
@@ -135,10 +135,11 @@ func forumInvalidField(forum *Forum) string {
 }
 
 func addForum(forum *Forum) error {
+	fmt.Printf("addForum()\n")
 	if invalidField := forumInvalidField(forum); invalidField != "" {
 		return errors.New(fmt.Sprintf("Forum has invalid field '%s'", invalidField))
 	}
-	if forumAlreadyExists(forum.config.Name) {
+	if forumAlreadyExists(forum.Name()) {
 		return errors.New("Forum already exists")
 	}
 
@@ -149,17 +150,9 @@ func addForum(forum *Forum) error {
 	return nil
 }
 
-func (f *Forum) Name() string {
-	return f.config.Name
-}
-
-func (f *Forum) Url() string {
-	return f.config.Url
-}
-
 func findForum(name string) *Forum {
 	for _, f := range appState.Forums {
-		if f.config.Name == name {
+		if f.Name() == name {
 			return f
 		}
 	}
@@ -206,6 +199,7 @@ func userIsAdmin(f *Forum, user string) bool {
 // readSecrets reads the configuration file from the path specified by
 // the config command line flag.
 func readSecrets(configFile string) error {
+	fmt.Printf("readSecrets()\n")
 	b, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		return err
@@ -277,13 +271,12 @@ func main() {
 	for _, forumData := range config.Forums {
 		f := NewForum(&forumData)
 		if err := addForum(f); err != nil {
-			log.Fatalf("Failed to add the forum: %s, err: %s\n", f.config.Name, err.Error())
+			log.Fatalf("Failed to add the forum: %s, err: %s\n", f.Name(), err.Error())
 		}
 	}
 
-	// for testing, add a dummy app if no apps exist
 	if len(appState.Forums) == 0 {
-		log.Fatalf("No apps defined in secrets.json")
+		log.Fatalf("No forums defined in secrets.json")
 	}
 
 	/*
