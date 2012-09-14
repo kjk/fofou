@@ -20,10 +20,11 @@ import (
 )
 
 var (
-	configPath = flag.String("config", "secrets.json", "Path to configuration file")
-	httpAddr   = flag.String("addr", ":5010", "HTTP server address")
-	logPath    = flag.String("log", "stdout", "where to log")
-	cookieName = "ckie"
+	configPath   = flag.String("config", "secrets.json", "Path to configuration file")
+	httpAddr     = flag.String("addr", ":5010", "HTTP server address")
+	logPath      = flag.String("log", "stdout", "where to log")
+	inProduction = flag.Bool("production", false, "are we running in production")
+	cookieName   = "ckie"
 )
 
 var (
@@ -62,12 +63,13 @@ var (
 	templatePaths   = make([]string, 0)
 	templates       *template.Template
 	reloadTemplates = true
+	alwaysLogTime   = true
 )
 
 // a static configuration of a single forum
 type ForumConfig struct {
-	Title string
-	SiteUrl     string
+	Title   string
+	SiteUrl string
 	Sidebar string
 	DataDir string
 	// we authenticate only with Twitter, this is the twitter user name
@@ -89,7 +91,7 @@ type AppState struct {
 }
 
 func NewForum(config *ForumConfig) *Forum {
-	forum := &Forum{ForumConfig:*config}
+	forum := &Forum{ForumConfig: *config}
 	logger.Printf("Created %s forum\n", forum.Title)
 	return forum
 }
@@ -234,8 +236,6 @@ func readSecrets(configFile string) error {
 	return err
 }
 
-const alwaysLogTime = true
-
 func makeTimingHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -254,6 +254,12 @@ func makeTimingHandler(fn func(http.ResponseWriter, *http.Request)) http.Handler
 
 func main() {
 	flag.Parse()
+
+	if *inProduction {
+		reloadTemplates = false
+		alwaysLogTime = false
+	}
+
 	if *logPath == "stdout" {
 		logger = log.New(os.Stdout, "", 0)
 	} else {
@@ -281,13 +287,13 @@ func main() {
 	}
 
 	/*
-	r.HandleFunc("/app/{appname}", makeTimingHandler(handleApp))
-	r.HandleFunc("/app/{appname}/{lang}", makeTimingHandler(handleAppTranslations))
-	r.HandleFunc("/user/{user}", makeTimingHandler(handleUser))
-	r.HandleFunc("/edittranslation", makeTimingHandler(handleEditTranslation))
-	r.HandleFunc("/downloadtranslations", makeTimingHandler(handleDownloadTranslations))
-	r.HandleFunc("/uploadstrings", makeTimingHandler(handleUploadStrings))
-	r.HandleFunc("/atom", makeTimingHandler(handleAtom))
+		r.HandleFunc("/app/{appname}", makeTimingHandler(handleApp))
+		r.HandleFunc("/app/{appname}/{lang}", makeTimingHandler(handleAppTranslations))
+		r.HandleFunc("/user/{user}", makeTimingHandler(handleUser))
+		r.HandleFunc("/edittranslation", makeTimingHandler(handleEditTranslation))
+		r.HandleFunc("/downloadtranslations", makeTimingHandler(handleDownloadTranslations))
+		r.HandleFunc("/uploadstrings", makeTimingHandler(handleUploadStrings))
+		r.HandleFunc("/atom", makeTimingHandler(handleAtom))
 	*/
 	r := mux.NewRouter()
 	r.HandleFunc("/", makeTimingHandler(handleMain))

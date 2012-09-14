@@ -97,5 +97,5 @@ def deploy():
 
 	# start it
 	with cd(curr_dir):
-		run("/sbin/start-stop-daemon --start --background --chdir /home/fofou/www/app/current --exec fofou_app -- --log fofou_app.log")
+		run("/sbin/start-stop-daemon --start --background --chdir /home/fofou/www/app/current --exec fofou_app -- --log fofou_app.log --production")
 		run("ps aux | grep _app")
