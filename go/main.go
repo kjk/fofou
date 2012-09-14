@@ -94,6 +94,10 @@ func NewForum(config *ForumConfig) *Forum {
 	return forum
 }
 
+func (f *Forum) Name() string {
+	return f.config.Name
+}
+
 // data dir is ../data on the server or ../apptranslatordata locally
 func getDataDir() string {
 	if dataDir != "" {
@@ -135,7 +139,6 @@ func forumInvalidField(forum *Forum) string {
 }
 
 func addForum(forum *Forum) error {
-	fmt.Printf("addForum()\n")
 	if invalidField := forumInvalidField(forum); invalidField != "" {
 		return errors.New(fmt.Sprintf("Forum has invalid field '%s'", invalidField))
 	}
@@ -199,7 +202,6 @@ func userIsAdmin(f *Forum, user string) bool {
 // readSecrets reads the configuration file from the path specified by
 // the config command line flag.
 func readSecrets(configFile string) error {
-	fmt.Printf("readSecrets()\n")
 	b, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		return err
