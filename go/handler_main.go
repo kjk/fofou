@@ -18,8 +18,13 @@ func handleMain(w http.ResponseWriter, r *http.Request) {
 		serve404(w, r)
 		return
 	}
-	user := decodeUserFromCookie(r)
-	model := &ModelMain{Forums: &appState.Forums, User: user, UserIsAdmin: false, RedirectUrl: r.URL.String()}
+
+	model := &ModelMain{
+		Forums:      &appState.Forums,
+		User:        decodeUserFromCookie(r),
+		UserIsAdmin: false,
+		RedirectUrl: r.URL.String()}
+
 	if err := GetTemplates().ExecuteTemplate(w, tmplMain, model); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

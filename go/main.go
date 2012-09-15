@@ -59,7 +59,8 @@ var (
 	appState = AppState{}
 
 	tmplMain        = "main.html"
-	templateNames   = [...]string{tmplMain}
+	tmplForum       = "forum.html"
+	templateNames   = [...]string{tmplMain, tmplForum}
 	templatePaths   = make([]string, 0)
 	templates       *template.Template
 	reloadTemplates = true
@@ -113,13 +114,17 @@ func getDataDir() string {
 	return ""
 }
 
-func forumAlreadyExists(title string) bool {
-	for _, forum := range appState.Forums {
-		if forum.Title == title {
-			return true
+func findForum(siteUrl string) *Forum {
+	for _, f := range appState.Forums {
+		if f.SiteUrl == siteUrl {
+			return f
 		}
 	}
-	return false
+	return nil
+}
+
+func forumAlreadyExists(siteUrl string) bool {
+	return nil != findForum(siteUrl)
 }
 
 func forumInvalidField(forum *Forum) string {
@@ -143,33 +148,15 @@ func addForum(forum *Forum) error {
 	if invalidField := forumInvalidField(forum); invalidField != "" {
 		return errors.New(fmt.Sprintf("Forum has invalid field '%s'", invalidField))
 	}
-	if forumAlreadyExists(forum.Title) {
+	if forumAlreadyExists(forum.SiteUrl) {
 		return errors.New("Forum already exists")
 	}
 
-	/*if err := readAppData(app); err != nil {
+	/*if err := readForumData(app); err != nil {
 		return err
 	}*/
 	appState.Forums = append(appState.Forums, forum)
 	return nil
-}
-
-func findForum(title string) *Forum {
-	for _, f := range appState.Forums {
-		if f.Title == title {
-			return f
-		}
-	}
-	return nil
-}
-
-type templateParser struct {
-	HTML string
-}
-
-func (tP *templateParser) Write(p []byte) (n int, err error) {
-	tP.HTML += string(p)
-	return len(p), nil
 }
 
 func GetTemplates() *template.Template {
@@ -297,10 +284,11 @@ func main() {
 	*/
 	r := mux.NewRouter()
 	r.HandleFunc("/", makeTimingHandler(handleMain))
+	r.HandleFunc("/{forum}", makeTimingHandler(handleForum))
 	http.HandleFunc("/s/", makeTimingHandler(handleStatic))
 
-	r.HandleFunc("/login", handleLogin)
 	r.HandleFunc("/oauthtwittercb", handleOauthTwitterCallback)
+	r.HandleFunc("/login", handleLogin)
 	r.HandleFunc("/logout", handleLogout)
 
 	http.Handle("/", r)
