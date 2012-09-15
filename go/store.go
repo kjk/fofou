@@ -123,11 +123,10 @@ func serializeStruct(v reflect.Value) {
 			}
 			i := elem.Interface()
 			si := i.(StorageItem)
-			serializeInt("Id", int64(si.Id))
+			// Using lower-case name for the id so that it won't conflict
+			// with a struct field Id
+			serializeInt("id", int64(si.Id))
 			continue
-		}
-		if "Id" == sf.Name {
-			panic("Field name shouldn't be 'Id'")
 		}
 		// TODO: use kind
 		if "string" == stn {
