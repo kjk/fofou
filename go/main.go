@@ -72,6 +72,7 @@ type ForumConfig struct {
 	Title   string
 	SiteUrl string
 	Sidebar string
+	Tagline string
 	DataDir string
 	// we authenticate only with Twitter, this is the twitter user name
 	// of the admin user
