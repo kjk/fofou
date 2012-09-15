@@ -1,16 +1,19 @@
 package main
 
 import (
-	"time"
-	"reflect"
 	"bytes"
-	_ "runtime"
-	_ "sync"
-	"fmt"
-	"strings"
 	"crypto/sha1"
-	"io"
 	"encoding/hex"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"reflect"
+	_ "runtime"
+	"strings"
+	_ "sync"
+	"time"
 )
 
 // TODO: this will be stored in a cookie
@@ -54,8 +57,12 @@ type DeleteUndelete struct {
 }
 
 type Store struct {
-
 }
+
+var (
+	nilTime  time.Time
+	timeType reflect.Type = reflect.TypeOf(nilTime)
+)
 
 // An encodeState encodes JSON into a bytes.Buffer.
 type encodeState struct {
@@ -67,41 +74,81 @@ func (s *Store) LoadStringBySha1(sha1 string) (string, error) {
 	return "", nil
 }
 
-func (s *Store) saveStringUnderSha1(str, dir string) (string, error) {
+// write str to a file named ${dir}/xx/yy/${sha1}.txt
+// where xx is sha1[0:2] and yy is sha1[2:4]
+func saveStringUnderSha1(str, dir string) (string, error) {
 	h := sha1.New()
 	io.WriteString(h, str)
 	sha1 := hex.EncodeToString(h.Sum(nil))
-	// TODO: write to a file named sha1 in dir xx/yy/sha1
-	return sha1, nil
+	dir1 := sha1[0:2]
+	dir2 := sha1[2:4]
+	path := filepath.Join(dir, dir1, dir2)
+	err := os.MkdirAll(path, 0666)
+	if err != nil {
+		return sha1, err
+	}
+	fileName := sha1 + ".txt"
+	path = filepath.Join(path, fileName)
+	err = ioutil.WriteFile(path, []byte(str), 0666)
+	return sha1, err
 }
 
-func serializeString(name, v string) {
+func serializeString(name, v string) error {
 	// since we separate records by \n and I don't want to de escaping, we
 	// go for simplicity and remove potential \n in the value
 	v = strings.Replace(v, "\n", "", -1)
 	fmt.Printf("%s: %s\n", name, v)
+	return nil
 }
 
-func serializeRefString(name, v string) {
+func serializeRefString(name, v string) error {
 	// TODO: save v under ${sha1}.txt name and store sha1 as value
 	v = strings.Replace(v, "\n", "", -1)
 	fmt.Printf("%s: %s\n", name, v)
+	return nil
 }
 
-func serializeInt(name string, v int64) {
+func serializeInt(name string, v int64) error {
 	fmt.Printf("%s: %d\n", name, v)
+	return nil
 }
 
-func serializeBool(name string, v bool) {
-	if (v) {
+func serializeBool(name string, v bool) error {
+	if v {
 		fmt.Printf("%s: true\n", name)
 	} else {
 		fmt.Printf("%s: false\n", name)
 	}
+	return nil
 }
 
-func serializeTime(name string, v time.Time) {
+func serializeTime(name string, v time.Time) error {
 	fmt.Printf("%s: %s\n", name, v.Format(time.RFC3339))
+	return nil
+}
+
+func serializeValue(name string, v reflect.Value) error {
+	switch v.Kind() {
+
+	case reflect.Bool:
+		return serializeBool(name, v.Bool())
+
+	case reflect.Int:
+		return serializeInt(name, v.Int())
+
+	case reflect.String:
+		if strings.HasSuffix(name, "Ref") {
+			return serializeRefString(name, v.String())
+		} else {
+			return serializeString(name, v.String())
+		}
+		return nil
+	}
+	if v.Type() == timeType {
+		return serializeTime(name, v.Interface().(time.Time))
+	}
+	fmt.Printf("field name: %s type: %v\n", name, v.Type())
+	panic("Unknown type")
 }
 
 func serializeStruct(v reflect.Value) {
@@ -114,45 +161,27 @@ func serializeStruct(v reflect.Value) {
 	for i := 0; i < n; i++ {
 		sf := t.Field(i) // StructField
 		elem := v.Field(i)
-		st := sf.Type
-		n := sf.Name
-		stn := st.Name()
 		if i == 0 {
 			if sf.Name != "StorageItem" {
 				fmt.Printf("enumStructFields(): first field is %s and should be StorageItem\n", sf.Name)
 			}
-			i := elem.Interface()
-			si := i.(StorageItem)
+			si, ok := elem.Interface().(StorageItem)
+			if !ok {
+				panic("First field should always be StorageItem")
+			}
 			// Using lower-case name for the id so that it won't conflict
 			// with a struct field Id
 			serializeInt("id", int64(si.Id))
 			continue
 		}
-		// TODO: use kind
-		if "string" == stn {
-			if strings.HasSuffix(sf.Name, "Ref") {
-				serializeRefString(sf.Name, elem.String())
-			} else {
-				serializeString(sf.Name, elem.String())
-			}
-		} else if "int" == stn {
-			serializeInt(sf.Name, elem.Int())
-		} else if "bool" == stn {
-			serializeBool(sf.Name, elem.Bool())
-		} else if "Time" == stn {
-			i := elem.Interface()
-			time := i.(time.Time)
-			serializeTime(sf.Name, time)
-		} else {
-			fmt.Printf("field %d, name: %s type: %s\n", i, n, stn)
-		}
+		serializeValue(sf.Name, elem)
 	}
 	fmt.Printf("\n")
 }
 
 func testEnumFields() {
 	v := &Topic{
-		Subject: "This is subject",
+		Subject:   "This is subject",
 		CreatedOn: time.Now(),
 		CreatedBy: "Created by me",
 		IsDeleted: false}
