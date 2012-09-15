@@ -6,34 +6,34 @@ For more info: http://blog.kowalczyk.info/software/fofou/
 Fofou (Forums For You) is a simple forum software inspired by
 Joel On Software forum software (http://discuss.joelonsoftware.com/?joel).
 
-It's mostly a port of FruitShow PHP forum
-(http://sourceforge.net/projects/fruitshow) to Google App Engine 
-(http://code.google.com/appengine/).
+It's mostly a port of FruitShow PHP forum (http://sourceforge.net/projects/fruitshow).
+
+There are two versions:
+
+* one for Google App Engine (directory appengine). I used this versions for a
+  few years but no longer use it and no longer work on it
+
+* second written in Go (directory go), which I currently use at http://forums.fofou.org
 
 Where can I see it in action?
 =============================
 
 Forums for my Sumatra PDF viewer are powered by Fofou:
-http://blog.kowalczyk.info/forum_sumatra/
+http://forums.fofou.org/sumatrapdf/
 
 Installation.
 =============
 
-Fofou runs on Google App Engine infrastructure. You need to get App Engine
+For Google App Engine version you need to get App Engine
 account and upload fofou (see
 http://code.google.com/appengine/docs/gettingstarted/uploading.html for
 details).
 
 Once installed, you can create one or more forums through web interface.
 
-Deployment philosophy.
-======================
-
-Fofou isn't designed as a forum hosting platform for hosting hundreds of forums
-for many people.
-
-It's designed to host a few forums for one person so the owner of App Engine
-account is implicitly an admin for all forums hosted from that account.
+Go version needs to be compiled and run on a server. I use Linux (Ubuntu).
+It is, however, not easy to deploy and I'm too lazy to document deployment
+process.
 
 Design philosophy.
 ==================
@@ -46,7 +46,7 @@ http://www.joelonsoftware.com/articles/BuildingCommunitieswithSo.html
 License.
 ========
 
-The python code is written completely by me and is in Public Domain.
+The python/Go code is written completely by me and is in Public Domain.
 
 Html/css/js files are mostly lifted from FuitShow, so they fall under
 FruitShow's BSD license.
