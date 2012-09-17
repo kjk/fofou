@@ -241,9 +241,6 @@ func makeTimingHandler(fn func(http.ResponseWriter, *http.Request)) http.Handler
 }
 
 func main() {
-	testEnumFields()
-	return
-
 	flag.Parse()
 
 	if *inProduction {
