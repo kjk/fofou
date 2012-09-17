@@ -1,3 +1,3 @@
 export GOPATH=$GOPATH:`pwd`/ext
-go run handler_*.go util.go store.go main.go
-#go run handler_*.go util.go main.go -log fofou.log
+go run handler_*.go util.go db.go main.go
+#go run handler_*.go util.go db.go main.go -log fofou.log
