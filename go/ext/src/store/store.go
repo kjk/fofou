@@ -14,13 +14,6 @@ import (
 	"time"
 )
 
-type Store struct {
-}
-
-type StoreItem struct {
-	Id int
-}
-
 var (
 	nilTime       time.Time
 	timeType      reflect.Type = reflect.TypeOf(nilTime)
@@ -34,8 +27,30 @@ type encodeState struct {
 	scratch      [64]byte
 }
 
+type Store struct {
+	dataDir string
+}
+
+type StoreItem struct {
+	Id int
+}
+
+func LoadFileBySha1(dir, sha1 string) ([]byte, error) {
+	path := filepath.Join(dir, sha1[0:2], sha1[2:4])
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return ioutil.ReadAll(f)
+}
+
 func (s *Store) LoadStringBySha1(sha1 string) (string, error) {
-	return "", nil
+	data, err := LoadFileBySha1(s.dataDir, sha1)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
 
 // write str to a file named ${dir}/xx/yy/${sha1}.txt
@@ -44,9 +59,7 @@ func saveStringUnderSha1(str, dir string) (string, error) {
 	h := sha1.New()
 	io.WriteString(h, str)
 	sha1 := hex.EncodeToString(h.Sum(nil))
-	dir1 := sha1[0:2]
-	dir2 := sha1[2:4]
-	path := filepath.Join(dir, dir1, dir2)
+	path := filepath.Join(dir, sha1[0:2], sha1[2:4])
 	err := os.MkdirAll(path, 0666)
 	if err != nil {
 		return sha1, err
