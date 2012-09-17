@@ -53,6 +53,14 @@ func (s *Store) LoadStringBySha1(sha1 string) (string, error) {
 	return string(data), nil
 }
 
+func (s *Store) RegisterType(tp reflect.Type) {
+	// TODO: write me	
+}
+
+func serializeIdAndFields(id int, name []string, values []interface{}) []byte {
+	return nil
+}
+
 // write str to a file named ${dir}/xx/yy/${sha1}.txt
 // where xx is sha1[0:2] and yy is sha1[2:4]
 func saveStringUnderSha1(str, dir string) (string, error) {
