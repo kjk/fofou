@@ -61,7 +61,7 @@ var (
 	tmplMain        = "main.html"
 	tmplForum       = "forum.html"
 	templateNames   = [...]string{tmplMain, tmplForum}
-	templatePaths   = make([]string, 0)
+	templatePaths   []string
 	templates       *template.Template
 	reloadTemplates = true
 	alwaysLogTime   = true
