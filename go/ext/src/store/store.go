@@ -17,15 +17,14 @@ import (
 type Store struct {
 }
 
-
 type StoreItem struct {
 	Id int
 }
 
 var (
-	nilTime  time.Time
-	timeType reflect.Type = reflect.TypeOf(nilTime)
-	nilStoreItem StoreItem
+	nilTime       time.Time
+	timeType      reflect.Type = reflect.TypeOf(nilTime)
+	nilStoreItem  StoreItem
 	storeItemType reflect.Type = reflect.TypeOf(nilStoreItem)
 )
 

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"time"
 	"store"
+	"time"
 )
 
 // TODO: this will be stored in a cookie
