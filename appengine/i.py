@@ -71,7 +71,7 @@ def serforum(e):
 	]
 	return u"\n".join(lines)
 
-def forums(count=-1, batch_size=400):
+def forums(count=-1, batch_size=501):
 	create_dir(g_data_dir)
 	file_path = os.path.join(g_data_dir, "forums.txt")
 	f = open(file_path, "wb")
@@ -95,7 +95,7 @@ def sertopic(e):
 	]
 	return u"\n".join(lines)
 
-def topics(count=1000, batch_size=501):
+def topics(count=-1, batch_size=501):
 	create_dir(g_data_dir)
 	file_path         = os.path.join(g_data_dir, "topics.txt")
 	last_key_filepath = os.path.join(g_data_dir, "topics_last_key_id.txt")
@@ -108,29 +108,30 @@ def topics(count=1000, batch_size=501):
 		last_key = db.Key.from_path('Topic', long(last_key_id))
 		print("Loading topics from key %s" % last_key_id)
 		entities = main.Topic.all().filter('__key__ >', last_key).fetch(batch_size)
-	last_key_id = None
-	#print("Got %d topics" % len(entities))
+	last_key = None
+	if len(entities) == 0:
+		print("There are no new topics")
 
 	f = open(file_path, "a")
 	n = 0
 	while entities:
 		for e in entities:
+			last_key = e.key()
 			s = sertopic(e)
 			f.write(s.encode("utf8"))
 			n += 1
 			if n % 100 == 0:
 				print("%d topics" % n)
 			if count > 0 and n >= count:
-				last_key_id = e.key().id()
 				entities = None
 				break
 		if entities is None:
 			break
-		last_key = entities[-1].key()
 		entities = main.Topic.all().filter('__key__ >', last_key).fetch(batch_size)
 	f.close()
-	if last_key_id != None:
-		write_str_to_file(last_key_filepath, str(last_key_id))
+	if last_key != None:
+		print("New last topics key id: %d" % last_key.id())
+		write_str_to_file(last_key_filepath, str(last_key.id()))
 
 def serpost(e):
 	msg = touni(e.message)
@@ -151,7 +152,7 @@ def serpost(e):
 	]
 	return u"\n".join(lines)
 
-def posts(count=1000, batch_size=501):
+def posts(count=-1, batch_size=501):
 	create_dir(g_data_dir)
 	file_path         = os.path.join(g_data_dir, "posts.txt")
 	last_key_filepath = os.path.join(g_data_dir, "posts_last_key_id.txt")
@@ -164,13 +165,15 @@ def posts(count=1000, batch_size=501):
 		last_key = db.Key.from_path('Post', long(last_key_id))
 		print("Loading posts from key %s" % last_key_id)
 		entities = main.Post.all().filter('__key__ >', last_key).fetch(batch_size)
-	last_key_id = None
-	print("Got %d posts" % len(entities))
+	last_key = None
+	if len(entities) == 0:
+		print("There are no new posts")
 
 	f = open(file_path, "a")
 	n = 0
 	while entities:
 		for e in entities:
+			last_key = e.key()
 			s = serpost(e)
 			f.write(s.encode("utf8"))
 			n += 1
@@ -179,13 +182,12 @@ def posts(count=1000, batch_size=501):
 			if n % 100 == 0:
 				print("%d posts" % n)
 			if count > 0 and n >= count:
-				last_key_id = e.key().id()
 				entities = None
 				break
 		if entities is None:
 			break
-		last_key = entities[-1].key()
 		entities = main.Post.all().filter('__key__ >', last_key).fetch(batch_size)
 	f.close()
-	if last_key_id != None:
-		write_str_to_file(last_key_filepath, str(last_key_id))
+	if last_key != None:
+		print("New last poasts key id: %d" % last_key.id())
+		write_str_to_file(last_key_filepath, str(last_key.id()))
