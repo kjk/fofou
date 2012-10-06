@@ -2,6 +2,8 @@ from google.appengine.ext import db
 import main
 import codecs, hashlib, os, os.path
 
+g_data_dir = "imported_data"
+
 def t1():
 	entities = main.Topic.all().fetch(5)
 	e = entities[0]
@@ -20,11 +22,71 @@ def kv(k, v):
 
 def sep(): return u""
 
+def long2ip(val):
+	slist = []
+	for x in range(0,4):
+		slist.append(str(int(val >> (24 - (x * 8)) & 0xFF)))
+	return ".".join(slist)
+
+def create_dir(path):
+	if not os.path.exists(path):
+		os.makedirs(path)
+
+def write_bin_to_file(path, data):
+	open(path, "wb").write(data)
+
+def write_str_to_file(path, data):
+	write_bin_to_file(path, data.encode("utf8"))
+
+def read_bin_from_file(path):
+	if not os.path.exists(path): return None
+	return open(path, "rb").read()
+
+def read_str_from_file(path):
+	return read_bin_from_file(path)
+
+def save_msg_sha1(msg):
+	data = msg.encode("utf8")
+
+	m = hashlib.sha1()
+	m.update(data)
+	sha1 = m.hexdigest()
+
+	file_dir = os.path.join(g_data_dir, "blobs", sha1[:2], sha1[2:4])
+	create_dir(file_dir)
+	file_path = os.path.join(file_dir, sha1)
+	if not os.path.exists(file_path):
+		write_bin_to_file(file_path, data)
+	return sha1
+
+def serforum(e):
+	lines = [
+		kv("I", e.key().id()),
+		kv("U", e.url),
+		kv("T", e.title),
+		kv("TL", e.tagline),
+		kv("D", e.is_disabled),
+		kv("On", e.created_on),
+		sep(), sep()
+	]
+	return u"\n".join(lines)
+
+def forums(count=-1, batch_size=400):
+	create_dir(g_data_dir)
+	file_path = os.path.join(g_data_dir, "forums.txt")
+	f = open(file_path, "wb")
+	entities = main.Forum.all().fetch(batch_size)
+	n = 0
+	while entities:
+		for e in entities:
+			s = serforum(e)
+			f.write(s.encode("utf8"))
+		entities = main.Forum.all().filter('__key__ >', entities[-1].key()).fetch(batch_size)
+	f.close()
+
 def sertopic(e):
 	lines = [
-		#kv("K", e.key()),
-		kv("I", e.key().id()),
-		kv("F", e.forum.title),
+		kv("I", "%d.%d" % (e.forum.key().id(), e.key().id())),
 		kv("S", e.subject),
 		kv("On", e.created_on),
 		kv("By", e.created_by),
@@ -33,24 +95,42 @@ def sertopic(e):
 	]
 	return u"\n".join(lines)
 
-def long2ip(val):
-	slist = []
-	for x in range(0,4):
-		slist.append(str(int(val >> (24 - (x * 8)) & 0xFF)))
-	return ".".join(slist)
+def topics(count=1000, batch_size=501):
+	create_dir(g_data_dir)
+	file_path         = os.path.join(g_data_dir, "topics.txt")
+	last_key_filepath = os.path.join(g_data_dir, "topics_last_key_id.txt")
 
-def save_msg_sha1(msg):
-	data = msg.encode("utf8")
-	m = hashlib.sha1()
-	m.update(data)
-	sha1 = m.hexdigest()
-	file_dir = "data/" + sha1[:2] + "/" + sha1[2:4]
-	if not os.path.exists(file_dir):
-		os.makedirs(file_dir)
-	file_path = file_dir + "/" + sha1
-	if not os.path.exists(file_path):
-		open(file_path, "wb").write(data)
-	return sha1
+	last_key_id = read_str_from_file(last_key_filepath)
+	if None == last_key_id:
+		print("Loading topics from the beginning")
+		entities = main.Topic.all().fetch(batch_size)
+	else:
+		last_key = db.Key.from_path('Topic', long(last_key_id))
+		print("Loading topics from key %s" % last_key_id)
+		entities = main.Topic.all().filter('__key__ >', last_key).fetch(batch_size)
+	last_key_id = None
+	#print("Got %d topics" % len(entities))
+
+	f = open(file_path, "a")
+	n = 0
+	while entities:
+		for e in entities:
+			s = sertopic(e)
+			f.write(s.encode("utf8"))
+			n += 1
+			if n % 100 == 0:
+				print("%d topics" % n)
+			if count > 0 and n >= count:
+				last_key_id = e.key().id()
+				entities = None
+				break
+		if entities is None:
+			break
+		last_key = entities[-1].key()
+		entities = main.Topic.all().filter('__key__ >', last_key).fetch(batch_size)
+	f.close()
+	if last_key_id != None:
+		write_str_to_file(last_key_filepath, str(last_key_id))
 
 def serpost(e):
 	msg = touni(e.message)
@@ -59,7 +139,7 @@ def serpost(e):
 	if not ip or "" == ip:
 		ip = long2ip(e.user_ip)
 	lines = [
-		kv("T", e.topic.key().id()),
+		kv("T", "%d.%d" % (e.forum.key().id(), e.topic.key().id())),
 		kv("M", sha1),
 		kv("On", e.created_on),
 		kv("D", e.is_deleted),
@@ -71,39 +151,41 @@ def serpost(e):
 	]
 	return u"\n".join(lines)
 
-def topics(count=-1, batch_size=200, filename="topics.txt"):
-	f = open(filename, "w")
-	f.write(codecs.BOM_UTF8)
-	entities = main.Topic.all().fetch(batch_size)
-	n = 0
-	while entities:
-		s = u""
-		for e in entities:
-			s += sertopic(e)
-			n += 1
-			if n % 100 == 0:
-				print("%d topics" % n)
-		f.write(s.encode("utf8"))
-		if count > 0 and n > count:
-			break
-		entities = main.Topic.all().filter('__key__ >', entities[-1].key()).fetch(batch_size)
-	f.close()
+def posts(count=1000, batch_size=501):
+	create_dir(g_data_dir)
+	file_path         = os.path.join(g_data_dir, "posts.txt")
+	last_key_filepath = os.path.join(g_data_dir, "posts_last_key_id.txt")
 
-def posts(count=-1, batch_size=400, filename="posts.txt"):
-	f = open(filename, "w")
-	f.write(codecs.BOM_UTF8)
-	entities = main.Post.all().fetch(batch_size)
+	last_key_id = read_str_from_file(last_key_filepath)
+	if None == last_key_id:
+		print("Loading posts from the beginning")
+		entities = main.Post.all().fetch(batch_size)
+	else:
+		last_key = db.Key.from_path('Post', long(last_key_id))
+		print("Loading posts from key %s" % last_key_id)
+		entities = main.Post.all().filter('__key__ >', last_key).fetch(batch_size)
+	last_key_id = None
+	print("Got %d posts" % len(entities))
+
+	f = open(file_path, "a")
 	n = 0
 	while entities:
-		s = u""
 		for e in entities:
-			s += serpost(e)
+			s = serpost(e)
+			f.write(s.encode("utf8"))
 			n += 1
 			if count > 0 and n > count:
 				break
 			if n % 100 == 0:
 				print("%d posts" % n)
-			f.write(s.encode("utf8"))
-		entities = main.Post.all().filter('__key__ >', entities[-1].key()).fetch(batch_size)
+			if count > 0 and n >= count:
+				last_key_id = e.key().id()
+				entities = None
+				break
+		if entities is None:
+			break
+		last_key = entities[-1].key()
+		entities = main.Post.all().filter('__key__ >', last_key).fetch(batch_size)
 	f.close()
-
+	if last_key_id != None:
+		write_str_to_file(last_key_filepath, str(last_key_id))
