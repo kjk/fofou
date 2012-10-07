@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+	<title>{{.Title}}</title>
+	<link href="/s/default.css" rel="stylesheet" type="text/css">
+	<script language="javascript" src="/s/default.js" type="text/javascript"></script>
+	<link type="application/rss+xml" rel="alternate" title="Discussion Group" href="/{{.ForumUrl}}/rss">
+
+</head>
+<body>
+
+<div id="tbTop"><a href="/login">login</a></div>
+<table>
+<tbody>
+<tr>
+	<td colspan="2" class="header">
+		<div>
+			<h1><a href="/{{ .ForumUrl }}" class="green">{{ .Title }}</a></h1>
+			<p>{{ .Tagline }}</p>
+		</div>
+		<a href="/{{ .ForumUrl }}/rss" title="RSS feed"><img src="/img/rss.gif" alt="RSS feed" align="right" valign="middle" border="0" height="14" width="36"></a><br />
+	</td>
+</tr>
+<tr>
+	<td class="sidebar">
+		{{ .Sidebar }}
+	</td>
+	<td class="contents">
+		<div class="topics">
+			{{ if len .Topics }}
+				{{ range .Topics }}
+				    {{ if .IsDeleted }}
+						<a class="deleted" href="/{{ .ForumUrl }}/topic?id={{ .Id }}{{ if .CommentsCount }}&comments={{ .CommentsCount }}{{ end }}" title="{{ .MsgShort }}">{{ .Subject }} </a>
+					{{ else }}
+						<a href="/{{ .ForumUrl }}/topic?id={{ .Id }}{{ if .CommentsCount }}&comments={{ .CommentsCount }}{{ end }}" title="{{ .MsgShort }}">{{ .Subject }} </a>
+					{{ end }}
+					<em>{{ .CreatedBy }}</em> <span>({{ .CommentsCount }})</span>
+					<br />
+				{{ end }}
+			{{ else }}
+				There are no topics. You better create one.
+			{{ end }}
+		</div>
+
+		<div class="buttons">
+		<a accesskey="n" href="/{{ .ForumUrl }}/post"><img src="/img/new.gif" alt="New topic" border="0" height="14" width="13"> <u>N</u>ew topic</a>
+		{{ if .NewFrom }}
+			<a accesskey="t" href="/{{ .ForumUrl }}?from={{ .NewFrom }}"><img src="/img/archive.gif" alt="Older topics" border="0" height="14" width="13">Older <u>t</u>opics</a>
+		{{ end }}
+		</div>
+	</td>
+</tr>
+</tbody>
+</table>
+
+<hr>
+<center>Powered by <a href="http://blog.kowalczyk.info/software/fofou">fofou</a> 
+(<b><font color="blue">Fo</font></b>rums <b><font color="blue">Fo</font></b>r Yo<b><font color="blue">u</font></b>,
+created by <a href="http://blog.kowalczyk.info">Krzysztof Kowalczyk</a>)</center>
+<br>
+
+{{ if .AnalyticsCode }}
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+var pageTracker = _gat._getTracker("{{.AnalyticsCode}}");
+pageTracker._initData();
+pageTracker._trackPageview();
+</script>
+{{ end }}
+
+</body>
+</html>

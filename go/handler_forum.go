@@ -1,3 +1,4 @@
+// This code is in Public Domain. Take all the code you want, we'll just write more.
 package main
 
 import (
@@ -8,6 +9,7 @@ import (
 
 type ModelForum struct {
 	Forum
+	NewFrom     int
 	User        string
 	UserIsAdmin bool
 	ErrorMsg    string
@@ -17,10 +19,10 @@ type ModelForum struct {
 // handler for url: /{forum}
 func handleForum(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	siteUrl := vars["forum"]
-	forum := findForum(siteUrl)
+	forumUrl := vars["forum"]
+	forum := findForum(forumUrl)
 	if nil == forum {
-		serveErrorMsg(w, fmt.Sprintf("Forum \"%s\" doesn't exist", siteUrl))
+		serveErrorMsg(w, fmt.Sprintf("Forum \"%s\" doesn't exist", forumUrl))
 		return
 	}
 
@@ -33,6 +35,5 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 
 	if err := GetTemplates().ExecuteTemplate(w, tmplForum, model); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
 	}
 }

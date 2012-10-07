@@ -1,3 +1,4 @@
+// This code is in Public Domain. Take all the code you want, we'll just write more.
 package main
 
 import (
@@ -13,8 +14,8 @@ import (
 	"log"
 	"net/http"
 	"oauth"
-	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -45,7 +46,7 @@ var (
 		nil,
 		nil,
 	}
-	logger        *log.Logger
+	logger        *ServerLogger
 	cookieAuthKey []byte
 	cookieEncrKey []byte
 	secureCookie  *securecookie.SecureCookie
@@ -69,11 +70,13 @@ var (
 
 // a static configuration of a single forum
 type ForumConfig struct {
-	Title   string
-	SiteUrl string
-	Sidebar string
-	Tagline string
-	DataDir string
+	Title         string
+	ForumUrl      string
+	WebsiteUrl    string
+	Sidebar       string
+	Tagline       string
+	DataDir       string
+	AnalyticsCode string
 	// we authenticate only with Twitter, this is the twitter user name
 	// of the admin user
 	AdminTwitterUser string
@@ -83,8 +86,19 @@ type User struct {
 	Login string
 }
 
+type Topic struct {
+}
+
 type Forum struct {
 	ForumConfig
+	Topics        []*Topic
+	IsDeleted     bool
+	Id            int
+	CommentsCount int
+	MsgShort      string
+	Subject       string
+	CreatedBy     string
+	CreatedOn     time.Time
 }
 
 type AppState struct {
@@ -94,7 +108,7 @@ type AppState struct {
 
 func NewForum(config *ForumConfig) *Forum {
 	forum := &Forum{ForumConfig: *config}
-	logger.Printf("Created %s forum\n", forum.Title)
+	logger.Noticef("Created %s forum\n", forum.Title)
 	return forum
 }
 
@@ -115,9 +129,9 @@ func getDataDir() string {
 	return ""
 }
 
-func findForum(siteUrl string) *Forum {
+func findForum(forumUrl string) *Forum {
 	for _, f := range appState.Forums {
-		if f.SiteUrl == siteUrl {
+		if f.ForumUrl == forumUrl {
 			return f
 		}
 	}
@@ -133,8 +147,11 @@ func forumInvalidField(forum *Forum) string {
 	if forum.Title == "" {
 		return "Title"
 	}
-	if forum.SiteUrl == "" {
-		return "SiteUrl"
+	if forum.ForumUrl == "" {
+		return "ForumUrl"
+	}
+	if forum.WebsiteUrl == "" {
+		return "WebsiteUrl"
 	}
 	if forum.DataDir == "" {
 		return "DataDir"
@@ -149,7 +166,7 @@ func addForum(forum *Forum) error {
 	if invalidField := forumInvalidField(forum); invalidField != "" {
 		return errors.New(fmt.Sprintf("Forum has invalid field '%s'", invalidField))
 	}
-	if forumAlreadyExists(forum.SiteUrl) {
+	if forumAlreadyExists(forum.ForumUrl) {
 		return errors.New("Forum already exists")
 	}
 
@@ -230,17 +247,30 @@ func makeTimingHandler(fn func(http.ResponseWriter, *http.Request)) http.Handler
 		startTime := time.Now()
 		fn(w, r)
 		duration := time.Now().Sub(startTime)
-		if duration.Seconds() > 1.0 || alwaysLogTime {
+		// log urls that take long time to generate i.e. over 1 sec in production
+		// or over 0.1 sec in dev
+		shouldLog := duration.Seconds() > 1.0
+		if alwaysLogTime && duration.Seconds() > 0.1 {
+			shouldLog = true
+		}
+		if shouldLog {
 			url := r.URL.Path
 			if len(r.URL.RawQuery) > 0 {
 				url = fmt.Sprintf("%s?%s", url, r.URL.RawQuery)
 			}
-			logger.Printf("'%s' took %f seconds to serve\n", url, duration.Seconds())
+			logger.Noticef("'%s' took %f seconds to serve\n", url, duration.Seconds())
 		}
 	}
 }
 
 func main() {
+	// set number of goroutines to number of cpus, but capped at 4 since
+	// I don't expect this to be heavily trafficed website
+	ncpu := runtime.NumCPU()
+	if ncpu > 4 {
+		ncpu = 4
+	}
+	runtime.GOMAXPROCS(ncpu)
 	flag.Parse()
 
 	if *inProduction {
@@ -248,16 +278,7 @@ func main() {
 		alwaysLogTime = false
 	}
 
-	if *logPath == "stdout" {
-		logger = log.New(os.Stdout, "", 0)
-	} else {
-		loggerFile, err := os.OpenFile(*logPath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
-		if err != nil {
-			log.Fatalf("Failed to open log file '%s', %s\n", *logPath, err.Error())
-		}
-		defer loggerFile.Close()
-		logger = log.New(loggerFile, "", 0)
-	}
+	logger = NewServerLogger(256, 256)
 
 	if err := readSecrets(*configPath); err != nil {
 		log.Fatalf("Failed reading config file %s. %s\n", *configPath, err.Error())
@@ -274,29 +295,23 @@ func main() {
 		log.Fatalf("No forums defined in secrets.json")
 	}
 
-	/*
-		r.HandleFunc("/app/{appname}", makeTimingHandler(handleApp))
-		r.HandleFunc("/app/{appname}/{lang}", makeTimingHandler(handleAppTranslations))
-		r.HandleFunc("/user/{user}", makeTimingHandler(handleUser))
-		r.HandleFunc("/edittranslation", makeTimingHandler(handleEditTranslation))
-		r.HandleFunc("/downloadtranslations", makeTimingHandler(handleDownloadTranslations))
-		r.HandleFunc("/uploadstrings", makeTimingHandler(handleUploadStrings))
-		r.HandleFunc("/atom", makeTimingHandler(handleAtom))
-	*/
 	r := mux.NewRouter()
 	r.HandleFunc("/", makeTimingHandler(handleMain))
-	r.HandleFunc("/{forum}", makeTimingHandler(handleForum))
 	http.HandleFunc("/s/", makeTimingHandler(handleStatic))
 
 	r.HandleFunc("/oauthtwittercb", handleOauthTwitterCallback)
 	r.HandleFunc("/login", handleLogin)
 	r.HandleFunc("/logout", handleLogout)
 
+	r.HandleFunc("/{forum}", makeTimingHandler(handleForum))
+	r.HandleFunc("/{forum}/rss", makeTimingHandler(handleRss))
+
 	http.Handle("/", r)
-	logger.Printf("Running on %s\n", *httpAddr)
+	msg := fmt.Sprintf("Started runing on %s", *httpAddr)
+	logger.Noticef(msg)
+	println(msg)
 	if err := http.ListenAndServe(*httpAddr, nil); err != nil {
 		fmt.Printf("http.ListendAndServer() failed with %s\n", err.Error())
 	}
-
 	fmt.Printf("Exited\n")
 }

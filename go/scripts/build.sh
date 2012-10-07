@@ -1,2 +1,2 @@
-export GOPATH=$GOPATH:`pwd`/ext
-go build -o fofou_app handler_*.go util.go db.go main.go
+export GOPATH=`pwd`/ext:$GOPATH
+go build -o fofou_app *.go
