@@ -12,6 +12,31 @@ import (
 	"strings"
 )
 
+var dataDir = ""
+var APP_NAME = "SumatraPDF"
+
+// data dir is ../../../data on the server or ../../fofoudata locally
+// the important part is that it's outside of the code
+func getDataDir() string {
+	if dataDir != "" {
+		return dataDir
+	}
+	dataDir = filepath.Join("..", "..", "fofoudata")
+	if PathExists(dataDir) {
+		return dataDir
+	}
+	dataDir = filepath.Join("..", "..", "..", "data")
+	if PathExists(dataDir) {
+		return dataDir
+	}
+	log.Fatal("data directory (../../../data or ../../fofoudata) doesn't exist")
+	return ""
+}
+
+func dataFilePath(app string) string {
+	return filepath.Join(getDataDir(), app, "data.txt")
+}
+
 type Topic struct {
 	ForumId   int
 	Id        int
@@ -166,7 +191,13 @@ func parseTopics(d []byte) {
 	}
 	s, uniqueNames := dumpTopics(topics)
 	fmt.Printf("topics: %d, unique names: %d, len(s) = %d\n", len(topics), uniqueNames, len(s))
-	err := ioutil.WriteFile("topics_new.txt", []byte(s), 0600)
+
+	f, err := os.Create(dataFilePath(APP_NAME))
+	if err != nil {
+		log.Fatalf("os.Create() failed with %s", err.Error())
+	}
+	defer f.Close()
+	_, err = f.WriteString(s)
 	if err != nil {
 		log.Fatalf("WriteFile() failed with %s", err.Error())
 	}
@@ -184,8 +215,14 @@ func parsePosts(d []byte) {
 		d = d[idx+2:]
 	}
 	s, uniqueNames := dumpPosts(posts)
-	fmt.Printf("topics: %d, unique names: %d, len(s) = %d\n", len(posts), uniqueNames, len(s))
-	err := ioutil.WriteFile("posts_new.txt", []byte(s), 0600)
+	fmt.Printf("posts: %d, unique names: %d, len(s) = %d\n", len(posts), uniqueNames, len(s))
+
+	f, err := os.OpenFile(dataFilePath(APP_NAME), os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("os.Open() failed with %s", err.Error())
+	}
+	defer f.Close()
+	_, err = f.WriteString(s)
 	if err != nil {
 		log.Fatalf("WriteFile() failed with %s", err.Error())
 	}
