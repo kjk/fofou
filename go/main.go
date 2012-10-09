@@ -204,9 +204,9 @@ func userIsAdmin(f *Forum, user string) bool {
 	return user == f.AdminTwitterUser
 }
 
-// readSecrets reads the configuration file from the path specified by
+// reads the configuration file from the path specified by
 // the config command line flag.
-func readSecrets(configFile string) error {
+func readConfig(configFile string) error {
 	b, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		return err
@@ -262,6 +262,24 @@ func makeTimingHandler(fn func(http.ResponseWriter, *http.Request)) http.Handler
 	}
 }
 
+// data dir is ../../../data on the server or ../../fofoudata locally
+// the important part is that it's outside of the code
+func getDataDir() string {
+	if dataDir != "" {
+		return dataDir
+	}
+	dataDir = filepath.Join("..", "..", "fofoudata")
+	if PathExists(dataDir) {
+		return dataDir
+	}
+	dataDir = filepath.Join("..", "..", "..", "data")
+	if PathExists(dataDir) {
+		return dataDir
+	}
+	log.Fatal("data directory (../../../data or ../../fofoudata) doesn't exist")
+	return ""
+}
+
 func main() {
 	// set number of goroutines to number of cpus, but capped at 4 since
 	// I don't expect this to be heavily trafficed website
@@ -279,7 +297,7 @@ func main() {
 
 	logger = NewServerLogger(256, 256)
 
-	if err := readSecrets(*configPath); err != nil {
+	if err := readConfig(*configPath); err != nil {
 		log.Fatalf("Failed reading config file %s. %s\n", *configPath, err.Error())
 	}
 
