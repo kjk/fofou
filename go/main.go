@@ -2,7 +2,6 @@
 package main
 
 import (
-	"bytes"
 	"code.google.com/p/gorilla/mux"
 	"code.google.com/p/gorilla/securecookie"
 	"encoding/hex"
@@ -15,10 +14,8 @@ import (
 	"log"
 	"net/http"
 	"oauth"
-	"os"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -87,6 +84,9 @@ type ForumConfig struct {
 
 type User struct {
 	Login string
+}
+
+type Topic struct {
 }
 
 type Forum struct {
@@ -263,223 +263,7 @@ func makeTimingHandler(fn func(http.ResponseWriter, *http.Request)) http.Handler
 	}
 }
 
-type Topic struct {
-	ForumId   int
-	Id        int
-	Subject   string
-	CreatedOn string
-	CreatedBy string
-	IsDeleted bool
-}
-
-var newlines = []byte{'\n', '\n'}
-var newline = []byte{'\n'}
-
-func parseTopic(d []byte) *Topic {
-	parts := bytes.Split(d, newline)
-	topic := &Topic{}
-	for _, p := range parts {
-		lp := bytes.Split(p, []byte{':', ' '})
-		name := string(lp[0])
-		val := string(lp[1])
-		if "I" == name {
-			idparts := strings.Split(val, ".")
-			topic.ForumId, _ = strconv.Atoi(idparts[0])
-			topic.Id, _ = strconv.Atoi(idparts[1])
-		} else if "S" == name {
-			topic.Subject = val
-		} else if "On" == name {
-			// TODO: change to time.Time
-			topic.CreatedOn = val
-		} else if "By" == name {
-			topic.CreatedBy = val
-		} else if "D" == name {
-			topic.IsDeleted = ("True" == val)
-		} else {
-			log.Fatalf("Unknown topic name: %s\n", name)
-		}
-	}
-	return topic
-}
-
-type Post struct {
-	TopicId      int
-	Id           int
-	CreatedOn    string
-	MessageSha1  [20]byte
-	IsDeleted    bool
-	IP           string
-	UserName     string
-	UserEmail    string
-	UserHomepage string
-}
-
-/*
-T: 1.2
-M: 2b8858b4e23cc58b797581f6e5543b41c6e4ef70
-On: 2006-05-29 03:41:43
-D: False
-IP: 75.10.246.110
-UN: Krzysztof Kowalczyk
-UE: kkowalczyk@gmail.com
-UH: http://blog.kowalczyk.info
-*/
-
-func parsePost(d []byte) *Post {
-	parts := bytes.Split(d, newline)
-	post := &Post{}
-	for _, p := range parts {
-		lp := bytes.Split(p, []byte{':', ' '})
-		name := string(lp[0])
-		val := string(lp[1])
-		if "T" == name {
-			idparts := strings.Split(val, ".")
-			post.ForumId, _ = strconv.Atoi(idparts[0])
-			post.Id, _ = strconv.Atoi(idparts[1])
-		} else if "On" == name {
-			// TODO: change to time.Time
-			post.CreatedOn = val
-		} else if "M" == name {
-			sha1, err := hex.DecodeString(val)
-			if err != nil || len(sha1) != 20 {
-				log.Fatalf("error decoding M")
-			}
-			copy(post.MessageSha1, sha1)
-		} else if "D" == name {
-			post.IsDeleted = ("True" == val)
-		} else if "IP" == name {
-			post.IP = val
-		} else if "UN" == name {
-			post.UserName = val
-		} else if "UE" == name {
-			post.CreatedBy = val
-		} else if "UH" == name {
-			post.CreatedBy = val
-		} else {
-			log.Fatalf("Unknown post name: %s\n", name)
-		}
-	}
-	return post
-}
-
-/* type Topic struct {
-	ForumId   int
-	Id        int
-	Subject   string
-	CreatedOn string
-	CreatedBy string
-	IsDeleted bool
-}*/
-
-var sep = "|"
-
-func dumpTopics(topics []*Topic) (string, int) {
-	s := ""
-	names := make(map[string]int)
-	for _, t := range topics {
-		if t.IsDeleted {
-			continue
-		}
-		subject := strings.Replace(t.Subject, sep, "", -1)
-		by := strings.Replace(t.CreatedBy, sep, "", -1)
-		if n, ok := names[by]; ok {
-			names[by] = n + 1
-		} else {
-			names[by] = 1
-		}
-		s += fmt.Sprintf("%d.%d|%s|%s|%s\n", t.ForumId, t.Id, subject, t.CreatedOn, by)
-	}
-	return s, len(names)
-}
-
-func dumpPosts(posts []*Post) (string, int) {
-	s := ""
-	names := make(map[string]int)
-	for _, p := range posts {
-		if p.IsDeleted {
-			continue
-		}
-		s += fmt.Sprintf("%d|%d\n", p.TopicId, p.Id)
-	}
-	return s, len(names)
-}
-
-func parseTopics(d []byte) {
-	topics := make([]*Topic, 0)
-	for len(d) > 0 {
-		idx := bytes.Index(d, newlines)
-		if idx == -1 {
-			break
-		}
-		topic := parseTopic(d[:idx])
-		topics = append(topics, topic)
-		d = d[idx+2:]
-	}
-	s, uniqueNames := dumpTopics(topics)
-	fmt.Printf("topics: %d, unique names: %d, len(s) = %d\n", len(topics), uniqueNames, len(s))
-	err := ioutil.WriteFile("topics_new.txt", []byte(s), 0600)
-	if err != nil {
-		log.Fatalf("WriteFile() failed with %s", err.Error())
-	}
-}
-
-func parsePosts(d []byte) {
-	posts := make([]*Post, 0)
-	for len(d) > 0 {
-		idx := bytes.Index(d, newlines)
-		if idx == -1 {
-			break
-		}
-		post := parsePost(d[:idx])
-		posts = append(posts, post)
-		d = d[idx+2:]
-	}
-	s, uniqueNames := dumpPosts(posts)
-	fmt.Printf("topics: %d, unique names: %d, len(s) = %d\n", len(posts), uniqueNames, len(s))
-	err := ioutil.WriteFile("posts_new.txt", []byte(s), 0600)
-	if err != nil {
-		log.Fatalf("WriteFile() failed with %s", err.Error())
-	}
-}
-
-func loadTopics() {
-	data_dir := filepath.Join("..", "appengine", "imported_data")
-	file_path := filepath.Join(data_dir, "topics.txt")
-	f, err := os.Open(file_path)
-	if err != nil {
-		fmt.Printf("failed to open %s with error %s", file_path, err.Error())
-		return
-	}
-	defer f.Close()
-	data, err := ioutil.ReadAll(f)
-	if err != nil {
-		fmt.Printf("ReadAll() failed with error %s", err.Error())
-		return
-	}
-	parseTopics(data)
-}
-
-func loadPosts() {
-	data_dir := filepath.Join("..", "appengine", "imported_data")
-	file_path := filepath.Join(data_dir, "posts.txt")
-	f, err := os.Open(file_path)
-	if err != nil {
-		fmt.Printf("failed to open %s with error %s", file_path, err.Error())
-		return
-	}
-	defer f.Close()
-	data, err := ioutil.ReadAll(f)
-	if err != nil {
-		fmt.Printf("ReadAll() failed with error %s", err.Error())
-		return
-	}
-	parsePosts()
-}
-
 func main() {
-	loadTopics()
-	return
-
 	// set number of goroutines to number of cpus, but capped at 4 since
 	// I don't expect this to be heavily trafficed website
 	ncpu := runtime.NumCPU()
