@@ -46,7 +46,7 @@ def zip_files(zip_path):
 	blacklist = []
 	files = [f for f in os.listdir(".") if f.endswith(".go") and not f in blacklist]
 	for f in files: zf.write(f)
-	zf.write("secrets.json")
+	zf.write("config.json")
 	add_dir_files(zf, "scripts")
 	add_dir_files(zf, "ext")
 	add_dir_files(zf, "tmpl")
@@ -77,7 +77,7 @@ def delete_old_deploys(to_keep=5):
 				run("rm -rf %s" % d)
 
 def deploy():
-	if not os.path.exists("secrets.json"): abort("secrets.json doesn't exist locally")
+	if not os.path.exists("config.json"): abort("config.json doesn't exist locally")
 	#git_pull()
 	git_ensure_clean()
 	local("./scripts/build.sh")

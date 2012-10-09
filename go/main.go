@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	configPath   = flag.String("config", "secrets.json", "Path to configuration file")
+	configPath   = flag.String("config", "config.json", "Path to configuration file")
 	httpAddr     = flag.String("addr", ":5010", "HTTP server address")
 	inProduction = flag.Bool("production", false, "are we running in production")
 	cookieName   = "ckie"
@@ -291,7 +291,7 @@ func main() {
 	}
 
 	if len(appState.Forums) == 0 {
-		log.Fatalf("No forums defined in secrets.json")
+		log.Fatalf("No forums defined in config.json")
 	}
 
 	r := mux.NewRouter()
