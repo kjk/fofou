@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var dataDir = ""
@@ -41,7 +42,7 @@ func dataFilePath(app string) string {
 type Post struct {
 	ForumId      int
 	TopicId      int
-	CreatedOn    string
+	CreatedOn    time.Time
 	MessageSha1  [20]byte
 	IsDeleted    bool
 	IP           string
@@ -56,7 +57,7 @@ type Topic struct {
 	ForumId   int
 	Id        int
 	Subject   string
-	CreatedOn string
+	CreatedOn time.Time
 	CreatedBy string
 	IsDeleted bool
 	Posts     []*Post
@@ -64,6 +65,15 @@ type Topic struct {
 
 var newlines = []byte{'\n', '\n'}
 var newline = []byte{'\n'}
+
+// "2006-06-05 17:06:34"
+func parseTime(s string) time.Time {
+	t, err := time.Parse("2006-01-02 15:04:05", s)
+	if err != nil {
+		log.Fatalf("failed to parse date %s, err: %s", s, err.Error())
+	}
+	return t
+}
 
 func parseTopic(d []byte) *Topic {
 	parts := bytes.Split(d, newline)
@@ -79,8 +89,7 @@ func parseTopic(d []byte) *Topic {
 		} else if "S" == name {
 			topic.Subject = val
 		} else if "On" == name {
-			// TODO: change to time.Time
-			topic.CreatedOn = val
+			topic.CreatedOn = parseTime(val)
 		} else if "By" == name {
 			topic.CreatedBy = val
 		} else if "D" == name {
@@ -104,8 +113,7 @@ func parsePost(d []byte) *Post {
 			post.ForumId, _ = strconv.Atoi(idparts[0])
 			post.TopicId, _ = strconv.Atoi(idparts[1])
 		} else if "On" == name {
-			// TODO: change to time.Time
-			post.CreatedOn = val
+			post.CreatedOn = parseTime(val)
 		} else if "M" == name {
 			sha1, err := hex.DecodeString(val)
 			if err != nil || len(sha1) != 20 {
@@ -200,6 +208,7 @@ func orderTopicsAndPosts(topics []*Topic, posts []*Post) []*Topic {
 			continue
 		}
 		idToTopic[t.Id] = t
+		t.Posts = make([]*Post, 0)
 		res = append(res, t)
 	}
 
@@ -224,29 +233,28 @@ func orderTopicsAndPosts(topics []*Topic, posts []*Post) []*Topic {
 			continue
 		}
 
-		if nil == t.Posts {
-			t.Posts = make([]*Post, 0)
-			/*
-				if t.CreatedBy != p.UserName {
-					fmt.Printf("%v\n", t)
-					fmt.Printf("%v\n", p)
-					log.Fatalf("Mismatched names: t.CreatedBy=%s != p.UserName=%s", t.CreatedBy, p.UserName)
-				}
-				if t.CreatedOn != p.CreatedOn {
-					log.Fatalf("Mismtached times: t.CreatedOn=%s != p.CreatedOn=%s", t.CreatedOn, p.CreatedOn)
-				}*/
-		}
 		t.Posts = append(t.Posts, p)
 		nPosts += 1
 	}
 
 	// TODO: need to order t.Posts in each post by time, I think
 
+	/*
+		if t.CreatedBy != p.UserName {
+			fmt.Printf("%v\n", t)
+			fmt.Printf("%v\n", p)
+			log.Fatalf("Mismatched names: t.CreatedBy=%s != p.UserName=%s", t.CreatedBy, p.UserName)
+		}
+		if t.CreatedOn != p.CreatedOn {
+			log.Fatalf("Mismtached times: t.CreatedOn=%s != p.CreatedOn=%s", t.CreatedOn, p.CreatedOn)
+	}*/
+
 	// renumber ids sequentially for compactness
 	tId := 1
 	pId := 1
 	for _, t := range res {
 		t.Id = tId
+		pId = 1
 		for _, p := range t.Posts {
 			p.TopicId = tId
 			p.Id = pId
@@ -277,38 +285,42 @@ func serPost(p *Post) string {
 	if p.IsDeleted {
 		panic("p.IsDeleted is true")
 	}
-	s1 := remSep(p.CreatedOn)
+	s1 := fmt.Sprintf("%d", p.CreatedOn.Unix())
 	s2 := b64encoder.EncodeToString(p.MessageSha1[:])
+	s2 = s2[:len(s2)-1]
 	s3 := remSep(p.UserName)
-	s4 := remSep(p.UserEmail)
-	s5 := remSep(p.UserHomepage)
-	return fmt.Sprintf("P:%d|%d|%s|%s|%s|%s|%s|%s\n", p.TopicId, p.Id, s1, s2, p.IP, s3, s4, s5)
+	//s4 := remSep(p.UserEmail)
+	//s5 := remSep(p.UserHomepage)
+	//return fmt.Sprintf("P:%d|%d|%s|%s|%s|%s|%s|%s\n", p.TopicId, p.Id, s1, s2, p.IP, s3, s4, s5)
+	return fmt.Sprintf("P:%d|%d|%s|%s|%s|%s\n", p.TopicId, p.Id, s1, s2, p.IP, s3)
 }
 
-func serializePostsAndTopics(topics []*Topic) string {
-	s := ""
+func serializePostsAndTopics(topics []*Topic) []string {
+	res := make([]string, 0, len(topics)*6)
 	for _, t := range topics {
-		s += serTopic(t)
+		res = append(res, serTopic(t))
 		for _, p := range t.Posts {
-			s += serPost(p)
+			res = append(res, serPost(p))
 		}
 	}
-	return s
+	return res
 }
 
 func main() {
 	topics := loadTopics()
 	posts := loadPosts()
 	topics = orderTopicsAndPosts(topics, posts)
-	s := serializePostsAndTopics(topics)
+	strs := serializePostsAndTopics(topics)
 
 	f, err := os.Create(dataFilePath(APP_NAME))
 	if err != nil {
 		log.Fatalf("os.Create() failed with %s", err.Error())
 	}
 	defer f.Close()
-	_, err = f.WriteString(s)
-	if err != nil {
-		log.Fatalf("WriteFile() failed with %s", err.Error())
+	for _, s := range strs {
+		_, err = f.WriteString(s)
+		if err != nil {
+			log.Fatalf("WriteFile() failed with %s", err.Error())
+		}
 	}
 }
