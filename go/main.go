@@ -105,27 +105,28 @@ type AppState struct {
 	Forums []*Forum
 }
 
-func NewForum(config *ForumConfig) *Forum {
-	forum := &Forum{ForumConfig: *config}
-	logger.Noticef("Created %s forum\n", forum.Title)
-	return forum
-}
-
-// data dir is ../data on the server or ../apptranslatordata locally
+// data dir is ../../../data on the server or ../../fofoudata locally
+// the important part is that it's outside of the code
 func getDataDir() string {
 	if dataDir != "" {
 		return dataDir
 	}
-	dataDir = filepath.Join("..", "fofoudata")
-	if FileExists(dataDir) {
+	dataDir = filepath.Join("..", "..", "fofoudata")
+	if PathExists(dataDir) {
 		return dataDir
 	}
-	dataDir = filepath.Join("..", "..", "data")
-	if FileExists(dataDir) {
+	dataDir = filepath.Join("..", "..", "..", "data")
+	if PathExists(dataDir) {
 		return dataDir
 	}
-	log.Fatal("data directory (../../data or ../fofoudata) doesn't exist")
+	log.Fatal("data directory (../../../data or ../../fofoudata) doesn't exist")
 	return ""
+}
+
+func NewForum(config *ForumConfig) *Forum {
+	forum := &Forum{ForumConfig: *config}
+	logger.Noticef("Created %s forum\n", forum.Title)
+	return forum
 }
 
 func findForum(forumUrl string) *Forum {
@@ -260,24 +261,6 @@ func makeTimingHandler(fn func(http.ResponseWriter, *http.Request)) http.Handler
 			logger.Noticef("'%s' took %f seconds to serve\n", url, duration.Seconds())
 		}
 	}
-}
-
-// data dir is ../../../data on the server or ../../fofoudata locally
-// the important part is that it's outside of the code
-func getDataDir() string {
-	if dataDir != "" {
-		return dataDir
-	}
-	dataDir = filepath.Join("..", "..", "fofoudata")
-	if PathExists(dataDir) {
-		return dataDir
-	}
-	dataDir = filepath.Join("..", "..", "..", "data")
-	if PathExists(dataDir) {
-		return dataDir
-	}
-	log.Fatal("data directory (../../../data or ../../fofoudata) doesn't exist")
-	return ""
 }
 
 func main() {
