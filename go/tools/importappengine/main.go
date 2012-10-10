@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -42,6 +43,7 @@ func dataFilePath(app string) string {
 type Post struct {
 	ForumId      int
 	TopicId      int
+	OrigTopicId  int
 	CreatedOn    time.Time
 	MessageSha1  [20]byte
 	IsDeleted    bool
@@ -56,6 +58,7 @@ type Post struct {
 type Topic struct {
 	ForumId   int
 	Id        int
+	OrigId    int
 	Subject   string
 	CreatedOn time.Time
 	CreatedBy string
@@ -86,6 +89,7 @@ func parseTopic(d []byte) *Topic {
 			idparts := strings.Split(val, ".")
 			topic.ForumId, _ = strconv.Atoi(idparts[0])
 			topic.Id, _ = strconv.Atoi(idparts[1])
+			topic.OrigId = topic.Id
 		} else if "S" == name {
 			topic.Subject = val
 		} else if "On" == name {
@@ -112,6 +116,7 @@ func parsePost(d []byte) *Post {
 			idparts := strings.Split(val, ".")
 			post.ForumId, _ = strconv.Atoi(idparts[0])
 			post.TopicId, _ = strconv.Atoi(idparts[1])
+			post.OrigTopicId = post.TopicId
 		} else if "On" == name {
 			post.CreatedOn = parseTime(val)
 		} else if "M" == name {
@@ -195,6 +200,18 @@ func loadPosts() []*Post {
 	return parsePosts(data)
 }
 
+// for sorting by time
+type PostsSeq []*Post
+
+func (s PostsSeq) Len() int      { return len(s) }
+func (s PostsSeq) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+
+type ByTime struct{ PostsSeq }
+
+func (s ByTime) Less(i, j int) bool {
+	return s.PostsSeq[i].CreatedOn.UnixNano() < s.PostsSeq[j].CreatedOn.UnixNano()
+}
+
 func orderTopicsAndPosts(topics []*Topic, posts []*Post) []*Topic {
 	res := make([]*Topic, 0)
 	idToTopic := make(map[int]*Topic)
@@ -237,24 +254,34 @@ func orderTopicsAndPosts(topics []*Topic, posts []*Post) []*Topic {
 		nPosts += 1
 	}
 
-	// TODO: need to order t.Posts in each post by time, I think
+	emptyTopics := 0
+	// renumber ids sequentially for compactness
+	tId := 1
+	pId := 1
+	for _, t := range res {
+		if 0 == len(t.Posts) {
+			emptyTopics += 1
+			continue
+		}
+		t.Id = tId
+		pId = 1
+		sort.Sort(ByTime{t.Posts})
 
-	/*
+		p := t.Posts[0]
 		if t.CreatedBy != p.UserName {
 			fmt.Printf("%v\n", t)
 			fmt.Printf("%v\n", p)
 			log.Fatalf("Mismatched names: t.CreatedBy=%s != p.UserName=%s", t.CreatedBy, p.UserName)
 		}
-		if t.CreatedOn != p.CreatedOn {
-			log.Fatalf("Mismtached times: t.CreatedOn=%s != p.CreatedOn=%s", t.CreatedOn, p.CreatedOn)
-	}*/
 
-	// renumber ids sequentially for compactness
-	tId := 1
-	pId := 1
-	for _, t := range res {
-		t.Id = tId
-		pId = 1
+		/*
+			if t.CreatedOn != p.CreatedOn {
+				fmt.Printf("%v\n", t)
+				fmt.Printf("%v\n", p)
+				fmt.Printf("Mismatched times: t.CreatedOn=%s != p.CreatedOn=%s\n\n", t.CreatedOn, p.CreatedOn)
+				//log.Fatalf("Mismatched times: t.CreatedOn=%s != p.CreatedOn=%s", t.CreatedOn, p.CreatedOn)
+			}*/
+
 		for _, p := range t.Posts {
 			p.TopicId = tId
 			p.Id = pId
@@ -262,7 +289,7 @@ func orderTopicsAndPosts(topics []*Topic, posts []*Post) []*Topic {
 		}
 		tId += 1
 	}
-	fmt.Printf("Dropped topics: %d, dropped posts: %d, total posts: %d\n", droppedTopics, droppedPosts, nPosts)
+	fmt.Printf("Dropped topics: %d, emptyTopics: %d, dropped posts: %d, total posts: %d\n", droppedTopics, emptyTopics, droppedPosts, nPosts)
 	return res
 }
 
@@ -276,10 +303,20 @@ func serTopic(t *Topic) string {
 	if t.IsDeleted {
 		panic("t.IsDeleted is true")
 	}
-	return fmt.Sprintf("T:%d|%s\n", t.Id, remSep(t.Subject))
+	return fmt.Sprintf("T%d|%s\n", t.Id, remSep(t.Subject))
 }
 
 var b64encoder = base64.StdEncoding
+
+func ip2str(s string) uint32 {
+	var nums [4]uint32
+	parts := strings.Split(s, ".")
+	for n, p := range parts {
+		num, _ := strconv.Atoi(p)
+		nums[n] = uint32(num)
+	}
+	return (nums[0] << 24) | (nums[1] << 16) + (nums[2] << 8) | nums[3]
+}
 
 func serPost(p *Post) string {
 	if p.IsDeleted {
@@ -289,10 +326,11 @@ func serPost(p *Post) string {
 	s2 := b64encoder.EncodeToString(p.MessageSha1[:])
 	s2 = s2[:len(s2)-1]
 	s3 := remSep(p.UserName)
+	sIp := fmt.Sprintf("%x", ip2str(p.IP))
 	//s4 := remSep(p.UserEmail)
 	//s5 := remSep(p.UserHomepage)
 	//return fmt.Sprintf("P:%d|%d|%s|%s|%s|%s|%s|%s\n", p.TopicId, p.Id, s1, s2, p.IP, s3, s4, s5)
-	return fmt.Sprintf("P:%d|%d|%s|%s|%s|%s\n", p.TopicId, p.Id, s1, s2, p.IP, s3)
+	return fmt.Sprintf("P%d|%d|%s|%s|%s|%s\n", p.TopicId, p.Id, s1, s2, sIp, s3)
 }
 
 func serializePostsAndTopics(topics []*Topic) []string {
