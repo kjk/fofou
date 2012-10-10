@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -37,6 +38,20 @@ func dataFilePath(app string) string {
 	return filepath.Join(getDataDir(), app, "data.txt")
 }
 
+type Post struct {
+	ForumId      int
+	TopicId      int
+	CreatedOn    string
+	MessageSha1  [20]byte
+	IsDeleted    bool
+	IP           string
+	UserName     string
+	UserEmail    string
+	UserHomepage string
+
+	Id int
+}
+
 type Topic struct {
 	ForumId   int
 	Id        int
@@ -44,6 +59,7 @@ type Topic struct {
 	CreatedOn string
 	CreatedBy string
 	IsDeleted bool
+	Posts     []*Post
 }
 
 var newlines = []byte{'\n', '\n'}
@@ -76,29 +92,6 @@ func parseTopic(d []byte) *Topic {
 	return topic
 }
 
-type Post struct {
-	TopicId      int
-	Id           int
-	CreatedOn    string
-	MessageSha1  [20]byte
-	IsDeleted    bool
-	IP           string
-	UserName     string
-	UserEmail    string
-	UserHomepage string
-}
-
-/*
-T: 1.2
-M: 2b8858b4e23cc58b797581f6e5543b41c6e4ef70
-On: 2006-05-29 03:41:43
-D: False
-IP: 75.10.246.110
-UN: Krzysztof Kowalczyk
-UE: kkowalczyk@gmail.com
-UH: http://blog.kowalczyk.info
-*/
-
 func parsePost(d []byte) *Post {
 	parts := bytes.Split(d, newline)
 	post := &Post{}
@@ -108,8 +101,8 @@ func parsePost(d []byte) *Post {
 		val := string(lp[1])
 		if "T" == name {
 			idparts := strings.Split(val, ".")
-			post.TopicId, _ = strconv.Atoi(idparts[0])
-			post.Id, _ = strconv.Atoi(idparts[1])
+			post.ForumId, _ = strconv.Atoi(idparts[0])
+			post.TopicId, _ = strconv.Atoi(idparts[1])
 		} else if "On" == name {
 			// TODO: change to time.Time
 			post.CreatedOn = val
@@ -136,49 +129,7 @@ func parsePost(d []byte) *Post {
 	return post
 }
 
-/* type Topic struct {
-	ForumId   int
-	Id        int
-	Subject   string
-	CreatedOn string
-	CreatedBy string
-	IsDeleted bool
-}*/
-
-var sep = "|"
-
-func dumpTopics(topics []*Topic) (string, int) {
-	s := ""
-	names := make(map[string]int)
-	for _, t := range topics {
-		if t.IsDeleted {
-			continue
-		}
-		subject := strings.Replace(t.Subject, sep, "", -1)
-		by := strings.Replace(t.CreatedBy, sep, "", -1)
-		if n, ok := names[by]; ok {
-			names[by] = n + 1
-		} else {
-			names[by] = 1
-		}
-		s += fmt.Sprintf("%d.%d|%s|%s|%s\n", t.ForumId, t.Id, subject, t.CreatedOn, by)
-	}
-	return s, len(names)
-}
-
-func dumpPosts(posts []*Post) (string, int) {
-	s := ""
-	names := make(map[string]int)
-	for _, p := range posts {
-		if p.IsDeleted {
-			continue
-		}
-		s += fmt.Sprintf("%d|%d\n", p.TopicId, p.Id)
-	}
-	return s, len(names)
-}
-
-func parseTopics(d []byte) {
+func parseTopics(d []byte) []*Topic {
 	topics := make([]*Topic, 0)
 	for len(d) > 0 {
 		idx := bytes.Index(d, newlines)
@@ -189,21 +140,25 @@ func parseTopics(d []byte) {
 		topics = append(topics, topic)
 		d = d[idx+2:]
 	}
-	s, uniqueNames := dumpTopics(topics)
-	fmt.Printf("topics: %d, unique names: %d, len(s) = %d\n", len(topics), uniqueNames, len(s))
-
-	f, err := os.Create(dataFilePath(APP_NAME))
-	if err != nil {
-		log.Fatalf("os.Create() failed with %s", err.Error())
-	}
-	defer f.Close()
-	_, err = f.WriteString(s)
-	if err != nil {
-		log.Fatalf("WriteFile() failed with %s", err.Error())
-	}
+	return topics
 }
 
-func parsePosts(d []byte) {
+func loadTopics() []*Topic {
+	data_dir := filepath.Join("..", "appengine", "imported_data")
+	file_path := filepath.Join(data_dir, "topics.txt")
+	f, err := os.Open(file_path)
+	if err != nil {
+		log.Fatalf("failed to open %s with error %s", file_path, err.Error())
+	}
+	defer f.Close()
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
+		log.Fatalf("ReadAll() failed with error %s", err.Error())
+	}
+	return parseTopics(data)
+}
+
+func parsePosts(d []byte) []*Post {
 	posts := make([]*Post, 0)
 	for len(d) > 0 {
 		idx := bytes.Index(d, newlines)
@@ -214,55 +169,146 @@ func parsePosts(d []byte) {
 		posts = append(posts, post)
 		d = d[idx+2:]
 	}
-	s, uniqueNames := dumpPosts(posts)
-	fmt.Printf("posts: %d, unique names: %d, len(s) = %d\n", len(posts), uniqueNames, len(s))
+	return posts
+}
 
-	f, err := os.OpenFile(dataFilePath(APP_NAME), os.O_APPEND, 0666)
+func loadPosts() []*Post {
+	data_dir := filepath.Join("..", "appengine", "imported_data")
+	file_path := filepath.Join(data_dir, "posts.txt")
+	f, err := os.Open(file_path)
 	if err != nil {
-		log.Fatalf("os.Open() failed with %s", err.Error())
+		log.Fatalf("failed to open %s with error %s", file_path, err.Error())
+	}
+	defer f.Close()
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
+		log.Fatalf("ReadAll() failed with error %s", err.Error())
+	}
+	return parsePosts(data)
+}
+
+func orderTopicsAndPosts(topics []*Topic, posts []*Post) []*Topic {
+	res := make([]*Topic, 0)
+	idToTopic := make(map[int]*Topic)
+	deletedTopics := make(map[int]*Topic)
+	droppedTopics := 0
+
+	for _, t := range topics {
+		if t.ForumId != 1 || t.IsDeleted {
+			droppedTopics += 1
+			deletedTopics[t.Id] = t
+			continue
+		}
+		idToTopic[t.Id] = t
+		res = append(res, t)
+	}
+
+	droppedPosts := 0
+	nPosts := 0
+	for _, p := range posts {
+		if p.ForumId != 1 {
+			droppedPosts += 1
+			continue
+		}
+
+		t, ok := idToTopic[p.TopicId]
+		if !ok {
+			if _, ok = deletedTopics[p.TopicId]; !ok {
+				panic("didn't find topic")
+			}
+			droppedPosts += 1
+			continue
+		}
+		if p.IsDeleted {
+			droppedPosts += 1
+			continue
+		}
+
+		if nil == t.Posts {
+			t.Posts = make([]*Post, 0)
+			/*
+				if t.CreatedBy != p.UserName {
+					fmt.Printf("%v\n", t)
+					fmt.Printf("%v\n", p)
+					log.Fatalf("Mismatched names: t.CreatedBy=%s != p.UserName=%s", t.CreatedBy, p.UserName)
+				}
+				if t.CreatedOn != p.CreatedOn {
+					log.Fatalf("Mismtached times: t.CreatedOn=%s != p.CreatedOn=%s", t.CreatedOn, p.CreatedOn)
+				}*/
+		}
+		t.Posts = append(t.Posts, p)
+		nPosts += 1
+	}
+
+	// TODO: need to order t.Posts in each post by time, I think
+
+	// renumber ids sequentially for compactness
+	tId := 1
+	pId := 1
+	for _, t := range res {
+		t.Id = tId
+		for _, p := range t.Posts {
+			p.TopicId = tId
+			p.Id = pId
+			pId += 1
+		}
+		tId += 1
+	}
+	fmt.Printf("Dropped topics: %d, dropped posts: %d, total posts: %d\n", droppedTopics, droppedPosts, nPosts)
+	return res
+}
+
+var sep = "|"
+
+func remSep(s string) string {
+	return strings.Replace(s, sep, "", -1)
+}
+
+func serTopic(t *Topic) string {
+	if t.IsDeleted {
+		panic("t.IsDeleted is true")
+	}
+	return fmt.Sprintf("T:%d|%s\n", t.Id, remSep(t.Subject))
+}
+
+var b64encoder = base64.StdEncoding
+
+func serPost(p *Post) string {
+	if p.IsDeleted {
+		panic("p.IsDeleted is true")
+	}
+	s1 := remSep(p.CreatedOn)
+	s2 := b64encoder.EncodeToString(p.MessageSha1[:])
+	s3 := remSep(p.UserName)
+	s4 := remSep(p.UserEmail)
+	s5 := remSep(p.UserHomepage)
+	return fmt.Sprintf("P:%d|%d|%s|%s|%s|%s|%s|%s\n", p.TopicId, p.Id, s1, s2, p.IP, s3, s4, s5)
+}
+
+func serializePostsAndTopics(topics []*Topic) string {
+	s := ""
+	for _, t := range topics {
+		s += serTopic(t)
+		for _, p := range t.Posts {
+			s += serPost(p)
+		}
+	}
+	return s
+}
+
+func main() {
+	topics := loadTopics()
+	posts := loadPosts()
+	topics = orderTopicsAndPosts(topics, posts)
+	s := serializePostsAndTopics(topics)
+
+	f, err := os.Create(dataFilePath(APP_NAME))
+	if err != nil {
+		log.Fatalf("os.Create() failed with %s", err.Error())
 	}
 	defer f.Close()
 	_, err = f.WriteString(s)
 	if err != nil {
 		log.Fatalf("WriteFile() failed with %s", err.Error())
 	}
-}
-
-func loadTopics() {
-	data_dir := filepath.Join("..", "appengine", "imported_data")
-	file_path := filepath.Join(data_dir, "topics.txt")
-	f, err := os.Open(file_path)
-	if err != nil {
-		fmt.Printf("failed to open %s with error %s", file_path, err.Error())
-		return
-	}
-	defer f.Close()
-	data, err := ioutil.ReadAll(f)
-	if err != nil {
-		fmt.Printf("ReadAll() failed with error %s", err.Error())
-		return
-	}
-	parseTopics(data)
-}
-
-func loadPosts() {
-	data_dir := filepath.Join("..", "appengine", "imported_data")
-	file_path := filepath.Join(data_dir, "posts.txt")
-	f, err := os.Open(file_path)
-	if err != nil {
-		fmt.Printf("failed to open %s with error %s", file_path, err.Error())
-		return
-	}
-	defer f.Close()
-	data, err := ioutil.ReadAll(f)
-	if err != nil {
-		fmt.Printf("ReadAll() failed with error %s", err.Error())
-		return
-	}
-	parsePosts(data)
-}
-
-func main() {
-	loadTopics()
-	loadPosts()
 }
