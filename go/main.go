@@ -85,19 +85,9 @@ type User struct {
 	Login string
 }
 
-type Topic struct {
-}
-
 type Forum struct {
 	ForumConfig
-	Topics        []*Topic
-	IsDeleted     bool
-	Id            int
-	CommentsCount int
-	MsgShort      string
-	Subject       string
-	CreatedBy     string
-	CreatedOn     time.Time
+	Store *Store
 }
 
 type AppState struct {
@@ -125,6 +115,11 @@ func getDataDir() string {
 
 func NewForum(config *ForumConfig) *Forum {
 	forum := &Forum{ForumConfig: *config}
+	store, err := NewStore(config.DataDir)
+	if err != nil {
+		panic("failed to create store for a forum")
+	}
+	forum.Store = store
 	logger.Noticef("Created %s forum\n", forum.Title)
 	return forum
 }
