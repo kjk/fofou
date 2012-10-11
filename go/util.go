@@ -48,6 +48,30 @@ func FileSha1(path string) (string, error) {
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }
 
+func CopyFile(dst, src string) error {
+	fsrc, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer fsrc.Close()
+	fdst, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer fdst.Close()
+	if _, err = io.Copy(fdst, fsrc); err != nil {
+		return err
+	}
+	return nil
+}
+
+func CreateDirIfNotExists(path string) error {
+	if !PathExists(path) {
+		return os.MkdirAll(path, 0777)
+	}
+	return nil
+}
+
 func DataSha1(data []byte) (string, error) {
 	h := sha1.New()
 	_, err := h.Write(data)

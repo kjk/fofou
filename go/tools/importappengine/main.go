@@ -16,6 +16,8 @@ import (
 )
 
 var dataDir = ""
+var srcDataDir = filepath.Join("..", "appengine", "imported_data")
+
 var APP_NAME = "SumatraPDF"
 
 // data dir is ../../../data on the server or ../../fofoudata locally
@@ -36,21 +38,26 @@ func getDataDir() string {
 	return ""
 }
 
+func dataDirForApp(appName string) string {
+	return filepath.Join(getDataDir(), appName)
+}
+
 func dataFilePath(app string) string {
-	return filepath.Join(getDataDir(), app, "data.txt")
+	return filepath.Join(dataDirForApp(app), "data.txt")
 }
 
 type Post struct {
-	ForumId      int
-	TopicId      int
-	OrigTopicId  int
-	CreatedOn    time.Time
-	MessageSha1  [20]byte
-	IsDeleted    bool
-	IP           string
-	UserName     string
-	UserEmail    string
-	UserHomepage string
+	ForumId        int
+	TopicId        int
+	OrigTopicId    int
+	CreatedOn      time.Time
+	MessageSha1    [20]byte
+	MessageSha1Str string
+	IsDeleted      bool
+	IP             string
+	UserName       string
+	UserEmail      string
+	UserHomepage   string
 
 	Id int
 }
@@ -120,6 +127,7 @@ func parsePost(d []byte) *Post {
 		} else if "On" == name {
 			post.CreatedOn = parseTime(val)
 		} else if "M" == name {
+			post.MessageSha1Str = val
 			sha1, err := hex.DecodeString(val)
 			if err != nil || len(sha1) != 20 {
 				log.Fatalf("error decoding M")
@@ -186,8 +194,7 @@ func parsePosts(d []byte) []*Post {
 }
 
 func loadPosts() []*Post {
-	data_dir := filepath.Join("..", "appengine", "imported_data")
-	file_path := filepath.Join(data_dir, "posts.txt")
+	file_path := filepath.Join(srcDataDir, "posts.txt")
 	f, err := os.Open(file_path)
 	if err != nil {
 		log.Fatalf("failed to open %s with error %s", file_path, err.Error())
@@ -344,7 +351,42 @@ func serializePostsAndTopics(topics []*Topic) []string {
 	return res
 }
 
+func blobPath(dir, sha1 string) string {
+	d1 := sha1[:2]
+	d2 := sha1[2:4]
+	return filepath.Join(dir, "blobs", d1, d2, sha1)
+}
+
+func copyBlobs(topics []*Topic) error {
+	blobsDir := filepath.Join(getDataDir(), "blobs")
+	for _, t := range topics {
+		for _, p := range t.Posts {
+			sha1 := p.MessageSha1Str
+			srcPath := blobPath(srcDataDir, sha1)
+			dstPath := blobPath(blobsDir, sha1)
+			if !PathExists(srcPath) {
+				panic("srcPath doesn't exist")
+			}
+			if !PathExists(dstPath) {
+				if err := CreateDirIfNotExists(filepath.Dir(dstPath)); err != nil {
+					panic("failed to create dir for dstPath")
+				}
+				if err := CopyFile(dstPath, srcPath); err != nil {
+					fmt.Printf("CopyFile('%s', '%s') failed with %s", dstPath, srcPath, err)
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func main() {
+	dataDir := dataDirForApp(APP_NAME)
+	if err := CreateDirIfNotExists(dataDir); err != nil {
+		panic("failed to create dataDir")
+	}
+
 	topics := loadTopics()
 	posts := loadPosts()
 	topics = orderTopicsAndPosts(topics, posts)
@@ -360,5 +402,8 @@ func main() {
 		if err != nil {
 			log.Fatalf("WriteFile() failed with %s", err.Error())
 		}
+	}
+	if err = copyBlobs(topics); err != nil {
+		panic("copyBlobs() failed")
 	}
 }
