@@ -4,6 +4,7 @@ package main
 import (
 	"code.google.com/p/gorilla/mux"
 	"fmt"
+	"html/template"
 	"net/http"
 )
 
@@ -21,6 +22,7 @@ type ModelForum struct {
 	UserIsAdmin bool
 	ErrorMsg    string
 	RedirectUrl string
+	SidebarHtml template.HTML
 	FromNext    int
 	Topics      []*DisplayTopic
 }
@@ -59,6 +61,7 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 		UserIsAdmin: false,
 		RedirectUrl: r.URL.String(),
 		Topics:      displayTopics,
+		SidebarHtml: template.HTML(forum.Sidebar),
 	}
 
 	if err := GetTemplates().ExecuteTemplate(w, tmplForum, model); err != nil {
