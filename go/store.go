@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -12,10 +13,9 @@ import (
 	"time"
 )
 
-// Note: to save memory, we don't store id because it is implicit
-// (id == index withing topic.Posts array + 1)
+// Note: to save memory, we don't store id and topic id, because they are
+// implicit (id == index withing topic.Posts array + 1)
 type Post struct {
-	TopicId      int
 	CreatedOn    time.Time
 	MessageSha1  [20]byte
 	UserName     string
@@ -49,7 +49,8 @@ func parseTopics(d []byte) []Topic {
 			panic("idx shouldn't be -1")
 		}
 		line := d[:idx]
-		d = d[:idx+1]
+		//fmt.Printf("'%s' len(topics)=%d\n", string(line), len(topics))
+		d = d[idx+1:]
 		if line[0] == 'T' {
 			// parse: "T1|Subject"
 			s := string(line[1:])
@@ -64,11 +65,14 @@ func parseTopics(d []byte) []Topic {
 				panic("idStr is not a number")
 			}
 			if len(topics)+1 != id {
+				fmt.Printf("%s\n", string(line))
+				fmt.Printf("id=%d, len(topics)=%d\n", id, len(topics))
 				panic("id should be == len(topics)+1")
 			}
 			t := Topic{
 				Subject:   subject,
 				IsDeleted: false,
+				Posts:     make([]Post, 0),
 			}
 			topics = append(topics, t)
 		} else if line[0] == 'P' {
@@ -107,19 +111,22 @@ func parseTopics(d []byte) []Topic {
 			if len(msgSha1) != 20 {
 				panic("len(msgSha1) != 20")
 			}
-			topic := topics[topicId-1]
-			if id != len(topic.Posts)+1 {
-				panic("id != len(topic.Posts) + 1")
+			t := &topics[topicId-1]
+			if id != len(t.Posts)+1 {
+				fmt.Printf("%s\n", string(line))
+				fmt.Printf("topicId=%d, id=%d, len(topic.Posts)=%d\n", topicId, id, len(t.Posts))
+				fmt.Printf("%v\n", t)
+				panic("id != len(t.Posts) + 1")
 			}
 			post := Post{
-				TopicId:      topicId,
 				CreatedOn:    createdOn,
 				UserName:     userName,
 				IpAddressHex: ipAddrHexStr,
 				IsDeleted:    false,
 			}
 			copy(post.MessageSha1[:], msgSha1)
-			topic.Posts = append(topic.Posts, post)
+			t.Posts = append(t.Posts, post)
+			fmt.Printf("%v\n", t)
 		} else if line[0] == 'D' {
 			// TODO: parse:
 			// DT1 or DP1
@@ -153,11 +160,13 @@ func NewStore(dataDir string) (*Store, error) {
 	if PathExists(dataFilePath) {
 		store.topics, err = readExistingData(dataFilePath)
 		if err != nil {
+			fmt.Printf("readExistingData() failed with %s", err.Error())
 			return nil, err
 		}
 	} else {
 		f, err := os.Create(dataFilePath)
 		if err != nil {
+			fmt.Printf("NewStore(): os.Create(%s) failed with %s", dataFilePath, err.Error())
 			return nil, err
 		}
 		f.Close()
@@ -165,6 +174,7 @@ func NewStore(dataDir string) (*Store, error) {
 	}
 	store.dataFile, err = os.OpenFile(dataFilePath, os.O_APPEND|os.O_RDWR, 0666)
 	if err != nil {
+		fmt.Printf("NewStore(): os.OpenFile(%s) failed with %s", dataFilePath, err.Error())
 		return nil, err
 	}
 	return store, nil

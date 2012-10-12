@@ -113,9 +113,13 @@ func getDataDir() string {
 	return ""
 }
 
+func forumDataDir(forumDir string) string {
+	return filepath.Join(getDataDir(), forumDir)
+}
+
 func NewForum(config *ForumConfig) *Forum {
 	forum := &Forum{ForumConfig: *config}
-	store, err := NewStore(config.DataDir)
+	store, err := NewStore(forumDataDir(config.DataDir))
 	if err != nil {
 		panic("failed to create store for a forum")
 	}
@@ -164,10 +168,6 @@ func addForum(forum *Forum) error {
 	if forumAlreadyExists(forum.ForumUrl) {
 		return errors.New("Forum already exists")
 	}
-
-	/*if err := readForumData(app); err != nil {
-		return err
-	}*/
 	appState.Forums = append(appState.Forums, forum)
 	return nil
 }
