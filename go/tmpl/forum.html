@@ -10,7 +10,6 @@
 </head>
 <body>
 
-{{$forumUrl := .ForumUrl}}
 <div id="tbTop"><a href="/login">login</a></div>
 <table>
 <tbody>
@@ -41,9 +40,9 @@
 		</div>
 
 		<div class="buttons">
-		<a accesskey="n" href="/{{ .ForumUrl }}/post"><img src="/img/new.gif" alt="New topic" border="0" height="14" width="13"> <u>N</u>ew topic</a>
+		<a accesskey="n" href="/{{ .ForumUrl }}/newpost"><img src="/img/new.gif" alt="New topic" border="0" height="14" width="13"> <u>N</u>ew topic</a>
 		{{ if .NewFrom }}
-			<a accesskey="t" href="/{{ .ForumUrl }}?from={{ .NewFrom }}"><img src="/img/archive.gif" alt="Older topics" border="0" height="14" width="13">Older <u>t</u>opics</a>
+			<a accesskey="t" href="/{{ .ForumUrl }}/?from={{ .NewFrom }}"><img src="/img/archive.gif" alt="Older topics" border="0" height="14" width="13">Older <u>t</u>opics</a>
 		{{ end }}
 		</div>
 	</td>

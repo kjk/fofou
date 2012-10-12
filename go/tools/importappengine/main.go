@@ -217,24 +217,6 @@ func (s ByTime) Less(i, j int) bool {
 	return s.PostsSeq[i].CreatedOn.UnixNano() < s.PostsSeq[j].CreatedOn.UnixNano()
 }
 
-func findTopicById(topics []*Topic, id int) *Topic {
-	min := 0
-	max := len(topics) - 1
-	for max >= min {
-		mid := min + ((max - min) / 2)
-		topicId := topics[mid].Id
-		if topicId == id {
-			return topics[mid]
-		}
-		if id > topicId {
-			min = mid
-		} else {
-			max = mid
-		}
-	}
-	return nil
-}
-
 func renumberPostIds(topics []*Topic, posts []*Post) []*Topic {
 	res := make([]*Topic, 0)
 	topicIdToTopic := make(map[int]*Topic)
@@ -372,7 +354,7 @@ func blobPath(dir, sha1 string) string {
 }
 
 func copyBlobs(topics []*Topic) error {
-	blobsDir := filepath.Join(getDataDir(), "blobs")
+	blobsDir := getDataDir()
 	for _, t := range topics {
 		for _, p := range t.Posts {
 			sha1 := p.MessageSha1Str
@@ -389,6 +371,7 @@ func copyBlobs(topics []*Topic) error {
 					fmt.Printf("CopyFile('%s', '%s') failed with %s", dstPath, srcPath, err)
 					return err
 				}
+				fmt.Sprintf("%s=>%s\n", srcPath, dstPath)
 			}
 		}
 	}

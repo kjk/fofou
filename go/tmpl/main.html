@@ -26,5 +26,18 @@
 (<b><font color="blue">Fo</font></b>rums <b><font color="blue">Fo</font></b>r Yo<b><font color="blue">u</font></b>,
 created by <a href="http://blog.kowalczyk.info">Krzysztof Kowalczyk</a>)</center>
 <br>
+
+{{ if .AnalyticsCode }}
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+var pageTracker = _gat._getTracker("{{.AnalyticsCode}}");
+pageTracker._initData();
+pageTracker._trackPageview();
+</script>
+{{ end }}
+
 </body>
 </html>

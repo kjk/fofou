@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+	<title>{{ .Title }}</title>
+	<link href="/s/default.css" rel="stylesheet" type="text/css">
+	<script language="javascript" src="/s/default.js" type="text/javascript"></script>
+</head>
+
+<body>
+<div id="tbTop"> <a href="/login">login</a></div>
+<table>
+<tbody>
+<tr>
+	<td colspan="2" class="header">
+		<div>
+			<h1><a href="/{{ .ForumUrl }}" class="green">{{ .Title }}</a></h1>
+			<p>{{ .Tagline }}</p>
+		</div>
+	</td>
+</tr>
+
+{{ $topicId := .Id }}
+{{ $isModerator := .IsModerator }}
+{{ $createdOnStr := .CreatedOnStr }}
+{{ $forumUrl := .ForumUrl }}
+
+<tr>
+	<td class="sidebar">{{ .SidebarHtml }}</td>
+	<td class="contents">
+		<script language="javascript" type="text/javascript">
+			rolloverInit('link', '/img/link_over.jpg');
+			rolloverInit('email', '/img/email_over.jpg');
+			rolloverInit('web', '/img/web_over.jpg');
+			rolloverInit('delete', '/img/delete_over.jpg');
+			rolloverInit('undo', '/img/undo_over.jpg');
+		</script>
+		<div class="posts">
+			<h3>{{ .Subject }}</h3>
+
+			{{ range .Posts }}
+			<div>
+				<div class="{{.CssClass}}">{{ .MessageHtml }}</div>
+				<div class="signature">
+					<a href="/{{$forumUrl}}/topic?id={{ $topicId }}#{{ .Id }}" title="Permalink" onmouseover="rolloverOn('link', {{ .Id }});" onmouseout="rolloverOff();"><img align="right" id="link{{ .Id}}" src="/img/link.jpg" alt="Permalink" border="0" height="16" width="16"></a>
+
+					{{ if $isModerator }}
+						{{ if .IsDeleted }}
+							<a href="/{{$forumUrl}}/postundel?topicId={{$topicId}}&postId={{.Id}}" title="Undelete Post" onmouseover="rolloverOn('undo', {{ .Id }});" onmouseout="rolloverOff();"><img align="right" id="undo{{ .Id }}" src="/img/undo.jpg" width="16" height="16" border="0" /></a>
+						{{ else }}
+							<a href="/{{$forumUrl}}/postdel?topicId={{$topicId}}&postId={{.Id}}" title="Delete Post" onmouseover="rolloverOn('delete', {{.Id}});" onmouseout="rolloverOff();"><img align="right" id="delete{{.Id}}" src="/img/delete.jpg" width="16" height="16" border="0" /></a>
+						{{ end }}
+					{{ end }}
+					{{ if .UserHomepage }}
+						<a href="{{ .UserHomepage }}">{{ .UserName }}</a>
+					{{ else }}
+						{{ .UserName}}
+					{{ end }}
+					<span class="noIE">&nbsp;</span><br />
+					{{ $createdOnStr }}
+
+					{{ if $isModerator }}
+						<br /> From ip: {{ .UserIpStr }}
+					{{ end }}
+				</div>
+			</div>
+			{{ end }}
+
+			<div class="buttons">
+				<a accesskey="t" href="/{{ .ForumUrl }}">
+					<img src="/img/topics.gif" alt="Other recent topics" border="0" height="14" width="13">
+					Other recent <u>t</u>opics
+				</a>
+
+				<a accesskey="r" href="/{{ .ForumUrl }}/newpost?topicId={{$topicId}}">
+					<img src="/img/edit.gif" alt="Reply to this topic" border="0" height="14" width="13">
+					<u>R</u>eply to this topic
+				</a>
+			</div>
+		</div>
+	</td>
+</tr>
+</tbody>
+</table>
+<hr>
+
+<center>Powered by <a href="http://blog.kowalczyk.info/software/fofou">fofou</a> 
+(<b><font color="blue">Fo</font></b>rums <b><font color="blue">Fo</font></b>r Yo<b><font color="blue">u</font></b>,
+created by <a href="http://blog.kowalczyk.info">Krzysztof Kowalczyk</a>)</center>
+<br>
+
+{{ if .AnalyticsCode }}
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+var pageTracker = _gat._getTracker("{{.AnalyticsCode}}");
+pageTracker._initData();
+pageTracker._trackPageview();
+</script>
+{{ end }}
+
+</body>
+</html>
+

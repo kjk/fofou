@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 type TopicDisplay struct {
@@ -38,15 +40,21 @@ func plural(n int, s string) string {
 func handleForum(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	forumUrl := vars["forum"]
-	fmt.Printf("handleForum(): forum: '%s'\n", forumUrl)
 	forum := findForum(forumUrl)
 	if nil == forum {
 		fmt.Print("handleForum(): didn't find forum\n")
 		serveErrorMsg(w, fmt.Sprintf("Forum \"%s\" doesn't exist", forumUrl))
 		return
 	}
-	// TODO: if it's /{forum}/?from=${from}, extract ${from}
+	fromStr := strings.TrimSpace(r.FormValue("from"))
 	from := 0
+	if "" != fromStr {
+		var err error
+		if from, err = strconv.Atoi(fromStr); err != nil {
+			from = 0
+		}
+	}
+	fmt.Printf("handleForum(): forum: '%s', from: %d\n", forumUrl, from)
 
 	nTopicsMax := 75
 	user := decodeUserFromCookie(r)

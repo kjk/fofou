@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -154,7 +155,7 @@ func readExistingData(fileDataPath string) ([]Topic, error) {
 
 func NewStore(dataDir string) (*Store, error) {
 	dataFilePath := filepath.Join(dataDir, "data.txt")
-	store := &Store{}
+	store := &Store{dataDir: dataDir}
 	var err error
 	if PathExists(dataFilePath) {
 		store.topics, err = readExistingData(dataFilePath)
@@ -196,4 +197,47 @@ func (s *Store) GetTopics(nMax, from int) []*Topic {
 		n -= 1
 	}
 	return res
+}
+
+/*
+func findTopicById(topics []*Topic, id int) *Topic {
+	min := 0
+	max := len(topics) - 1
+	for max >= min {
+		mid := min + ((max - min) / 2)
+		topicId := topics[mid].Id
+		if topicId == id {
+			return topics[mid]
+		}
+		if id > topicId {
+			min = mid
+		} else {
+			max = mid
+		}
+	}
+	return nil
+}
+*/
+
+func (s *Store) TopicById(id int) *Topic {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	// TODO: binary search?
+	for idx, t := range s.topics {
+		if id == t.Id {
+			return &s.topics[idx]
+		}
+	}
+	return nil
+}
+
+func blobPath(dir, sha1 string) string {
+	d1 := sha1[:2]
+	d2 := sha1[2:4]
+	return filepath.Join(dir, "..", "blobs", d1, d2, sha1)
+}
+
+func (s *Store) MessageFilePath(sha1 [20]byte) string {
+	sha1Str := hex.EncodeToString(sha1[:])
+	return blobPath(s.dataDir, sha1Str)
 }

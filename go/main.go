@@ -306,6 +306,9 @@ func main() {
 	r.HandleFunc("/{forum}", makeTimingHandler(handleForum))
 	r.HandleFunc("/{forum}/", makeTimingHandler(handleForum))
 	r.HandleFunc("/{forum}/rss", makeTimingHandler(handleRss))
+	r.HandleFunc("/{forum}/topic", makeTimingHandler(handleTopic))
+
+	//r.HandleFunc("/{forum}/newpost", makeTimingHandler(handleNewPost))
 
 	http.Handle("/", r)
 	msg := fmt.Sprintf("Started runing on %s", *httpAddr)
