@@ -184,3 +184,16 @@ func (s *Store) TopicsCount() int {
 	defer s.mu.Unlock()
 	return len(s.topics)
 }
+
+func (s *Store) GetTopics(nMax, from int) []*Topic {
+	res := make([]*Topic, 0, nMax)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	n := nMax
+	for i := len(s.topics) - 1 - from; i >= 0 && n >= 0; i-- {
+		t := &s.topics[i]
+		res = append(res, t)
+		n -= 1
+	}
+	return res
+}

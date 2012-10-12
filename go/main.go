@@ -56,11 +56,15 @@ var (
 
 	staticDir = "static"
 
-	appState = AppState{}
+	appState = AppState{
+		Users:  make([]*User, 0),
+		Forums: make([]*Forum, 0),
+	}
 
 	tmplMain        = "main.html"
 	tmplForum       = "forum.html"
-	templateNames   = [...]string{tmplMain, tmplForum}
+	tmplTopic       = "topic.html"
+	templateNames   = [...]string{tmplMain, tmplForum, tmplTopic}
 	templatePaths   []string
 	templates       *template.Template
 	reloadTemplates = true
@@ -123,6 +127,7 @@ func NewForum(config *ForumConfig) *Forum {
 	if err != nil {
 		panic("failed to create store for a forum")
 	}
+	fmt.Printf("%d topics in forum '%s'\n", store.TopicsCount(), config.ForumUrl)
 	forum.Store = store
 	logger.Noticef("Created %s forum\n", forum.Title)
 	return forum
@@ -298,7 +303,9 @@ func main() {
 	r.HandleFunc("/login", handleLogin)
 	r.HandleFunc("/logout", handleLogout)
 
+	r.HandleFunc("/favicon.ico", serve404)
 	r.HandleFunc("/{forum}", makeTimingHandler(handleForum))
+	r.HandleFunc("/{forum}/", makeTimingHandler(handleForum))
 	r.HandleFunc("/{forum}/rss", makeTimingHandler(handleRss))
 
 	http.Handle("/", r)

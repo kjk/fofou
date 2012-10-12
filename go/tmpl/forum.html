@@ -10,6 +10,7 @@
 </head>
 <body>
 
+{{$forumUrl := .ForumUrl}}
 <div id="tbTop"><a href="/login">login</a></div>
 <table>
 <tbody>
@@ -31,9 +32,9 @@
 			{{ if len .Topics }}
 				{{ range .Topics }}
 				    {{ if .IsDeleted }}
-						<a class="deleted" href="/{{ .ForumUrl }}/topic?id={{ .Id }}{{ if .CommentsCount }}&comments={{ .CommentsCount }}{{ end }}" title="{{ .MsgShort }}">{{ .Subject }} </a>
+						<a class="deleted" href="/{{ $forumUrl }}/topic?id={{ .Id }}{{ if .CommentsCount }}&comments={{ .CommentsCount }}{{ end }}" title="{{ .MsgShort }}">{{ .Subject }} </a>
 					{{ else }}
-						<a href="/{{ .ForumUrl }}/topic?id={{ .Id }}{{ if .CommentsCount }}&comments={{ .CommentsCount }}{{ end }}" title="{{ .MsgShort }}">{{ .Subject }} </a>
+						<a href="/{{ $forumUrl }}/topic?id={{ .Id }}{{ if .CommentsCount }}&comments={{ .CommentsCount }}{{ end }}" title="{{ .MsgShort }}">{{ .Subject }} </a>
 					{{ end }}
 					<em>{{ .CreatedBy }}</em> <span>({{ .CommentsCount }})</span>
 					<br />
