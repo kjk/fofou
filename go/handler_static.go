@@ -15,14 +15,14 @@ func serveFileFromDir(w http.ResponseWriter, r *http.Request, dir, fileName stri
 	http.ServeFile(w, r, filePath)
 }
 
-func serveFileStatic(w http.ResponseWriter, r *http.Request, fileName string) {
-	serveFileFromDir(w, r, staticDir, fileName)
-}
-
-const lenStatic = len("/s/")
-
 // handler for url: /s/
 func handleStatic(w http.ResponseWriter, r *http.Request) {
-	file := r.URL.Path[lenStatic:]
-	serveFileStatic(w, r, file)
+	file := r.URL.Path[len("/s/"):]
+	serveFileFromDir(w, r, "static", file)
+}
+
+// handler for url: /img/
+func handleStaticImg(w http.ResponseWriter, r *http.Request) {
+	file := r.URL.Path[len("/img/"):]
+	serveFileFromDir(w, r, "img", file)
 }

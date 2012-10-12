@@ -54,8 +54,6 @@ var (
 	// All in one place because I expect this data to be small
 	dataDir string
 
-	staticDir = "static"
-
 	appState = AppState{
 		Users:  make([]*User, 0),
 		Forums: make([]*Forum, 0),
@@ -298,6 +296,7 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", makeTimingHandler(handleMain))
 	http.HandleFunc("/s/", makeTimingHandler(handleStatic))
+	http.HandleFunc("/img/", makeTimingHandler(handleStaticImg))
 
 	r.HandleFunc("/oauthtwittercb", handleOauthTwitterCallback)
 	r.HandleFunc("/login", handleLogin)
