@@ -65,7 +65,6 @@ type Post struct {
 type Topic struct {
 	ForumId   int
 	Id        int
-	OrigId    int
 	Subject   string
 	CreatedOn time.Time
 	CreatedBy string
@@ -96,7 +95,6 @@ func parseTopic(d []byte) *Topic {
 			idparts := strings.Split(val, ".")
 			topic.ForumId, _ = strconv.Atoi(idparts[0])
 			topic.Id, _ = strconv.Atoi(idparts[1])
-			topic.OrigId = topic.Id
 		} else if "S" == name {
 			topic.Subject = val
 		} else if "On" == name {
@@ -219,21 +217,51 @@ func (s ByTime) Less(i, j int) bool {
 	return s.PostsSeq[i].CreatedOn.UnixNano() < s.PostsSeq[j].CreatedOn.UnixNano()
 }
 
-func orderTopicsAndPosts(topics []*Topic, posts []*Post) []*Topic {
+func findTopicById(topics []*Topic, id int) *Topic {
+	min := 0
+	max := len(topics) - 1
+	for max >= min {
+		mid := min + ((max - min) / 2)
+		topicId := topics[mid].Id
+		if topicId == id {
+			return topics[mid]
+		}
+		if id > topicId {
+			min = mid
+		} else {
+			max = mid
+		}
+	}
+	return nil
+}
+
+func renumberPostIds(topics []*Topic, posts []*Post) []*Topic {
 	res := make([]*Topic, 0)
-	idToTopic := make(map[int]*Topic)
+	topicIdToTopic := make(map[int]*Topic)
 	deletedTopics := make(map[int]*Topic)
 	droppedTopics := 0
 
 	for _, t := range topics {
-		if t.ForumId != 1 || t.IsDeleted {
+		if t.ForumId != 1 {
+			droppedTopics += 1
+			continue
+		}
+		if t.IsDeleted {
 			droppedTopics += 1
 			deletedTopics[t.Id] = t
 			continue
 		}
-		idToTopic[t.Id] = t
+		topicIdToTopic[t.Id] = t
 		t.Posts = make([]*Post, 0)
 		res = append(res, t)
+	}
+
+	prevId := 0
+	for _, t := range topics {
+		if t.Id <= prevId {
+			panic("Invalid id")
+			prevId = t.Id
+		}
 	}
 
 	droppedPosts := 0
@@ -244,7 +272,8 @@ func orderTopicsAndPosts(topics []*Topic, posts []*Post) []*Topic {
 			continue
 		}
 
-		t, ok := idToTopic[p.TopicId]
+		t, ok := topicIdToTopic[p.TopicId]
+		//t := findTopicById(res, p.TopicId)
 		if !ok {
 			if _, ok = deletedTopics[p.TopicId]; !ok {
 				panic("didn't find topic")
@@ -262,16 +291,11 @@ func orderTopicsAndPosts(topics []*Topic, posts []*Post) []*Topic {
 	}
 
 	emptyTopics := 0
-	// renumber ids sequentially for compactness
-	tId := 1
-	pId := 1
 	for _, t := range res {
 		if 0 == len(t.Posts) {
 			emptyTopics += 1
 			continue
 		}
-		t.Id = tId
-		pId = 1
 		sort.Sort(ByTime{t.Posts})
 
 		p := t.Posts[0]
@@ -281,20 +305,10 @@ func orderTopicsAndPosts(topics []*Topic, posts []*Post) []*Topic {
 			log.Fatalf("Mismatched names: t.CreatedBy=%s != p.UserName=%s", t.CreatedBy, p.UserName)
 		}
 
-		/*
-			if t.CreatedOn != p.CreatedOn {
-				fmt.Printf("%v\n", t)
-				fmt.Printf("%v\n", p)
-				fmt.Printf("Mismatched times: t.CreatedOn=%s != p.CreatedOn=%s\n\n", t.CreatedOn, p.CreatedOn)
-				//log.Fatalf("Mismatched times: t.CreatedOn=%s != p.CreatedOn=%s", t.CreatedOn, p.CreatedOn)
-			}*/
-
-		for _, p := range t.Posts {
-			p.TopicId = tId
-			p.Id = pId
-			pId += 1
+		for idx, p := range t.Posts {
+			p.TopicId = t.Id
+			p.Id = idx + 1
 		}
-		tId += 1
 	}
 	fmt.Printf("Dropped topics: %d, emptyTopics: %d, dropped posts: %d, total posts: %d\n", droppedTopics, emptyTopics, droppedPosts, nPosts)
 	return res
@@ -389,7 +403,7 @@ func main() {
 
 	topics := loadTopics()
 	posts := loadPosts()
-	topics = orderTopicsAndPosts(topics, posts)
+	topics = renumberPostIds(topics, posts)
 	strs := serializePostsAndTopics(topics)
 
 	f, err := os.Create(dataFilePath(APP_NAME))

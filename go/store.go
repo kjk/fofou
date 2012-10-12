@@ -23,9 +23,8 @@ type Post struct {
 	IsDeleted    bool
 }
 
-// Note: to save memory, we don't store id because it is implicit
-// (id == index withing topics array + 1)
 type Topic struct {
+	Id        int
 	Subject   string
 	Posts     []Post
 	IsDeleted bool
@@ -41,6 +40,7 @@ type Store struct {
 
 func parseTopics(d []byte) []Topic {
 	topics := make([]Topic, 0)
+	topicIdToTopic := make(map[int]*Topic)
 	for len(d) > 0 {
 		idx := bytes.IndexByte(d, '\n')
 		if -1 == idx {
@@ -64,17 +64,14 @@ func parseTopics(d []byte) []Topic {
 			if err != nil {
 				panic("idStr is not a number")
 			}
-			if len(topics)+1 != id {
-				fmt.Printf("%s\n", string(line))
-				fmt.Printf("id=%d, len(topics)=%d\n", id, len(topics))
-				panic("id should be == len(topics)+1")
-			}
 			t := Topic{
+				Id:        id,
 				Subject:   subject,
 				IsDeleted: false,
 				Posts:     make([]Post, 0),
 			}
 			topics = append(topics, t)
+			topicIdToTopic[t.Id] = &topics[len(topics)-1]
 		} else if line[0] == 'P' {
 			// parse:
 			// P1|1|1148874103|K4hYtOI8xYt5dYH25VQ7Qcbk73A|4b0af66e|Krzysztof Kowalczyk
@@ -111,7 +108,10 @@ func parseTopics(d []byte) []Topic {
 			if len(msgSha1) != 20 {
 				panic("len(msgSha1) != 20")
 			}
-			t := &topics[topicId-1]
+			t, ok := topicIdToTopic[topicId]
+			if !ok {
+				panic("didn't find topic with a given topicId")
+			}
 			if id != len(t.Posts)+1 {
 				fmt.Printf("%s\n", string(line))
 				fmt.Printf("topicId=%d, id=%d, len(topic.Posts)=%d\n", topicId, id, len(t.Posts))
@@ -126,7 +126,6 @@ func parseTopics(d []byte) []Topic {
 			}
 			copy(post.MessageSha1[:], msgSha1)
 			t.Posts = append(t.Posts, post)
-			fmt.Printf("%v\n", t)
 		} else if line[0] == 'D' {
 			// TODO: parse:
 			// DT1 or DP1
