@@ -8,23 +8,30 @@ import (
 	"net/http"
 )
 
-type DisplayTopic struct {
+type TopicDisplay struct {
 	Topic
-	CommentsCount int
-	MsgShort      string
-	CreatedBy     string
+	CommentsCountMsg string
+	CreatedBy        string
+	TopicLinkClass   string
+	TopicUrl         string
 }
 
 type ModelForum struct {
 	Forum
-	NewFrom     int
 	User        string
 	UserIsAdmin bool
 	ErrorMsg    string
 	RedirectUrl string
 	SidebarHtml template.HTML
-	FromNext    int
-	Topics      []*DisplayTopic
+	NewFrom     int
+	Topics      []*TopicDisplay
+}
+
+func plural(n int, s string) string {
+	if 1 == n {
+		return fmt.Sprintf("%d %s", n, s)
+	}
+	return fmt.Sprintf("%d %ss", n, s)
 }
 
 // handler for url: /{forum}
@@ -45,23 +52,40 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 	user := decodeUserFromCookie(r)
 	topics := forum.Store.GetTopics(nTopicsMax, from)
 	n := len(topics)
-	displayTopics := make([]*DisplayTopic, n, n)
+	topicsDisplay := make([]*TopicDisplay, n, n)
 	for idx, t := range topics {
-		displayTopic := &DisplayTopic{
+		d := &TopicDisplay{
 			Topic:     *t,
 			CreatedBy: t.Posts[0].UserName,
 		}
-		displayTopic.MsgShort = "hello"
-		displayTopics[idx] = displayTopic
+		nComments := len(t.Posts)
+		if 0 == idx {
+			d.CommentsCountMsg = plural(nComments, "comment")
+		} else {
+			d.CommentsCountMsg = fmt.Sprintf("%d", nComments)
+		}
+		if t.IsDeleted {
+			d.TopicLinkClass = "deleted"
+		}
+		if 0 == nComments {
+			d.TopicUrl = fmt.Sprintf("/%s/topic?id=%d", forumUrl, t.Id)
+		} else {
+			d.TopicUrl = fmt.Sprintf("/%s/topic?id=%d&comments=%d", forumUrl, t.Id, nComments)
+		}
+		topicsDisplay[idx] = d
 	}
+
+	// TODO: set newFrom to 0 if there are no more topics after those
+	newFrom := len(topicsDisplay) + from
 
 	model := &ModelForum{
 		Forum:       *forum,
 		User:        user,
 		UserIsAdmin: false,
 		RedirectUrl: r.URL.String(),
-		Topics:      displayTopics,
+		Topics:      topicsDisplay,
 		SidebarHtml: template.HTML(forum.Sidebar),
+		NewFrom:     newFrom,
 	}
 
 	if err := GetTemplates().ExecuteTemplate(w, tmplForum, model); err != nil {

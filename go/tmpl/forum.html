@@ -31,12 +31,8 @@
 		<div class="topics">
 			{{ if len .Topics }}
 				{{ range .Topics }}
-				    {{ if .IsDeleted }}
-						<a class="deleted" href="/{{ $forumUrl }}/topic?id={{ .Id }}{{ if .CommentsCount }}&comments={{ .CommentsCount }}{{ end }}" title="{{ .MsgShort }}">{{ .Subject }} </a>
-					{{ else }}
-						<a href="/{{ $forumUrl }}/topic?id={{ .Id }}{{ if .CommentsCount }}&comments={{ .CommentsCount }}{{ end }}" title="{{ .MsgShort }}">{{ .Subject }} </a>
-					{{ end }}
-					<em>{{ .CreatedBy }}</em> <span>({{ .CommentsCount }})</span>
+					<a class="{{.TopicLinkClass}}" href="{{.TopicUrl}}">{{ .Subject }} </a>
+					<em>{{ .CreatedBy }}</em> <span>({{ .CommentsCountMsg }})</span>
 					<br />
 				{{ end }}
 			{{ else }}
