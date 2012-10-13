@@ -27,6 +27,7 @@
 
 <tr>
 	<td class="sidebar">{{ .SidebarHtml }}</td>
+
 	<td class="contents">
 		<script language="javascript" type="text/javascript">
 			rolloverInit('link', '/img/link_over.jpg');
@@ -42,7 +43,7 @@
 			<div>
 				<div class="{{.CssClass}}">{{ .MessageHtml }}</div>
 				<div class="signature">
-					<a href="/{{$forumUrl}}/topic?id={{ $topicId }}#{{ .Id }}" title="Permalink" onmouseover="rolloverOn('link', {{ .Id }});" onmouseout="rolloverOff();"><img align="right" id="link{{ .Id}}" src="/img/link.jpg" alt="Permalink" border="0" height="16" width="16"></a>
+					<a href="/{{$forumUrl}}/topic?id={{ $topicId }}#{{ .Id }}" title="Permalink" onmouseover="rolloverOn('link', {{ .Id }});" onmouseout="rolloverOff();"><img align="right" id="link{{.Id}}" src="/img/link.jpg" alt="Permalink" border="0" height="16" width="16"></a>
 
 					{{ if $isModerator }}
 						{{ if .IsDeleted }}

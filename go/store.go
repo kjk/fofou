@@ -25,10 +25,9 @@ type Post struct {
 }
 
 type Topic struct {
-	Id        int
-	Subject   string
-	Posts     []Post
-	IsDeleted bool
+	Id      int
+	Subject string
+	Posts   []Post
 }
 
 type Store struct {
@@ -37,6 +36,15 @@ type Store struct {
 
 	dataFile *os.File
 	mu       sync.Mutex // to serialize writes
+}
+
+func (t *Topic) IsDeleted() bool {
+	for _, p := range t.Posts {
+		if !p.IsDeleted {
+			return false
+		}
+	}
+	return true
 }
 
 func parseTopics(d []byte) []Topic {
@@ -66,10 +74,9 @@ func parseTopics(d []byte) []Topic {
 				panic("idStr is not a number")
 			}
 			t := Topic{
-				Id:        id,
-				Subject:   subject,
-				IsDeleted: false,
-				Posts:     make([]Post, 0),
+				Id:      id,
+				Subject: subject,
+				Posts:   make([]Post, 0),
 			}
 			topics = append(topics, t)
 			topicIdToTopic[t.Id] = &topics[len(topics)-1]

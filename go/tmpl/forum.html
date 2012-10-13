@@ -16,16 +16,15 @@
 <tr>
 	<td colspan="2" class="header">
 		<div>
-			<h1><a href="/{{ .ForumUrl }}" class="green">{{ .Title }}</a></h1>
+			<h1><a href="/{{ .ForumUrl }}" class="green">{{ .Title }}</a>
+			&nbsp;&nbsp;<a href="/{{ .ForumUrl }}/rss" title="RSS feed"><img src="/img/rss.gif" alt="RSS feed" valign="middle" border="0" height="14" width="36"></a>
+</h1>
 			<p>{{ .Tagline }}</p>
 		</div>
-		<a href="/{{ .ForumUrl }}/rss" title="RSS feed"><img src="/img/rss.gif" alt="RSS feed" align="right" valign="middle" border="0" height="14" width="36"></a><br />
 	</td>
 </tr>
 <tr>
-	<td class="sidebar">
-		{{ .SidebarHtml }}
-	</td>
+	<td class="sidebar">{{ .SidebarHtml }}</td>
 	<td class="contents">
 		<div class="topics">
 			{{ if len .Topics }}

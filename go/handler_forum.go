@@ -72,7 +72,7 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 		} else {
 			d.CommentsCountMsg = fmt.Sprintf("%d", nComments)
 		}
-		if t.IsDeleted {
+		if t.IsDeleted() {
 			d.TopicLinkClass = "deleted"
 		}
 		if 0 == nComments {
