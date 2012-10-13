@@ -160,6 +160,14 @@ func readExistingData(fileDataPath string) ([]Topic, error) {
 	return parseTopics(data), nil
 }
 
+func verifyTopics(topics []Topic) {
+	for i, t := range topics {
+		if 0 == len(t.Posts) {
+			fmt.Printf("topics at idx %d (%v) has no posts!\n", i, t)
+		}
+	}
+}
+
 func NewStore(dataDir string) (*Store, error) {
 	dataFilePath := filepath.Join(dataDir, "data.txt")
 	store := &Store{dataDir: dataDir}
@@ -179,6 +187,9 @@ func NewStore(dataDir string) (*Store, error) {
 		f.Close()
 		store.topics = make([]Topic, 0)
 	}
+
+	verifyTopics(store.topics)
+
 	store.dataFile, err = os.OpenFile(dataFilePath, os.O_APPEND|os.O_RDWR, 0666)
 	if err != nil {
 		fmt.Printf("NewStore(): os.OpenFile(%s) failed with %s", dataFilePath, err.Error())
@@ -193,17 +204,28 @@ func (s *Store) TopicsCount() int {
 	return len(s.topics)
 }
 
-func (s *Store) GetTopics(nMax, from int) []*Topic {
+func (s *Store) GetTopics(nMax, from int, withDeleted bool) ([]*Topic, int) {
 	res := make([]*Topic, 0, nMax)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	n := nMax
-	for i := len(s.topics) - 1 - from; i >= 0 && n >= 0; i-- {
-		t := &s.topics[i]
+	i := from
+	for n > 0 {
+		idx := len(s.topics) - 1 - i
+		if idx < 0 {
+			break
+		}
+		t := &s.topics[idx]
 		res = append(res, t)
 		n -= 1
+		i += 1
 	}
-	return res
+
+	newFrom := i
+	if len(s.topics)-1-newFrom <= 0 {
+		newFrom = 0
+	}
+	return res, newFrom
 }
 
 /*

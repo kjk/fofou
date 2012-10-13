@@ -199,6 +199,10 @@ func serveErrorMsg(w http.ResponseWriter, msg string) {
 	http.Error(w, msg, http.StatusBadRequest)
 }
 
+// TODO: must distinguish between twitter users and non-twitter users
+// e.g. by adding t: prefix to twitter users (and making sure to remove
+// potential t: prefix fron anonymous user names, so that they can't
+// impersonate admin)
 func userIsAdmin(f *Forum, user string) bool {
 	return user == f.AdminTwitterUser
 }

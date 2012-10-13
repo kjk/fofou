@@ -273,6 +273,7 @@ func renumberPostIds(topics []*Topic, posts []*Post) []*Topic {
 	}
 
 	emptyTopics := 0
+	res2 := make([]*Topic, 0)
 	for _, t := range res {
 		if 0 == len(t.Posts) {
 			emptyTopics += 1
@@ -291,9 +292,10 @@ func renumberPostIds(topics []*Topic, posts []*Post) []*Topic {
 			p.TopicId = t.Id
 			p.Id = idx + 1
 		}
+		res2 = append(res2, t)
 	}
 	fmt.Printf("Dropped topics: %d, emptyTopics: %d, dropped posts: %d, total posts: %d\n", droppedTopics, emptyTopics, droppedPosts, nPosts)
-	return res
+	return res2
 }
 
 var sep = "|"

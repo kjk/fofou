@@ -56,18 +56,20 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Printf("handleForum(): forum: '%s', from: %d\n", forumUrl, from)
 
-	nTopicsMax := 75
+	nTopicsMax := 50
 	user := decodeUserFromCookie(r)
-	topics := forum.Store.GetTopics(nTopicsMax, from)
-	n := len(topics)
-	topicsDisplay := make([]*TopicDisplay, n, n)
-	for idx, t := range topics {
+	isAdmin := userIsAdmin(forum, user)
+	withDeleted := isAdmin
+	topics, newFrom := forum.Store.GetTopics(nTopicsMax, from, withDeleted)
+	topicsDisplay := make([]*TopicDisplay, len(topics), len(topics))
+
+	for i, t := range topics {
 		d := &TopicDisplay{
 			Topic:     *t,
 			CreatedBy: t.Posts[0].UserName,
 		}
 		nComments := len(t.Posts)
-		if 0 == idx {
+		if 0 == i {
 			d.CommentsCountMsg = plural(nComments, "comment")
 		} else {
 			d.CommentsCountMsg = fmt.Sprintf("%d", nComments)
@@ -80,16 +82,13 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 		} else {
 			d.TopicUrl = fmt.Sprintf("/%s/topic?id=%d&comments=%d", forumUrl, t.Id, nComments)
 		}
-		topicsDisplay[idx] = d
+		topicsDisplay[i] = d
 	}
-
-	// TODO: set newFrom to 0 if there are no more topics after those
-	newFrom := len(topicsDisplay) + from
 
 	model := &ModelForum{
 		Forum:       *forum,
 		User:        user,
-		UserIsAdmin: false,
+		UserIsAdmin: isAdmin,
 		RedirectUrl: r.URL.String(),
 		Topics:      topicsDisplay,
 		SidebarHtml: template.HTML(forum.Sidebar),
