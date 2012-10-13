@@ -21,7 +21,7 @@
 </tr>
 
 {{ $topicId := .Id }}
-{{ $isModerator := .IsModerator }}
+{{ $isAdmin := .IsAdmin }}
 {{ $createdOnStr := .CreatedOnStr }}
 {{ $forumUrl := .ForumUrl }}
 
@@ -43,9 +43,7 @@
 			<div>
 				<div class="{{.CssClass}}">{{ .MessageHtml }}</div>
 				<div class="signature">
-					<a href="/{{$forumUrl}}/topic?id={{ $topicId }}#{{ .Id }}" title="Permalink" onmouseover="rolloverOn('link', {{ .Id }});" onmouseout="rolloverOff();"><img align="right" id="link{{.Id}}" src="/img/link.jpg" alt="Permalink" border="0" height="16" width="16"></a>
-
-					{{ if $isModerator }}
+					{{ if $isAdmin }}
 						{{ if .IsDeleted }}
 							<a href="/{{$forumUrl}}/postundel?topicId={{$topicId}}&postId={{.Id}}" title="Undelete Post" onmouseover="rolloverOn('undo', {{ .Id }});" onmouseout="rolloverOff();"><img align="right" id="undo{{ .Id }}" src="/img/undo.jpg" width="16" height="16" border="0" /></a>
 						{{ else }}
@@ -60,7 +58,7 @@
 					<span class="noIE">&nbsp;</span><br />
 					{{ $createdOnStr }}
 
-					{{ if $isModerator }}
+					{{ if $isAdmin }}
 						<br /> From ip: {{ .UserIpStr }}
 					{{ end }}
 				</div>

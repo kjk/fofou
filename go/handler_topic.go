@@ -14,11 +14,12 @@ import (
 type ModelTopic struct {
 	Forum
 	Topic
-	SidebarHtml  template.HTML
-	ForumUrl     string
-	Posts        []*PostDisplay
-	IsModerator  bool
-	CreatedOnStr string
+	SidebarHtml   template.HTML
+	ForumUrl      string
+	Posts         []*PostDisplay
+	IsAdmin       bool
+	CreatedOnStr  string
+	AnalyticsCode *string
 }
 
 type PostDisplay struct {
@@ -47,7 +48,7 @@ func handleTopic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("handleTopic(): forum: '%s', topicId: %d\n", forumUrl, topicId)
+	//fmt.Printf("handleTopic(): forum: '%s', topicId: %d\n", forumUrl, topicId)
 	topic := forum.Store.TopicById(topicId)
 	if nil == topic {
 		fmt.Printf("Didn't find topic with id %d\n", topicId)
@@ -58,7 +59,7 @@ func handleTopic(w http.ResponseWriter, r *http.Request) {
 	for idx, p := range topic.Posts {
 		pd := &PostDisplay{
 			Post:     p,
-			Id:       idx + 0,
+			Id:       idx + 1,
 			CssClass: "post",
 		}
 		if pd.IsDeleted {
@@ -79,13 +80,15 @@ func handleTopic(w http.ResponseWriter, r *http.Request) {
 	}
 
 	model := &ModelTopic{
-		Forum:       *forum,
-		Topic:       *topic,
-		SidebarHtml: template.HTML(forum.Sidebar),
-		ForumUrl:    forumUrl,
-		Posts:       posts,
+		Forum:         *forum,
+		Topic:         *topic,
+		SidebarHtml:   template.HTML(forum.Sidebar),
+		ForumUrl:      forumUrl,
+		Posts:         posts,
+		AnalyticsCode: config.AnalyticsCode,
+		IsAdmin:       false,
 	}
-
+	// TODO: set IsAdmin properly
 	if err := GetTemplates().ExecuteTemplate(w, tmplTopic, model); err != nil {
 		fmt.Printf("handleForum(): Execute template error %s\n", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)

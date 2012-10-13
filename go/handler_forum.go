@@ -20,13 +20,14 @@ type TopicDisplay struct {
 
 type ModelForum struct {
 	Forum
-	User        string
-	UserIsAdmin bool
-	ErrorMsg    string
-	RedirectUrl string
-	SidebarHtml template.HTML
-	NewFrom     int
-	Topics      []*TopicDisplay
+	User          string
+	UserIsAdmin   bool
+	ErrorMsg      string
+	RedirectUrl   string
+	SidebarHtml   template.HTML
+	NewFrom       int
+	Topics        []*TopicDisplay
+	AnalyticsCode *string
 }
 
 func plural(n int, s string) string {
@@ -54,7 +55,7 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 			from = 0
 		}
 	}
-	fmt.Printf("handleForum(): forum: '%s', from: %d\n", forumUrl, from)
+	//fmt.Printf("handleForum(): forum: '%s', from: %d\n", forumUrl, from)
 
 	nTopicsMax := 50
 	user := decodeUserFromCookie(r)
@@ -86,13 +87,14 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 	}
 
 	model := &ModelForum{
-		Forum:       *forum,
-		User:        user,
-		UserIsAdmin: isAdmin,
-		RedirectUrl: r.URL.String(),
-		Topics:      topicsDisplay,
-		SidebarHtml: template.HTML(forum.Sidebar),
-		NewFrom:     newFrom,
+		Forum:         *forum,
+		User:          user,
+		UserIsAdmin:   isAdmin,
+		RedirectUrl:   r.URL.String(),
+		Topics:        topicsDisplay,
+		SidebarHtml:   template.HTML(forum.Sidebar),
+		NewFrom:       newFrom,
+		AnalyticsCode: config.AnalyticsCode,
 	}
 
 	if err := GetTemplates().ExecuteTemplate(w, tmplForum, model); err != nil {

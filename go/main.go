@@ -39,11 +39,18 @@ var (
 		Forums                  []ForumConfig
 		CookieAuthKeyHexStr     *string
 		CookieEncrKeyHexStr     *string
+		AnalyticsCode           *string
+		AwsAccess               *string
+		AwsSecret               *string
+		S3BackupBucket          *string
+		S3BackupDir             *string
 	}{
 		&oauthClient.Credentials,
 		nil,
+		nil, nil,
 		nil,
-		nil,
+		nil, nil,
+		nil, nil,
 	}
 	logger        *ServerLogger
 	cookieAuthKey []byte
@@ -71,13 +78,12 @@ var (
 
 // a static configuration of a single forum
 type ForumConfig struct {
-	Title         string
-	ForumUrl      string
-	WebsiteUrl    string
-	Sidebar       string
-	Tagline       string
-	DataDir       string
-	AnalyticsCode string
+	Title      string
+	ForumUrl   string
+	WebsiteUrl string
+	Sidebar    string
+	Tagline    string
+	DataDir    string
 	// we authenticate only with Twitter, this is the twitter user name
 	// of the admin user
 	AdminTwitterUser string
@@ -311,6 +317,8 @@ func main() {
 	r.HandleFunc("/{forum}/", makeTimingHandler(handleForum))
 	r.HandleFunc("/{forum}/rss", makeTimingHandler(handleRss))
 	r.HandleFunc("/{forum}/topic", makeTimingHandler(handleTopic))
+	r.HandleFunc("/{forum}/postdel", makeTimingHandler(handlePostDelete))
+	r.HandleFunc("/{forum}/postundel", makeTimingHandler(handlePostUndelete))
 
 	//r.HandleFunc("/{forum}/newpost", makeTimingHandler(handleNewPost))
 

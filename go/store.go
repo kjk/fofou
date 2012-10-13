@@ -286,9 +286,7 @@ func findTopicById(topics []*Topic, id int) *Topic {
 }
 */
 
-func (s *Store) TopicById(id int) *Topic {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (s *Store) topicByIdUnlocked(id int) *Topic {
 	// TODO: binary search?
 	for idx, t := range s.topics {
 		if id == t.Id {
@@ -296,6 +294,12 @@ func (s *Store) TopicById(id int) *Topic {
 		}
 	}
 	return nil
+}
+
+func (s *Store) TopicById(id int) *Topic {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.topicByIdUnlocked(id)
 }
 
 func blobPath(dir, sha1 string) string {
@@ -310,18 +314,22 @@ func (s *Store) MessageFilePath(sha1 [20]byte) string {
 }
 
 func (s *Store) findPost(topicId, postId int) (*Post, error) {
-	topic := s.TopicById(topicId)
+	topic := s.topicByIdUnlocked(topicId)
 	if nil == topic {
 		return nil, errors.New("didn't find a topic with this id")
 	}
 	if postId > len(topic.Posts) {
 		return nil, errors.New("didn't find post with this id")
 	}
+
 	return &topic.Posts[postId-1], nil
 }
 
 func (s *Store) appendString(str string) error {
 	_, err := s.dataFile.WriteString(str)
+	if err != nil {
+		fmt.Printf("appendString() error: %s\n", err.Error())
+	}
 	return err
 }
 
@@ -336,7 +344,7 @@ func (s *Store) DeletePost(topicId, postId int) error {
 	if post.IsDeleted {
 		return errors.New("post already deleted")
 	}
-	str := fmt.Sprintf("D|%d|%d\n", topicId, postId)
+	str := fmt.Sprintf("D%d|%d\n", topicId, postId)
 	if err = s.appendString(str); err != nil {
 		return err
 	}
@@ -355,7 +363,7 @@ func (s *Store) UndeletePost(topicId, postId int) error {
 	if !post.IsDeleted {
 		return errors.New("post already not deleted")
 	}
-	str := fmt.Sprintf("U|%d|%d\n", topicId, postId)
+	str := fmt.Sprintf("U%d|%d\n", topicId, postId)
 	if err = s.appendString(str); err != nil {
 		return err
 	}
