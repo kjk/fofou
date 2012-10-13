@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -45,6 +46,35 @@ func (t *Topic) IsDeleted() bool {
 		}
 	}
 	return true
+}
+
+func parseDelUndel(d []byte) (int, int) {
+	s := string(d)
+	parts := strings.Split(s, "|")
+	if len(parts) != 2 {
+		panic("len(parts) != 2")
+	}
+	topicId, err := strconv.Atoi(parts[0])
+	if err != nil {
+		panic("invalid topicId")
+	}
+	postId, err := strconv.Atoi(parts[1])
+	if err != nil {
+		panic("invalid postId")
+	}
+	return topicId, postId
+}
+
+func findPostToDelUndel(d []byte, topicIdToTopic map[int]*Topic) *Post {
+	topicId, postId := parseDelUndel(d)
+	topic, ok := topicIdToTopic[topicId]
+	if !ok {
+		panic("no topic with that id")
+	}
+	if postId > len(topic.Posts) {
+		panic("invalid postId")
+	}
+	return &topic.Posts[postId-1]
 }
 
 func parseTopics(d []byte) []Topic {
@@ -135,11 +165,19 @@ func parseTopics(d []byte) []Topic {
 			copy(post.MessageSha1[:], msgSha1)
 			t.Posts = append(t.Posts, post)
 		} else if line[0] == 'D' {
-			// TODO: parse:
-			// DT1 or DP1
+			// D|1234|1
+			post := findPostToDelUndel(line[1:], topicIdToTopic)
+			if post.IsDeleted {
+				panic("post already deleted")
+			}
+			post.IsDeleted = true
 		} else if line[0] == 'U' {
-			// TODO: parse:
-			// UT1 or UP1
+			// U|1234|1
+			post := findPostToDelUndel(line[1:], topicIdToTopic)
+			if !post.IsDeleted {
+				panic("post already undeleted")
+			}
+			post.IsDeleted = false
 		} else {
 			panic("Unexpected line type")
 		}
@@ -269,4 +307,58 @@ func blobPath(dir, sha1 string) string {
 func (s *Store) MessageFilePath(sha1 [20]byte) string {
 	sha1Str := hex.EncodeToString(sha1[:])
 	return blobPath(s.dataDir, sha1Str)
+}
+
+func (s *Store) findPost(topicId, postId int) (*Post, error) {
+	topic := s.TopicById(topicId)
+	if nil == topic {
+		return nil, errors.New("didn't find a topic with this id")
+	}
+	if postId > len(topic.Posts) {
+		return nil, errors.New("didn't find post with this id")
+	}
+	return &topic.Posts[postId-1], nil
+}
+
+func (s *Store) appendString(str string) error {
+	_, err := s.dataFile.WriteString(str)
+	return err
+}
+
+func (s *Store) DeletePost(topicId, postId int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	post, err := s.findPost(topicId, postId)
+	if err != nil {
+		return err
+	}
+	if post.IsDeleted {
+		return errors.New("post already deleted")
+	}
+	str := fmt.Sprintf("D|%d|%d\n", topicId, postId)
+	if err = s.appendString(str); err != nil {
+		return err
+	}
+	post.IsDeleted = true
+	return nil
+}
+
+func (s *Store) UndeletePost(topicId, postId int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	post, err := s.findPost(topicId, postId)
+	if err != nil {
+		return err
+	}
+	if !post.IsDeleted {
+		return errors.New("post already not deleted")
+	}
+	str := fmt.Sprintf("U|%d|%d\n", topicId, postId)
+	if err = s.appendString(str); err != nil {
+		return err
+	}
+	post.IsDeleted = false
+	return nil
 }
