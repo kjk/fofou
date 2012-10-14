@@ -59,6 +59,13 @@ func formatTime(t time.Time) string {
 	return s
 }
 
+// TODO: auto-urlize links
+func msgToHtml(s string) string {
+	s = template.HTMLEscapeString(s)
+	s = strings.Replace(s, "\n", "<br>", -1)
+	return s
+}
+
 // handler for url: /{forum}/topic?id=${id}
 func handleTopic(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -102,10 +109,9 @@ func handleTopic(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			msgStr = fmt.Sprintf("Error: failed to fetch a message with sha1 %x, file: %s", sha1[:], msgFilePath)
 		} else {
-			// TODO: auto-urlize links
-			msgStr = string(msg)
+			msgStr = msgToHtml(string(msg))
 		}
-		pd.MessageHtml = template.HTML(template.HTMLEscapeString(msgStr))
+		pd.MessageHtml = template.HTML(msgStr)
 		posts = append(posts, pd)
 	}
 
