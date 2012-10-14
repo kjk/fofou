@@ -69,7 +69,7 @@ var (
 	tmplMain        = "main.html"
 	tmplForum       = "forum.html"
 	tmplTopic       = "topic.html"
-	tmplNewPost = "newpost.html"
+	tmplNewPost     = "newpost.html"
 	templateNames   = [...]string{tmplMain, tmplForum, tmplTopic, tmplNewPost}
 	templatePaths   []string
 	templates       *template.Template

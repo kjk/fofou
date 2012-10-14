@@ -98,7 +98,7 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := GetTemplates().ExecuteTemplate(w, tmplForum, model); err != nil {
-		fmt.Printf("handleForum(): Execute template error %s\n", err.Error())
+		fmt.Printf("handleForum(): ExecuteTemplate error %s\n", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

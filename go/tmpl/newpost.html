@@ -21,16 +21,16 @@
 	</td>
 </tr>
 <tr>
-	<td class="sidebar">{{ .Sidebar }}
+	<td class="sidebar">{{ .SidebarHtml }}
 	</td>
 	<td class="contents">
 	<div class="form">
-		<form action="post" method="post">
+		<form action="newpost" method="post">
 		<input name="num1" value="{{ .Num1 }}" type="hidden">
 		<input name="num2" value="{{ .Num2 }}" type="hidden">
 
-		{{ if .PrevTopicId }} 
-			<input name="TopicId" value="{{ .PrevTopicId }}" type="hidden">
+		{{ if .TopicId }} 
+			<input name="TopicId" value="{{ .TopicId }}" type="hidden">
 			<h2>Reply to "{{ .PrevSubject }}"</h2>
 		{{ else }}
 			<h2>New topic</h2>
@@ -48,7 +48,7 @@
 					&nbsp;
 			</td>
 			</tr>
-			{{ if not .PrevTopicId }} 
+			{{ if not .TopicId }} 
 			<tr>
 				<th><label for="Subject">Subject:</label></th>
 				<td colspan="2">
@@ -61,8 +61,7 @@
 			<tr>
 				<th><label for="Message">Message:</label></th>
 				<td colspan="2">
-					<textarea class="{{ .MessageClass }}" name="Message" id="Message" style="width: 39em;" rows="16" cols="60" wrap="virtual">{{ .PrevMessage }}
-					</textarea>
+					<textarea class="{{ .MessageClass }}" name="Message" id="Message" style="width: 39em;" rows="16" cols="60" wrap="virtual">{{ .PrevMessage }}</textarea>
 					<div style="width: 300px;">Don't use HTML. Surround URLs with spaces.</div>
 					&nbsp;
 				</td>

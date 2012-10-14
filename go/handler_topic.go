@@ -126,7 +126,7 @@ func handleTopic(w http.ResponseWriter, r *http.Request) {
 	}
 	// TODO: set IsAdmin properly
 	if err := GetTemplates().ExecuteTemplate(w, tmplTopic, model); err != nil {
-		fmt.Printf("handleForum(): Execute template error %s\n", err.Error())
+		fmt.Printf("handleTopic(): ExecuteTemplate error %s\n", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

@@ -48,6 +48,18 @@ func FileSha1(path string) (string, error) {
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }
 
+func Sha1StringOfBytes(data []byte) string {
+	h := sha1.New()
+	h.Write(data)
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func Sha1OfBytes(data []byte) []byte {
+	h := sha1.New()
+	h.Write(data)
+	return h.Sum(nil)
+}
+
 func CopyFile(dst, src string) error {
 	fsrc, err := os.Open(src)
 	if err != nil {
@@ -70,15 +82,6 @@ func CreateDirIfNotExists(path string) error {
 		return os.MkdirAll(path, 0777)
 	}
 	return nil
-}
-
-func DataSha1(data []byte) (string, error) {
-	h := sha1.New()
-	_, err := h.Write(data)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }
 
 // the names of files inside the zip file are relatitve to dirToZip e.g.
