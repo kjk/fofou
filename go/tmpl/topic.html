@@ -22,7 +22,6 @@
 
 {{ $topicId := .Id }}
 {{ $isAdmin := .IsAdmin }}
-{{ $createdOnStr := .CreatedOnStr }}
 {{ $forumUrl := .ForumUrl }}
 
 <tr>
@@ -45,18 +44,18 @@
 				<div class="signature">
 					{{ if $isAdmin }}
 						{{ if .IsDeleted }}
-							<a href="/{{$forumUrl}}/postundel?topicId={{$topicId}}&postId={{.Id}}" title="Undelete Post" onmouseover="rolloverOn('undo', {{ .Id }});" onmouseout="rolloverOff();"><img align="right" id="undo{{ .Id }}" src="/img/undo.jpg" width="16" height="16" border="0" /></a>
+							<a href="/{{$forumUrl}}/postundel?topicId={{$topicId}}&postId={{.Id}}" title="Undelete Post" onmouseover="rolloverOn('undo', {{ .Id }});" onmouseout="rolloverOff();">
+							<img align="right" id="undo{{ .Id }}" src="/img/undo.jpg" width="16" height="16" border="0" /></a>
 						{{ else }}
-							<a href="/{{$forumUrl}}/postdel?topicId={{$topicId}}&postId={{.Id}}" title="Delete Post" onmouseover="rolloverOn('delete', {{.Id}});" onmouseout="rolloverOff();"><img align="right" id="delete{{.Id}}" src="/img/delete.jpg" width="16" height="16" border="0" /></a>
+							<a href="/{{$forumUrl}}/postdel?topicId={{$topicId}}&postId={{.Id}}" title="Delete Post" onmouseover="rolloverOn('delete', {{.Id}});" onmouseout="rolloverOff();">
+							<img align="right" id="delete{{.Id}}" src="/img/delete.jpg" width="16" height="16" border="0" /></a>
 						{{ end }}
 					{{ end }}
 					{{ if .UserHomepage }}
-						<a href="{{ .UserHomepage }}">{{ .UserName }}</a>
+						<a href="{{ .UserHomepage }}">{{ .UserName }}</a> on {{ .CreatedOnStr }}
 					{{ else }}
-						{{ .UserName}}
+						{{ .UserName}} on {{ .CreatedOnStr }}
 					{{ end }}
-					<span class="noIE">&nbsp;</span><br />
-					{{ $createdOnStr }}
 
 					{{ if $isAdmin }}
 						<br /> From ip: {{ .UserIpStr }}
@@ -83,9 +82,8 @@
 </table>
 <hr>
 
-<center>Powered by <a href="http://blog.kowalczyk.info/software/fofou">fofou</a> 
-(<b><font color="blue">Fo</font></b>rums <b><font color="blue">Fo</font></b>r Yo<b><font color="blue">u</font></b>,
-created by <a href="http://blog.kowalczyk.info">Krzysztof Kowalczyk</a>)</center>
+<center>Powered by <a href="http://blog.kowalczyk.info/software/fofou">fofou</a>,
+created by <a href="http://blog.kowalczyk.info">Krzysztof Kowalczyk</a></center>
 <br>
 
 {{ if .AnalyticsCode }}

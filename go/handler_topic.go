@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type ModelTopic struct {
@@ -18,7 +19,6 @@ type ModelTopic struct {
 	ForumUrl      string
 	Posts         []*PostDisplay
 	IsAdmin       bool
-	CreatedOnStr  string
 	AnalyticsCode *string
 }
 
@@ -27,8 +27,36 @@ type PostDisplay struct {
 	Id           int
 	UserIpStr    string
 	UserHomepage string
+	CreatedOnStr string
 	MessageHtml  template.HTML
 	CssClass     string
+}
+
+//October 11th, 2012 4:13p.m.
+// TODO: missing -st, -nd, -rd, -nt 
+/*
+function num_abbrev_str(num) {
+	var len = num.length, last_char = num.charAt(len - 1), abbrev
+	if (len == 2 && num.charAt(0) == '1') {
+		abbrev = 'th'
+	} else {
+		if (last_char == '1') {
+			abbrev = 'st'
+		} else if (last_char == '2') {
+	  		abbrev = 'nd'
+		} else if (last_char == '3') {
+	  		abbrev = 'rd'
+		} else {
+	  		abbrev = 'th'
+		}
+	}
+	return num + abbrev
+}
+*/
+// TODO: missing a.m/p.m distinction
+func formatTime(t time.Time) string {
+	s := t.Format("January 2, 2006 15:04")
+	return s
 }
 
 // handler for url: /{forum}/topic?id=${id}
@@ -55,12 +83,14 @@ func handleTopic(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, fmt.Sprintf("/%s/", forumUrl), 302)
 		return
 	}
+
 	posts := make([]*PostDisplay, 0)
 	for idx, p := range topic.Posts {
 		pd := &PostDisplay{
-			Post:     p,
-			Id:       idx + 1,
-			CssClass: "post",
+			Post:         p,
+			Id:           idx + 1,
+			CssClass:     "post",
+			CreatedOnStr: formatTime(p.CreatedOn),
 		}
 		if pd.IsDeleted {
 			pd.CssClass = "post deleted"
