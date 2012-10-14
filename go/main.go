@@ -69,7 +69,8 @@ var (
 	tmplMain        = "main.html"
 	tmplForum       = "forum.html"
 	tmplTopic       = "topic.html"
-	templateNames   = [...]string{tmplMain, tmplForum, tmplTopic}
+	tmplNewPost = "newpost.html"
+	templateNames   = [...]string{tmplMain, tmplForum, tmplTopic, tmplNewPost}
 	templatePaths   []string
 	templates       *template.Template
 	reloadTemplates = true
@@ -319,8 +320,7 @@ func main() {
 	r.HandleFunc("/{forum}/topic", makeTimingHandler(handleTopic))
 	r.HandleFunc("/{forum}/postdel", makeTimingHandler(handlePostDelete))
 	r.HandleFunc("/{forum}/postundel", makeTimingHandler(handlePostUndelete))
-
-	//r.HandleFunc("/{forum}/newpost", makeTimingHandler(handleNewPost))
+	r.HandleFunc("/{forum}/newpost", makeTimingHandler(handleNewPost))
 
 	http.Handle("/", r)
 	msg := fmt.Sprintf("Started runing on %s", *httpAddr)

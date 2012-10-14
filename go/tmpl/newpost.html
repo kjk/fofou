@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+	<title>{{ .Title }}</title>
+	<link href="/s/default.css" rel="stylesheet" type="text/css">
+	<script language="javascript" src="/s/default.js" type="text/javascript"></script>
+</head>
+
+<body>
+<div id="tbTop"> <a href="/login">login</a></div>
+<table>
+<tbody>
+<tr>
+	<td colspan="2" class="header">
+		<div>
+			<h1><a href="/{{ .ForumUrl }}" class="green">{{ .Title }}</a></h1>
+			<p>{{ .Tagline }}</p>
+			<br/>
+		</div>
+	</td>
+</tr>
+<tr>
+	<td class="sidebar">{{ .Sidebar }}
+	</td>
+	<td class="contents">
+	<div class="form">
+		<form action="post" method="post">
+		<input name="num1" value="{{ .Num1 }}" type="hidden">
+		<input name="num2" value="{{ .Num2 }}" type="hidden">
+
+		{{ if .PrevTopicId }} 
+			<input name="TopicId" value="{{ .PrevTopicId }}" type="hidden">
+			<h2>Reply to "{{ .PrevSubject }}"</h2>
+		{{ else }}
+			<h2>New topic</h2>
+		{{ end }}
+
+		<table class="form" cellspacing="0">
+			<tbody>
+			<tr>
+			<th><label for="Captcha">{{ .Num1 }} + {{ .Num2 }} is? (hint: {{ .Num3 }})</label>
+			</th>
+			<td colspan="2">
+				<input class="{{ .CaptchaClass }}" size="60" maxlength="64" name="Captcha" id="Captcha" style="width: 39em;" value="{{ .PrevCaptcha }}" type="edit">
+					<div>Are you human? (sorry we have to ask). Tell us how much
+					is {{ .Num1 }} + {{ .Num2 }} by entering <b>{{ .Num3 }}</b> above.</div>
+					&nbsp;
+			</td>
+			</tr>
+			{{ if not .PrevTopicId }} 
+			<tr>
+				<th><label for="Subject">Subject:</label></th>
+				<td colspan="2">
+					<input class="{{ .SubjectClass }}" size="60" maxlength="64" name="Subject" id="Subject" style="width: 39em;" value="{{ .PrevSubject }}" type="edit">
+					&nbsp;
+				</td>
+			</tr>
+			{{ end }}
+
+			<tr>
+				<th><label for="Message">Message:</label></th>
+				<td colspan="2">
+					<textarea class="{{ .MessageClass }}" name="Message" id="Message" style="width: 39em;" rows="16" cols="60" wrap="virtual">{{ .PrevMessage }}
+					</textarea>
+					<div style="width: 300px;">Don't use HTML. Surround URLs with spaces.</div>
+					&nbsp;
+				</td>
+			</tr>
+			<tr>
+				<th><label for="Name">Your name:</label></th>
+				<td style="width: 29em;">
+					<input class="{{ .NameClass }}" size="60" maxlength="32" name="Name" id="Name" style="width: 29em;" value="{{ .PrevName }}" type="edit">
+				</td>
+			</tr>
+			<tr>
+				<td>&nbsp;</td>
+				<td class="buttons" colspan="2">
+					<input accesskey="o" name="Ok" value="Ok" type="submit">
+					<input accesskey="c" name="Cancel" value="Cancel" type="submit">
+				</td>
+			</tr>
+			</tbody>
+		</table>
+
+		</form>
+	</div>
+
+	</td>
+</tr>
+</tbody>
+</table>
+<hr>
+
+<center>Powered by <a href="http://blog.kowalczyk.info/software/fofou">fofou</a>,
+created by <a href="http://blog.kowalczyk.info">Krzysztof Kowalczyk</a></center>
+<br>
+
+{{ if .AnalyticsCode }}
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+var pageTracker = _gat._getTracker("{{.AnalyticsCode}}");
+pageTracker._initData();
+pageTracker._trackPageview();
+</script>
+{{ end }}
+
+</body>
+</html>
+

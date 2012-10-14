@@ -86,7 +86,7 @@ func handleTopic(w http.ResponseWriter, r *http.Request) {
 	//fmt.Printf("handleTopic(): forum: '%s', topicId: %d\n", forumUrl, topicId)
 	topic := forum.Store.TopicById(topicId)
 	if nil == topic {
-		fmt.Printf("Didn't find topic with id %d\n", topicId)
+		fmt.Printf("handleTopic(): didn't find topic with id %d\n", topicId)
 		http.Redirect(w, r, fmt.Sprintf("/%s/", forumUrl), 302)
 		return
 	}
