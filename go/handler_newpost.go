@@ -88,12 +88,18 @@ func createNewPost(w http.ResponseWriter, r *http.Request, forumUrl string, mode
 	model.PrevSubject = subject
 	model.PrevMessage = msg
 	model.PrevName = name
+	model.TopicId = topic.Id
+
+	if model.TopicId != 0 {
+		model.PrevSubject = topic.Subject
+	}
 
 	ok := true
 	if !isCaptchaValid(num1Str, num2Str, captchaStr) {
+		fmt.Printf("Invalid captcha\n")
 		model.CaptchaClass = errorClass
 		ok = false
-	} else if !isSubjectValid(subject) {
+	} else if (model.TopicId == 0) && !isSubjectValid(subject) {
 		model.SubjectClass = errorClass
 		ok = false
 	} else if !isMsgValid(msg, topic) {
@@ -106,17 +112,26 @@ func createNewPost(w http.ResponseWriter, r *http.Request, forumUrl string, mode
 
 	if !ok {
 		if err := GetTemplates().ExecuteTemplate(w, tmplNewPost, model); err != nil {
-			fmt.Printf("handleNewPost(): ExecuteTemplate error %s\n", err.Error())
+			logger.Noticef("handleNewPost(): ExecuteTemplate() error %s\n", err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 		return
 	}
-	// TODO: create a new topic with a given post or add a post to an existing topic
 
+	store := model.Forum.Store
+	ipAddr := r.RemoteAddr
 	if topic == nil {
+		if err := store.CreateNewPost(subject, msg, name, ipAddr); err != nil {
+			logger.Errorf("createNewPost(): store.CreateNewPost() failed with %s", err.Error())
+			//fmt.Printf("createNewPost(): store.CreateNewPost() failed with %s\n", err.Error())
+		}
 		http.Redirect(w, r, fmt.Sprintf("/%s/", forumUrl), 302)
 	} else {
-		http.Redirect(w, r, fmt.Sprintf("/%s/topic=%d", forumUrl, topic.Id), 302)
+		if err := store.AddPostToTopic(topic.Id, msg, name, ipAddr); err != nil {
+			logger.Errorf("createNewPost(): store.AddPostToTopic() failed with %s", err.Error())
+			//fmt.Printf("createNewPost(): store.AddPostToTopic() failed with %s\n", err.Error())
+		}
+		http.Redirect(w, r, fmt.Sprintf("/%s/topic?id=%d", forumUrl, topic.Id), 302)
 	}
 }
 
@@ -127,7 +142,7 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 	forumUrl := vars["forum"]
 	forum := findForum(forumUrl)
 	if nil == forum {
-		fmt.Print("handleNewPost(): didn't find forum\n")
+		logger.Noticef("handleNewPost(): didn't find forum '%s'\n", forumUrl)
 		http.Redirect(w, r, "/", 302)
 		return
 	}
@@ -140,13 +155,13 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, fmt.Sprintf("/%s/", forumUrl), 302)
 			return
 		}
-		if topic = forum.Store.TopicById(topicId); topic != nil {
-			fmt.Printf("handleNewPost(): invalid topicId: %d\n", topicId)
+		if topic = forum.Store.TopicById(topicId); topic == nil {
+			logger.Noticef("handleNewPost(): invalid topicId: %d\n", topicId)
 			http.Redirect(w, r, fmt.Sprintf("/%s/", forumUrl), 302)
 			return
 		}
 	}
-	fmt.Printf("handleNewPost(): forum: '%s', topicId: %d\n", forumUrl, topicId)
+	//fmt.Printf("handleNewPost(): forum: '%s', topicId: %d\n", forumUrl, topicId)
 
 	model := &ModelNewPost{
 		Forum:         *forum,
@@ -169,7 +184,7 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = GetTemplates().ExecuteTemplate(w, tmplNewPost, model); err != nil {
-		fmt.Printf("handleNewPost(): ExecuteTemplate error %s\n", err.Error())
+		logger.Errorf("handleNewPost(): ExecuteTemplate() error %s\n", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

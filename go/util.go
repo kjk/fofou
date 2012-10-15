@@ -61,6 +61,9 @@ func Sha1OfBytes(data []byte) []byte {
 }
 
 func WriteBytesToFile(d []byte, path string) error {
+	if err := CreateDirIfNotExists(filepath.Dir(path)); err != nil {
+		return err
+	}
 	f, err := os.Create(path)
 	if err != nil {
 		return err

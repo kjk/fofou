@@ -30,7 +30,7 @@
 		<input name="num2" value="{{ .Num2 }}" type="hidden">
 
 		{{ if .TopicId }} 
-			<input name="TopicId" value="{{ .TopicId }}" type="hidden">
+			<input name="topicId" value="{{ .TopicId }}" type="hidden">
 			<h2>Reply to "{{ .PrevSubject }}"</h2>
 		{{ else }}
 			<h2>New topic</h2>

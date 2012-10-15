@@ -446,7 +446,14 @@ func remSep(s string) string {
 
 func (s *Store) writeMessageAsSha1(msg []byte, sha1 [20]byte) error {
 	path := s.MessageFilePath(sha1)
-	return WriteBytesToFile(msg, path)
+	err := WriteBytesToFile(msg, path)
+	/*
+		if err != nil {
+			fmt.Printf("Store.writeMessageAsSha1(): failed to write %s with error %s\n", path, err.Error())
+		} else {
+			fmt.Printf("Store.writeMessageAsSha1(): wrote %s\n", path)
+		}*/
+	return err
 }
 
 func (s *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool) error {

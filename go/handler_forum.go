@@ -69,7 +69,7 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 			Topic:     *t,
 			CreatedBy: t.Posts[0].UserName,
 		}
-		nComments := len(t.Posts)
+		nComments := len(t.Posts) - 1
 		if 0 == i {
 			d.CommentsCountMsg = plural(nComments, "comment")
 		} else {
