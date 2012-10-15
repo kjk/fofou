@@ -20,8 +20,6 @@ type TopicDisplay struct {
 
 type ModelForum struct {
 	Forum
-	User          string
-	UserIsAdmin   bool
 	ErrorMsg      string
 	RedirectUrl   string
 	SidebarHtml   template.HTML
@@ -29,6 +27,7 @@ type ModelForum struct {
 	NewFrom       int
 	Topics        []*TopicDisplay
 	AnalyticsCode *string
+	LogInOut      template.HTML
 }
 
 func plural(n int, s string) string {
@@ -59,13 +58,16 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 	//fmt.Printf("handleForum(): forum: '%s', from: %d\n", forumUrl, from)
 
 	nTopicsMax := 50
-	user := decodeUserFromCookie(r)
-	isAdmin := userIsAdmin(forum, user)
+	cookie := getSecureCookie(r)
+	isAdmin := userIsAdmin(forum, cookie)
 	withDeleted := isAdmin
 	topics, newFrom := forum.Store.GetTopics(nTopicsMax, from, withDeleted)
-	topicsDisplay := make([]*TopicDisplay, len(topics), len(topics))
+	topicsDisplay := make([]*TopicDisplay, 0)
 
 	for i, t := range topics {
+		if t.IsDeleted() && !isAdmin {
+			continue
+		}
 		d := &TopicDisplay{
 			Topic:     *t,
 			CreatedBy: t.Posts[0].UserName,
@@ -84,19 +86,17 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 		} else {
 			d.TopicUrl = fmt.Sprintf("/%s/topic?id=%d&comments=%d", forumUrl, t.Id, nComments)
 		}
-		topicsDisplay[i] = d
+		topicsDisplay = append(topicsDisplay, d)
 	}
 
 	model := &ModelForum{
 		Forum:         *forum,
-		User:          user,
-		UserIsAdmin:   isAdmin,
-		RedirectUrl:   r.URL.String(),
 		Topics:        topicsDisplay,
 		SidebarHtml:   template.HTML(forum.Sidebar),
 		ForumFullUrl:  buildForumUrl(r, forum),
 		NewFrom:       newFrom,
 		AnalyticsCode: config.AnalyticsCode,
+		LogInOut:      getLogInOut(r, getSecureCookie(r)),
 	}
 
 	if err := GetTemplates().ExecuteTemplate(w, tmplForum, model); err != nil {

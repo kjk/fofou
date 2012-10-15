@@ -12,6 +12,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"oauth"
 	"path/filepath"
@@ -207,12 +208,8 @@ func serveErrorMsg(w http.ResponseWriter, msg string) {
 	http.Error(w, msg, http.StatusBadRequest)
 }
 
-// TODO: must distinguish between twitter users and non-twitter users
-// e.g. by adding t: prefix to twitter users (and making sure to remove
-// potential t: prefix fron anonymous user names, so that they can't
-// impersonate admin)
-func userIsAdmin(f *Forum, user string) bool {
-	return user == f.AdminTwitterUser
+func userIsAdmin(f *Forum, cookie *SecureCookieValue) bool {
+	return cookie.TwitterUser == f.AdminTwitterUser
 }
 
 // reads the configuration file from the path specified by
@@ -289,6 +286,8 @@ func main() {
 	}
 
 	logger = NewServerLogger(256, 256)
+
+	rand.Seed(time.Now().UnixNano())
 
 	if err := readConfig(*configPath); err != nil {
 		log.Fatalf("Failed reading config file %s. %s\n", *configPath, err.Error())

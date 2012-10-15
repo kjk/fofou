@@ -6,57 +6,57 @@
 	<link href="/s/default.css" rel="stylesheet" type="text/css">
 	<script language="javascript" src="/s/default.js" type="text/javascript"></script>
 	<link type="application/rss+xml" rel="alternate" title="Discussion Group" href="/{{.ForumUrl}}/rss">
-
 </head>
 <body>
 
-<div id="tbTop"><a href="/login">login</a></div>
 <table>
 <tbody>
 <tr>
-	<td colspan="2" class="header">
-		<div>
-			<h1><a href="/{{ .ForumUrl }}" class="green">{{ .Title }}</a>
-			&nbsp;&nbsp;<a href="/{{ .ForumUrl }}/rss" title="RSS feed"><img src="/img/rss.gif" alt="RSS feed" valign="middle" border="0" height="14" width="36"></a>
-</h1>
-			<p>{{ .Tagline }}</p>
-		</div>
-	</td>
+  <td colspan="2" >
+    {{ .LogInOut }}
+    <div class="header">
+      <h1><a href="/{{ .ForumUrl }}" class="green">{{ .Title }}</a>
+        &nbsp;&nbsp;<a href="/{{ .ForumUrl }}/rss" title="RSS feed">
+        <img src="/img/rss.gif" alt="RSS feed" valign="middle" border="0" height="14" width="36"></a>
+      </h1>
+      <p>{{ .Tagline }}</p>
+    </div>
+  </td>
 </tr>
 <tr>
-	<td class="sidebar">{{ .SidebarHtml }}</td>
-	<td class="contents">
+  <td class="sidebar">{{ .SidebarHtml }}</td>
+  <td class="contents">
 
-		<form method="get" action="http://google.com/search">
-			<input type="hidden" name="IncludeBlogs" value="1">
-			<input type="hidden" name="as_sitesearch" value="{{.ForumFullUrl}}">
-			<div class="searchBox">
-				<label for="search">Search this forum:</label></br>
-				<input name="q" id="search" value="" type="text">
-				<input class="button" value="Go" type="submit">&nbsp;
-			</div>
-		</form>
+    <form method="get" action="http://google.com/search">
+      <input type="hidden" name="IncludeBlogs" value="1">
+      <input type="hidden" name="as_sitesearch" value="{{.ForumFullUrl}}">
+      <div class="searchBox">
+      	<label for="search">Search this forum:</label></br>
+        <input name="q" id="search" value="" type="text">
+        <input class="button" value="Go" type="submit">&nbsp;
+      </div>
+    </form>
 
-		<div class="topics">
-			{{ if len .Topics }}
-				{{ range .Topics }}
-					<div class="topic">
-						<a class="{{.TopicLinkClass}}" href="{{.TopicUrl}}">{{ .Subject }} </a>
-						<em>{{ .CreatedBy }}</em> <span>({{ .CommentsCountMsg }})</span>
-					</div>
-				{{ end }}
-			{{ else }}
-				There are no topics. You better create one.
-			{{ end }}
-		</div>
+    <div class="topics">
+      {{ if len .Topics }}
+        {{ range .Topics }}
+          <div class="topic">
+            <a class="{{.TopicLinkClass}}" href="{{.TopicUrl}}">{{ .Subject }} </a>
+            <em>{{ .CreatedBy }}</em> <span>({{ .CommentsCountMsg }})</span>
+          </div>
+        {{ end }}
+      {{ else }}
+          There are no topics. You better create one.
+      {{ end }}
+    </div>
 
-		<div class="buttons">
-		<a accesskey="n" href="/{{ .ForumUrl }}/newpost"><img src="/img/new.gif" alt="New topic" border="0" height="14" width="13"> <u>N</u>ew topic</a>
-		{{ if .NewFrom }}
-			<a accesskey="t" href="/{{ .ForumUrl }}/?from={{ .NewFrom }}"><img src="/img/archive.gif" alt="Older topics" border="0" height="14" width="13">Older <u>t</u>opics</a>
-		{{ end }}
-		</div>
-	</td>
+    <div class="buttons">
+      <a accesskey="n" href="/{{ .ForumUrl }}/newpost"><img src="/img/new.gif" alt="New topic" border="0" height="14" width="13"> <u>N</u>ew topic</a>
+      {{ if .NewFrom }}
+        <a accesskey="t" href="/{{ .ForumUrl }}/?from={{ .NewFrom }}"><img src="/img/archive.gif" alt="Older topics" border="0" height="14" width="13">Older <u>t</u>opics</a>
+      {{ end }}
+    </div>
+  </td>
 </tr>
 </tbody>
 </table>

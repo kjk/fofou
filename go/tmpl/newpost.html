@@ -8,17 +8,17 @@
 </head>
 
 <body>
-<div id="tbTop"> <a href="/login">login</a></div>
 <table>
 <tbody>
 <tr>
-	<td colspan="2" class="header">
-		<div>
-			<h1><a href="/{{ .ForumUrl }}" class="green">{{ .Title }}</a></h1>
-			<p>{{ .Tagline }}</p>
-			<br/>
-		</div>
-	</td>
+  <td colspan="2">
+    {{ .LogInOut }}
+    <div class="header">
+      <h1><a href="/{{ .ForumUrl }}" class="green">{{ .Title }}</a></h1>
+        <p>{{ .Tagline }}</p>
+        <br/>
+    </div>
+  </td>
 </tr>
 <tr>
 	<td class="sidebar">{{ .SidebarHtml }}
@@ -68,9 +68,15 @@
 			</tr>
 			<tr>
 				<th><label for="Name">Your name:</label></th>
-				<td style="width: 29em;">
-					<input class="{{ .NameClass }}" size="60" maxlength="32" name="Name" id="Name" style="width: 29em;" value="{{ .PrevName }}" type="edit">
-				</td>
+				{{ if .TwitterUserName }}
+					<td style="width: 29em;"><input name="Name" id="Name" value="{{ .TwitterUserName }}" type="hidden">
+					  {{ .TwitterUserName }}
+					</td>
+				{{ else }}
+					<td style="width: 29em;">
+						<input class="{{ .NameClass }}" size="60" maxlength="32" name="Name" id="Name" style="width: 29em;" value="{{ .PrevName }}" type="edit">
+					</td>
+				{{ end }}
 			</tr>
 			<tr>
 				<td>&nbsp;</td>

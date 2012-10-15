@@ -12,13 +12,15 @@ import (
 )
 
 type SecureCookieValue struct {
-	User        string
+	AnonUser    string
+	TwitterUser string
 	TwitterTemp string
 }
 
 func setSecureCookie(w http.ResponseWriter, cookieVal *SecureCookieValue) {
 	val := make(map[string]string)
-	val["user"] = cookieVal.User
+	val["anonuser"] = cookieVal.AnonUser
+	val["twuser"] = cookieVal.TwitterUser
 	val["twittertemp"] = cookieVal.TwitterTemp
 	if encoded, err := secureCookie.Encode(cookieName, val); err == nil {
 		// TODO: set expiration (Expires    time.Time) long time in the future?
@@ -48,30 +50,32 @@ func deleteSecureCookie(w http.ResponseWriter) {
 }
 
 func getSecureCookie(r *http.Request) *SecureCookieValue {
-	var ret *SecureCookieValue
+	ret := new(SecureCookieValue)
 	if cookie, err := r.Cookie(cookieName); err == nil {
 		// detect a deleted cookie
 		if "deleted" == cookie.Value {
-			return nil
+			return new(SecureCookieValue)
 		}
 		val := make(map[string]string)
 		if err = secureCookie.Decode(cookieName, cookie.Value, &val); err != nil {
 			// most likely expired cookie, so ignore. Ideally should delete the
 			// cookie, but that requires access to http.ResponseWriter, so not
 			// convenient for us
-			//fmt.Printf("Error decoding cookie %s\n", err.Error())
-			return nil
+			logger.Noticef("Error decoding cookie %s\n", err.Error())
+			return new(SecureCookieValue)
 		}
-		//fmt.Printf("Got cookie %q\n", val)
-		ret = new(SecureCookieValue)
 		var ok bool
-		if ret.User, ok = val["user"]; !ok {
-			fmt.Printf("Error decoding cookie, no 'user' field\n")
-			return nil
+		if ret.AnonUser, ok = val["anonuser"]; !ok {
+			logger.Errorf("Error decoding cookie, no 'anonuser' field\n")
+			return new(SecureCookieValue)
+		}
+		if ret.TwitterUser, ok = val["twuser"]; !ok {
+			logger.Errorf("Error decoding cookie, no 'twuser' field\n")
+			return new(SecureCookieValue)
 		}
 		if ret.TwitterTemp, ok = val["twittertemp"]; !ok {
-			fmt.Printf("Error decoding cookie, no 'twittertemp' field\n")
-			return nil
+			logger.Errorf("Error decoding cookie, no 'twittertemp' field\n")
+			return new(SecureCookieValue)
 		}
 	}
 	return ret
@@ -79,18 +83,14 @@ func getSecureCookie(r *http.Request) *SecureCookieValue {
 
 func decodeUserFromCookie(r *http.Request) string {
 	cookie := getSecureCookie(r)
-	if nil == cookie {
-		return ""
+	if cookie.TwitterUser == "" {
+		return cookie.TwitterUser
 	}
-	return cookie.User
+	return cookie.AnonUser
 }
 
 func decodeTwitterTempFromCookie(r *http.Request) string {
-	cookie := getSecureCookie(r)
-	if nil == cookie {
-		return ""
-	}
-	return cookie.TwitterTemp
+	return getSecureCookie(r).TwitterTemp
 }
 
 // getTwitter gets a resource from the Twitter API and decodes the json response to data.
@@ -147,9 +147,8 @@ func handleOauthTwitterCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if user, ok := info["screen_name"].(string); ok {
-		//fmt.Printf("  username: %s\n", user)
 		cookie := getSecureCookie(r)
-		cookie.User = user
+		cookie.TwitterUser = user
 		setSecureCookie(w, cookie)
 	}
 	http.Redirect(w, r, redirect, 302)

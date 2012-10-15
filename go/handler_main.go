@@ -7,10 +7,6 @@ import (
 
 type ModelMain struct {
 	Forums        *[]*Forum
-	User          string
-	UserIsAdmin   bool
-	ErrorMsg      string
-	RedirectUrl   string
 	AnalyticsCode *string
 }
 
@@ -23,9 +19,6 @@ func handleMain(w http.ResponseWriter, r *http.Request) {
 
 	model := &ModelMain{
 		Forums:        &appState.Forums,
-		User:          decodeUserFromCookie(r),
-		UserIsAdmin:   false,
-		RedirectUrl:   r.URL.String(),
 		AnalyticsCode: config.AnalyticsCode,
 	}
 

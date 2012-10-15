@@ -7,9 +7,7 @@
 </head>
 <body>
 
-<h2><a href="/">Home</a> : Fofou logs
-	<span style="font-size:50%;float:right;">{{if .User}}Logged in as {{.User}} (<a href="/logout?redirect={{.RedirectUrl}}">logout</a>){{else}}Not logged in. <a href="/login?redirect={{.RedirectUrl}}">Log in with Twitter</a>{{end}}</span>
-</h2>
+<h2><a href="/">Home</a> : Fofou logs</h2>
 
 {{if not .UserIsAdmin}}No logs for you!!!{{end}}
 

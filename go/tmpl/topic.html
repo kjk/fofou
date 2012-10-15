@@ -1,31 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-	<title>{{ .Title }}</title>
-	<link href="/s/default.css" rel="stylesheet" type="text/css">
-	<script language="javascript" src="/s/default.js" type="text/javascript"></script>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+  <title>{{ .Title }}</title>
+  <link href="/s/default.css" rel="stylesheet" type="text/css">
+  <script language="javascript" src="/s/default.js" type="text/javascript"></script>
 </head>
 
 <body>
-<div id="tbTop"> <a href="/login">login</a></div>
 <table>
 <tbody>
-<tr>
-	<td colspan="2" class="header">
-		<div>
-			<h1><a href="/{{ .ForumUrl }}" class="green">{{ .Title }}</a></h1>
-			<p>{{ .Tagline }}</p>
-		</div>
-	</td>
-</tr>
+  <tr>
+    <td colspan="2">
+      {{ .LogInOut }}
 
-{{ $topicId := .Id }}
-{{ $isAdmin := .IsAdmin }}
-{{ $forumUrl := .ForumUrl }}
+      <div class="header">
+        <h1><a href="/{{ .ForumUrl }}" class="green">{{ .Title }}</a></h1>
+        <p>{{ .Tagline }}</p>
+      </div>
+    </td>
+  </tr>
 
-<tr>
-	<td class="sidebar">{{ .SidebarHtml }}</td>
+  {{ $topicId := .Id }}
+  {{ $isAdmin := .IsAdmin }}
+  {{ $forumUrl := .ForumUrl }}
+
+  <tr>
+    <td class="sidebar">{{ .SidebarHtml }}</td>
 
 	<td class="contents">
 		<script language="javascript" type="text/javascript">

@@ -14,21 +14,23 @@ import (
 
 type ModelNewPost struct {
 	Forum
-	SidebarHtml   template.HTML
-	ForumUrl      string
-	AnalyticsCode *string
-	Num1          int
-	Num2          int
-	Num3          int
-	TopicId       int
-	CaptchaClass  string
-	PrevCaptcha   string
-	SubjectClass  string
-	PrevSubject   string
-	MessageClass  string
-	PrevMessage   string
-	NameClass     string
-	PrevName      string
+	SidebarHtml     template.HTML
+	ForumUrl        string
+	AnalyticsCode   *string
+	Num1            int
+	Num2            int
+	Num3            int
+	TopicId         int
+	CaptchaClass    string
+	PrevCaptcha     string
+	SubjectClass    string
+	PrevSubject     string
+	MessageClass    string
+	PrevMessage     string
+	NameClass       string
+	PrevName        string
+	LogInOut        template.HTML
+	TwitterUserName string
 }
 
 var errorClass = "error"
@@ -71,7 +73,6 @@ func isMsgValid(msg string, topic *Topic) bool {
 }
 
 func createNewPost(w http.ResponseWriter, r *http.Request, forumUrl string, model *ModelNewPost, topic *Topic) {
-	fmt.Printf("createNewPost(): topicId=%d\n", model.TopicId)
 
 	// validate the fields
 	num1Str := strings.TrimSpace(r.FormValue("num1"))
@@ -88,7 +89,6 @@ func createNewPost(w http.ResponseWriter, r *http.Request, forumUrl string, mode
 	model.PrevSubject = subject
 	model.PrevMessage = msg
 	model.PrevName = name
-	model.TopicId = topic.Id
 
 	if model.TopicId != 0 {
 		model.PrevSubject = topic.Subject
@@ -96,7 +96,6 @@ func createNewPost(w http.ResponseWriter, r *http.Request, forumUrl string, mode
 
 	ok := true
 	if !isCaptchaValid(num1Str, num2Str, captchaStr) {
-		fmt.Printf("Invalid captcha\n")
 		model.CaptchaClass = errorClass
 		ok = false
 	} else if (model.TopicId == 0) && !isSubjectValid(subject) {
@@ -117,6 +116,10 @@ func createNewPost(w http.ResponseWriter, r *http.Request, forumUrl string, mode
 		}
 		return
 	}
+
+	cookie := getSecureCookie(r)
+	cookie.AnonUser = name
+	setSecureCookie(w, cookie)
 
 	store := model.Forum.Store
 	ipAddr := r.RemoteAddr
@@ -162,15 +165,18 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	//fmt.Printf("handleNewPost(): forum: '%s', topicId: %d\n", forumUrl, topicId)
-
+	cookie := getSecureCookie(r)
 	model := &ModelNewPost{
-		Forum:         *forum,
-		SidebarHtml:   template.HTML(forum.Sidebar),
-		ForumUrl:      forumUrl,
-		AnalyticsCode: config.AnalyticsCode,
-		Num1:          rand.Intn(9) + 1,
-		Num2:          rand.Intn(9) + 1,
-		TopicId:       topicId,
+		Forum:           *forum,
+		SidebarHtml:     template.HTML(forum.Sidebar),
+		ForumUrl:        forumUrl,
+		AnalyticsCode:   config.AnalyticsCode,
+		Num1:            rand.Intn(9) + 1,
+		Num2:            rand.Intn(9) + 1,
+		TopicId:         topicId,
+		LogInOut:        getLogInOut(r, getSecureCookie(r)),
+		TwitterUserName: cookie.TwitterUser,
+		PrevName:        cookie.AnonUser,
 	}
 	model.Num3 = model.Num1 + model.Num2
 

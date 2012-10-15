@@ -11,22 +11,19 @@ import (
 // 2012-10-03:
 //   13:15:31
 type ModelLogs struct {
-	PageTitle   string
-	User        string
 	UserIsAdmin bool
-	RedirectUrl string
 	Errors      []*TimestampedMsg
 	Notices     []*TimestampedMsg
 }
 
 // url: /logs
 func handleLogs(w http.ResponseWriter, r *http.Request) {
-	user := decodeUserFromCookie(r)
+	cookie := getSecureCookie(r)
+	isAdmin := cookie.TwitterUser == "kjk" // only I can see the logs
 	model := &ModelLogs{
-		User:        user,
-		UserIsAdmin: user == "kjk", // only I can see the logs
-		RedirectUrl: r.URL.String(),
+		UserIsAdmin: isAdmin,
 	}
+
 	if model.UserIsAdmin {
 		model.Errors = logger.GetErrors()
 		model.Notices = logger.GetNotices()

@@ -20,6 +20,7 @@ type ModelTopic struct {
 	Posts         []*PostDisplay
 	IsAdmin       bool
 	AnalyticsCode *string
+	LogInOut      template.HTML
 }
 
 type PostDisplay struct {
@@ -65,6 +66,19 @@ func msgToHtml(s string) string {
 	return s
 }
 
+func getLogInOut(r *http.Request, c *SecureCookieValue) template.HTML {
+	redirectUrl := template.HTMLEscapeString(r.URL.String())
+	s := ""
+	if c.TwitterUser == "" {
+		s = `<span style="float: right;">Not logged in. <a href="/login?redirect=%s">Log in with Twitter</a></span>`
+		s = fmt.Sprintf(s, redirectUrl)
+	} else {
+		s = `<span style="float:right;">Logged in as %s (<a href="/logout?redirect=%s">logout</a>)</span>`
+		s = fmt.Sprintf(s, c.TwitterUser, redirectUrl)
+	}
+	return template.HTML(s)
+}
+
 // handler for url: /{forum}/topic?id=${id}
 func handleTopic(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -90,6 +104,12 @@ func handleTopic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	isAdmin := userIsAdmin(forum, getSecureCookie(r))
+	if topic.IsDeleted() && !isAdmin {
+		http.Redirect(w, r, fmt.Sprintf("/%s/", forumUrl), 302)
+		return
+	}
+
 	posts := make([]*PostDisplay, 0)
 	for idx, p := range topic.Posts {
 		pd := &PostDisplay{
@@ -99,6 +119,9 @@ func handleTopic(w http.ResponseWriter, r *http.Request) {
 			CreatedOnStr: formatTime(p.CreatedOn),
 		}
 		if pd.IsDeleted {
+			if !isAdmin {
+				continue
+			}
 			pd.CssClass = "post deleted"
 		}
 		sha1 := p.MessageSha1
@@ -121,9 +144,9 @@ func handleTopic(w http.ResponseWriter, r *http.Request) {
 		ForumUrl:      forumUrl,
 		Posts:         posts,
 		AnalyticsCode: config.AnalyticsCode,
-		IsAdmin:       false,
+		IsAdmin:       isAdmin,
+		LogInOut:      getLogInOut(r, getSecureCookie(r)),
 	}
-	// TODO: set IsAdmin properly
 	if err := GetTemplates().ExecuteTemplate(w, tmplTopic, model); err != nil {
 		fmt.Printf("handleTopic(): ExecuteTemplate error %s\n", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
