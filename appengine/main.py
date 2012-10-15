@@ -1,4 +1,4 @@
-# This code is in Public Domain. Take all the code you want, we'll just write more.
+# This code is in Public Domain. Take all the code you want, I'll just write more.
 import os, string, Cookie, sha, time, random, cgi, urllib, datetime, StringIO, pickle
 import wsgiref.handlers
 from google.appengine.api import users

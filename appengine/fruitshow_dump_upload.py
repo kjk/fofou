@@ -1,4 +1,4 @@
-# This code is in Public Domain. Take all the code you want, we'll just write more.
+# This code is in Public Domain. Take all the code you want, I'll just write more.
 import pickle, bz2, os.path, string, urlparse, httplib, traceback, StringIO, datetime, sys
 from offsets import *
 

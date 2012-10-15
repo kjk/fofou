@@ -26,6 +26,17 @@
 <tr>
 	<td class="sidebar">{{ .SidebarHtml }}</td>
 	<td class="contents">
+
+		<form method="get" action="http://google.com/search">
+			<input type="hidden" name="IncludeBlogs" value="1">
+			<input type="hidden" name="as_sitesearch" value="{{.ForumFullUrl}}">
+			<div class="searchBox">
+				<label for="search">Search this forum:</label></br>
+				<input name="q" id="search" value="" type="text">
+				<input class="button" value="Go" type="submit">&nbsp;
+			</div>
+		</form>
+
 		<div class="topics">
 			{{ if len .Topics }}
 				{{ range .Topics }}

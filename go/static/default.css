@@ -298,12 +298,12 @@ div.searchBox {
 	font-size:			11px;
 	font-weight:		bold;
 	text-decoration:	none; 
-	background-color:	#189337; 
-	color:				#FFFFFF; 
+	//background-color:	#189337; 
+	//color:				#FFFFFF; 
 	font-family:		Tahoma,Arial,Helvetica,sans-serif;
 	padding:			3px 1px 2px 5px;
-	border-right:		1px solid #0F5675;
-	border-bottom:		1px solid #0F5675;
+	//border-right:		1px solid #0F5675;
+	//border-bottom:		1px solid #0F5675;
 }
 
 div.searchBox input.button {

@@ -1,4 +1,4 @@
-// This code is in Public Domain. Take all the code you want, we'll just write more.
+// This code is in Public Domain. Take all the code you want, I'll just write more.
 package main
 
 import (
@@ -25,6 +25,7 @@ type ModelForum struct {
 	ErrorMsg      string
 	RedirectUrl   string
 	SidebarHtml   template.HTML
+	ForumFullUrl  string
 	NewFrom       int
 	Topics        []*TopicDisplay
 	AnalyticsCode *string
@@ -93,6 +94,7 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 		RedirectUrl:   r.URL.String(),
 		Topics:        topicsDisplay,
 		SidebarHtml:   template.HTML(forum.Sidebar),
+		ForumFullUrl:  buildForumUrl(r, forum),
 		NewFrom:       newFrom,
 		AnalyticsCode: config.AnalyticsCode,
 	}

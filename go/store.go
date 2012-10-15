@@ -1,3 +1,4 @@
+// This code is in Public Domain. Take all the code you want, I'll just write more.
 package main
 
 import (

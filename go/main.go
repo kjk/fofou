@@ -1,4 +1,4 @@
-// This code is in Public Domain. Take all the code you want, we'll just write more.
+// This code is in Public Domain. Take all the code you want, I'll just write more.
 package main
 
 import (
@@ -70,7 +70,8 @@ var (
 	tmplForum       = "forum.html"
 	tmplTopic       = "topic.html"
 	tmplNewPost     = "newpost.html"
-	templateNames   = [...]string{tmplMain, tmplForum, tmplTopic, tmplNewPost}
+	tmplLogs        = "logs.html"
+	templateNames   = [...]string{tmplMain, tmplForum, tmplTopic, tmplNewPost, tmplLogs}
 	templatePaths   []string
 	templates       *template.Template
 	reloadTemplates = true
@@ -314,6 +315,7 @@ func main() {
 	r.HandleFunc("/logout", handleLogout)
 
 	r.HandleFunc("/favicon.ico", serve404)
+	r.HandleFunc("/logs", handleLogs)
 	r.HandleFunc("/{forum}", makeTimingHandler(handleForum))
 	r.HandleFunc("/{forum}/", makeTimingHandler(handleForum))
 	r.HandleFunc("/{forum}/rss", makeTimingHandler(handleRss))
@@ -326,7 +328,6 @@ func main() {
 	http.Handle("/", r)
 	msg := fmt.Sprintf("Started runing on %s", *httpAddr)
 	logger.Noticef(msg)
-	println(msg)
 	if err := http.ListenAndServe(*httpAddr, nil); err != nil {
 		fmt.Printf("http.ListendAndServer() failed with %s\n", err.Error())
 	}
