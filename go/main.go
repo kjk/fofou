@@ -134,9 +134,8 @@ func NewForum(config *ForumConfig) *Forum {
 	if err != nil {
 		panic("failed to create store for a forum")
 	}
-	fmt.Printf("%d topics in forum '%s'\n", store.TopicsCount(), config.ForumUrl)
+	logger.Noticef("%d topics in forum '%s'\n", store.TopicsCount(), config.ForumUrl)
 	forum.Store = store
-	logger.Noticef("Created %s forum\n", forum.Title)
 	return forum
 }
 
