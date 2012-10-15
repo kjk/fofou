@@ -53,9 +53,8 @@ function num_abbrev_str(num) {
 	return num + abbrev
 }
 */
-// TODO: missing a.m/p.m distinction
 func formatTime(t time.Time) string {
-	s := t.Format("January 2, 2006 15:04")
+	s := t.Format("January 2, 2006")
 	return s
 }
 
