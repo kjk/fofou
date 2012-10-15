@@ -63,7 +63,6 @@ a:visited {	color: purple; }
 }
 
 td.contents {
-	padding-top: 5px;
 	font-size: 1.25em;
 	vertical-align: top;
 	width: 600px;
@@ -176,8 +175,12 @@ span.formCheckBoxPair label { float: left; margin-top: 3px;	_margin-top: 4px; co
 div.topics {
 	font-family:		Georgia,'Times New Roman',Times,serif;
 	font-weight:		normal;
-	margin-left:		7px; 
+	margin-left:		7px;
 	x-height:			1%;
+}
+
+div.topic {
+	padding-bottom: 3px;
 }
 
 div.topics span { color: rgb(170, 170, 170); }

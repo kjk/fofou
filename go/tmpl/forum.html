@@ -29,9 +29,10 @@
 		<div class="topics">
 			{{ if len .Topics }}
 				{{ range .Topics }}
-					<a class="{{.TopicLinkClass}}" href="{{.TopicUrl}}">{{ .Subject }} </a>
-					<em>{{ .CreatedBy }}</em> <span>({{ .CommentsCountMsg }})</span>
-					<br />
+					<div class="topic">
+						<a class="{{.TopicLinkClass}}" href="{{.TopicUrl}}">{{ .Subject }} </a>
+						<em>{{ .CreatedBy }}</em> <span>({{ .CommentsCountMsg }})</span>
+					</div>
 				{{ end }}
 			{{ else }}
 				There are no topics. You better create one.
