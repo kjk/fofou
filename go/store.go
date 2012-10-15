@@ -35,8 +35,58 @@ type Store struct {
 	dataDir string
 	topics  []Topic
 
+	// for rssall we need to quickly get all recent posts
+	// we could get them from topics and sort by time but
+	// instead we'll maintain them in a circular buffer
+	// with fixed capacity and update it during inserts
+	recentPosts *CircularPostsBuf
+
 	dataFile *os.File
 	mu       sync.Mutex // to serialize writes
+}
+
+type PostTopic struct {
+	Post  *Post
+	Topic *Topic
+}
+
+type CircularPostsBuf struct {
+	Posts []PostTopic
+	pos   int
+	full  bool
+}
+
+func NewCircularPostsBuf(cap int) *CircularPostsBuf {
+	return &CircularPostsBuf{
+		Posts: make([]PostTopic, cap, cap),
+		pos:   0,
+		full:  false,
+	}
+}
+
+func (b *CircularPostsBuf) Add(p PostTopic) {
+	if b.pos == cap(b.Posts) {
+		b.pos = 0
+		b.full = true
+	}
+	b.Posts[b.pos] = p
+	b.pos += 1
+}
+
+func (b *CircularPostsBuf) GetOrdered() []PostTopic {
+	size := b.pos
+	if b.full {
+		size = cap(b.Posts)
+	}
+	res := make([]PostTopic, size, size)
+	for i := 0; i < size; i++ {
+		p := b.pos - 1 - i
+		if p < 0 {
+			p = cap(b.Posts) + p
+		}
+		res[i] = b.Posts[p]
+	}
+	return res
 }
 
 func (t *Topic) IsDeleted() bool {
@@ -77,7 +127,7 @@ func findPostToDelUndel(d []byte, topicIdToTopic map[int]*Topic) *Post {
 	return &topic.Posts[postId-1]
 }
 
-func parseTopics(d []byte) []Topic {
+func parseTopics(d []byte, recentPosts *CircularPostsBuf) []Topic {
 	topics := make([]Topic, 0)
 	topicIdToTopic := make(map[int]*Topic)
 	for len(d) > 0 {
@@ -164,6 +214,10 @@ func parseTopics(d []byte) []Topic {
 			}
 			copy(post.MessageSha1[:], msgSha1)
 			t.Posts = append(t.Posts, post)
+
+			postPtr := &t.Posts[len(t.Posts)-1]
+			pt := PostTopic{Post: postPtr, Topic: t}
+			recentPosts.Add(pt)
 		} else if line[0] == 'D' {
 			// D|1234|1
 			post := findPostToDelUndel(line[1:], topicIdToTopic)
@@ -185,7 +239,7 @@ func parseTopics(d []byte) []Topic {
 	return topics
 }
 
-func readExistingData(fileDataPath string) ([]Topic, error) {
+func readExistingData(fileDataPath string, recentPosts *CircularPostsBuf) ([]Topic, error) {
 	f, err := os.Open(fileDataPath)
 	if err != nil {
 		return nil, err
@@ -195,7 +249,7 @@ func readExistingData(fileDataPath string) ([]Topic, error) {
 	if err != nil {
 		return nil, err
 	}
-	return parseTopics(data), nil
+	return parseTopics(data, recentPosts), nil
 }
 
 func verifyTopics(topics []Topic) {
@@ -208,10 +262,10 @@ func verifyTopics(topics []Topic) {
 
 func NewStore(dataDir string) (*Store, error) {
 	dataFilePath := filepath.Join(dataDir, "data.txt")
-	store := &Store{dataDir: dataDir}
+	store := &Store{dataDir: dataDir, recentPosts: NewCircularPostsBuf(10)}
 	var err error
 	if PathExists(dataFilePath) {
-		store.topics, err = readExistingData(dataFilePath)
+		store.topics, err = readExistingData(dataFilePath, store.recentPosts)
 		if err != nil {
 			fmt.Printf("readExistingData() failed with %s", err.Error())
 			return nil, err
@@ -371,16 +425,6 @@ func (s *Store) UndeletePost(topicId, postId int) error {
 	return nil
 }
 
-/*
-	Subject string
-
-	CreatedOn    time.Time
-	MessageSha1  [20]byte
-	UserName     string
-	IpAddressHex string // TODO: string or something else?
-
-*/
-
 func ip2str(s string) uint32 {
 	var nums [4]uint32
 	parts := strings.Split(s, ".")
@@ -441,6 +485,10 @@ func (s *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool
 	if newTopic {
 		s.topics = append(s.topics, *topic)
 	}
+
+	postPtr := &topic.Posts[len(topic.Posts)-1]
+	pt := PostTopic{Post: postPtr, Topic: topic}
+	s.recentPosts.Add(pt)
 	return nil
 }
 
@@ -469,4 +517,8 @@ func (s *Store) AddPostToTopic(topicId int, msg, user, ipAddr string) error {
 		return errors.New("invalid topicId")
 	}
 	return s.addNewPost(msg, user, ipAddr, topic, false)
+}
+
+func (s *Store) GetRecentPosts() []PostTopic {
+	return s.recentPosts.GetOrdered()
 }
