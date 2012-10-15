@@ -55,6 +55,7 @@ a:visited {	color: purple; }
 	padding: 0px 0px 0px 20px;
 	margin: 0;
 	line-height:140%;
+	margin-bottom: 12px;
 }
 
 .header a {
