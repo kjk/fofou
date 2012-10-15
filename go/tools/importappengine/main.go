@@ -298,10 +298,8 @@ func renumberPostIds(topics []*Topic, posts []*Post) []*Topic {
 	return res2
 }
 
-var sep = "|"
-
 func remSep(s string) string {
-	return strings.Replace(s, sep, "", -1)
+	return strings.Replace(s, "|", "", -1)
 }
 
 func serTopic(t *Topic) string {
@@ -310,8 +308,6 @@ func serTopic(t *Topic) string {
 	}
 	return fmt.Sprintf("T%d|%s\n", t.Id, remSep(t.Subject))
 }
-
-var b64encoder = base64.StdEncoding
 
 func ip2str(s string) uint32 {
 	var nums [4]uint32
@@ -328,7 +324,7 @@ func serPost(p *Post) string {
 		panic("p.IsDeleted is true")
 	}
 	s1 := fmt.Sprintf("%d", p.CreatedOn.Unix())
-	s2 := b64encoder.EncodeToString(p.MessageSha1[:])
+	s2 := base64.StdEncoding.EncodeToString(p.MessageSha1[:])
 	s2 = s2[:len(s2)-1]
 	s3 := remSep(p.UserName)
 	sIp := fmt.Sprintf("%x", ip2str(p.IP))

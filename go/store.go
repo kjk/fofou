@@ -370,3 +370,103 @@ func (s *Store) UndeletePost(topicId, postId int) error {
 	post.IsDeleted = false
 	return nil
 }
+
+/*
+	Subject string
+
+	CreatedOn    time.Time
+	MessageSha1  [20]byte
+	UserName     string
+	IpAddressHex string // TODO: string or something else?
+
+*/
+
+func ip2str(s string) uint32 {
+	var nums [4]uint32
+	parts := strings.Split(s, ".")
+	for n, p := range parts {
+		num, _ := strconv.Atoi(p)
+		nums[n] = uint32(num)
+	}
+	return (nums[0] << 24) | (nums[1] << 16) + (nums[2] << 8) | nums[3]
+}
+
+func ipAddrToHex(ipAddr string) string {
+	// TODO: support ipv6
+	return fmt.Sprintf("%x", ip2str(ipAddr))
+}
+
+func remSep(s string) string {
+	return strings.Replace(s, "|", "", -1)
+}
+
+func (s *Store) writeMessageAsSha1(msg []byte, sha1 [20]byte) error {
+	path := s.MessageFilePath(sha1)
+	return WriteBytesToFile(msg, path)
+}
+
+func (s *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool) error {
+	msgBytes := []byte(msg)
+	sha1 := Sha1OfBytes(msgBytes)
+	p := &Post{
+		CreatedOn:    time.Now(),
+		UserName:     remSep(user),
+		IpAddressHex: ipAddrToHex(ipAddr),
+		IsDeleted:    false,
+	}
+	copy(p.MessageSha1[:], sha1)
+	if err := s.writeMessageAsSha1(msgBytes, p.MessageSha1); err != nil {
+		logger.Errorf("Store.addNewPost(): writeMessageAsSha1() failed with %s", err.Error())
+		return err
+	}
+
+	postId := len(topic.Posts) + 1
+
+	topicStr := ""
+	if newTopic {
+		topicStr = fmt.Sprintf("T%d|%s\n", topic.Id, topic.Subject)
+	}
+
+	s1 := fmt.Sprintf("%d", p.CreatedOn.Unix())
+	s2 := base64.StdEncoding.EncodeToString(p.MessageSha1[:])
+	s2 = s2[:len(s2)-1] // remove unnecessary '=' from the end
+	s3 := p.UserName
+	sIp := p.IpAddressHex
+	postStr := fmt.Sprintf("P%d|%d|%s|%s|%s|%s\n", topic.Id, postId, s1, s2, sIp, s3)
+	str := topicStr + postStr
+	if err := s.appendString(str); err != nil {
+		return err
+	}
+	topic.Posts = append(topic.Posts, *p)
+	if newTopic {
+		s.topics = append(s.topics, *topic)
+	}
+	return nil
+}
+
+func (s *Store) CreateNewPost(subject, msg, user, ipAddr string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	topic := &Topic{
+		Id:      1,
+		Subject: remSep(subject),
+		Posts:   make([]Post, 0),
+	}
+	if len(s.topics) > 0 {
+		// Id of the last topic + 1
+		topic.Id = s.topics[len(s.topics)-1].Id + 1
+	}
+	return s.addNewPost(msg, user, ipAddr, topic, true)
+}
+
+func (s *Store) AddPostToTopic(topicId int, msg, user, ipAddr string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	topic := s.topicByIdUnlocked(topicId)
+	if topic == nil {
+		return errors.New("invalid topicId")
+	}
+	return s.addNewPost(msg, user, ipAddr, topic, false)
+}

@@ -60,6 +60,16 @@ func Sha1OfBytes(data []byte) []byte {
 	return h.Sum(nil)
 }
 
+func WriteBytesToFile(d []byte, path string) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.Write(d)
+	return err
+}
+
 func CopyFile(dst, src string) error {
 	fsrc, err := os.Open(src)
 	if err != nil {
