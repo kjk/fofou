@@ -22,8 +22,5 @@ func handleMain(w http.ResponseWriter, r *http.Request) {
 		AnalyticsCode: config.AnalyticsCode,
 	}
 
-	if err := GetTemplates().ExecuteTemplate(w, tmplMain, model); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	ExecTemplate(w, tmplMain, model)
 }

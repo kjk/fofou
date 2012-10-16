@@ -147,9 +147,5 @@ func handleTopic(w http.ResponseWriter, r *http.Request) {
 		IsAdmin:       isAdmin,
 		LogInOut:      getLogInOut(r, getSecureCookie(r)),
 	}
-	if err := GetTemplates().ExecuteTemplate(w, tmplTopic, model); err != nil {
-		fmt.Printf("handleTopic(): ExecuteTemplate error %s\n", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	ExecTemplate(w, tmplTopic, model)
 }

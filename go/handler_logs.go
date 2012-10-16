@@ -29,8 +29,5 @@ func handleLogs(w http.ResponseWriter, r *http.Request) {
 		model.Notices = logger.GetNotices()
 	}
 
-	if err := GetTemplates().ExecuteTemplate(w, tmplLogs, model); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	ExecTemplate(w, tmplLogs, model)
 }

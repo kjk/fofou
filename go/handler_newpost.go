@@ -110,10 +110,7 @@ func createNewPost(w http.ResponseWriter, r *http.Request, forumUrl string, mode
 	}
 
 	if !ok {
-		if err := GetTemplates().ExecuteTemplate(w, tmplNewPost, model); err != nil {
-			logger.Noticef("handleNewPost(): ExecuteTemplate() error %s\n", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		ExecTemplate(w, tmplNewPost, model)
 		return
 	}
 
@@ -189,9 +186,5 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 		model.PrevSubject = topic.Subject
 	}
 
-	if err = GetTemplates().ExecuteTemplate(w, tmplNewPost, model); err != nil {
-		logger.Errorf("handleNewPost(): ExecuteTemplate() error %s\n", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	ExecTemplate(w, tmplNewPost, model)
 }

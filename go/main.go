@@ -2,6 +2,7 @@
 package main
 
 import (
+	"bytes"
 	"code.google.com/p/gorilla/mux"
 	"code.google.com/p/gorilla/securecookie"
 	"encoding/hex"
@@ -194,6 +195,19 @@ func GetTemplates() *template.Template {
 		templates = template.Must(template.ParseFiles(templatePaths...))
 	}
 	return templates
+}
+
+func ExecTemplate(w http.ResponseWriter, templateName string, model interface{}) bool {
+	var buf bytes.Buffer
+	if err := GetTemplates().ExecuteTemplate(&buf, templateName, model); err != nil {
+		logger.Errorf("Failed to execute template '%s', error: %s", templateName, err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return false
+	} else {
+		// at this point we ignore error
+		w.Write(buf.Bytes())
+	}
+	return true
 }
 
 func isTopLevelUrl(url string) bool {
