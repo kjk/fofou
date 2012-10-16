@@ -67,12 +67,13 @@ var (
 		Forums: make([]*Forum, 0),
 	}
 
-	tmplMain        = "main.html"
-	tmplForum       = "forum.html"
-	tmplTopic       = "topic.html"
-	tmplNewPost     = "newpost.html"
-	tmplLogs        = "logs.html"
-	templateNames   = [...]string{tmplMain, tmplForum, tmplTopic, tmplNewPost, tmplLogs}
+	tmplMain      = "main.html"
+	tmplForum     = "forum.html"
+	tmplTopic     = "topic.html"
+	tmplNewPost   = "newpost.html"
+	tmplLogs      = "logs.html"
+	templateNames = [...]string{tmplMain, tmplForum, tmplTopic, tmplNewPost,
+		tmplLogs, "footer.html"}
 	templatePaths   []string
 	templates       *template.Template
 	reloadTemplates = true
