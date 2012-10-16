@@ -88,7 +88,7 @@ func parseTopic(d []byte) *Topic {
 	parts := bytes.Split(d, newline)
 	topic := &Topic{}
 	for _, p := range parts {
-		lp := bytes.Split(p, []byte{':', ' '})
+		lp := bytes.SplitN(p, []byte{':', ' '}, 2)
 		name := string(lp[0])
 		val := string(lp[1])
 		if "I" == name {
@@ -114,7 +114,7 @@ func parsePost(d []byte) *Post {
 	parts := bytes.Split(d, newline)
 	post := &Post{}
 	for _, p := range parts {
-		lp := bytes.Split(p, []byte{':', ' '})
+		lp := bytes.SplitN(p, []byte{':', ' '}, 2)
 		name := string(lp[0])
 		val := string(lp[1])
 		if "T" == name {
