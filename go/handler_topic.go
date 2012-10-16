@@ -2,11 +2,13 @@
 package main
 
 import (
+	"bytes"
 	"code.google.com/p/gorilla/mux"
 	"fmt"
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -33,37 +35,58 @@ type PostDisplay struct {
 	CssClass     string
 }
 
-//October 11th, 2012 4:13p.m.
-// TODO: missing -st, -nd, -rd, -nt 
-/*
-function num_abbrev_str(num) {
-	var len = num.length, last_char = num.charAt(len - 1), abbrev
-	if (len == 2 && num.charAt(0) == '1') {
-		abbrev = 'th'
-	} else {
-		if (last_char == '1') {
-			abbrev = 'st'
-		} else if (last_char == '2') {
-	  		abbrev = 'nd'
-		} else if (last_char == '3') {
-	  		abbrev = 'rd'
-		} else {
-	  		abbrev = 'th'
-		}
-	}
-	return num + abbrev
-}
-*/
 func formatTime(t time.Time) string {
 	s := t.Format("January 2, 2006")
 	return s
 }
 
-// TODO: auto-urlize links
+// TODO: this is simplistic but work for me, http://net.tutsplus.com/tutorials/other/8-regular-expressions-you-should-know/
+// has more elaborate regex for extracting urls
+var urlRx = regexp.MustCompile(`https?://[[:^space:]]+`)
+var notUrlEndChars = []byte(".),")
+
+func notUrlEndChar(c byte) bool {
+	return -1 != bytes.IndexByte(notUrlEndChars, c)
+}
+
+var disableUrlization = false
+
 func msgToHtml(s string) string {
-	s = template.HTMLEscapeString(s)
-	s = strings.Replace(s, "\n", "<br>", -1)
-	return s
+	matches := urlRx.FindAllStringIndex(s, -1)
+	if nil == matches || disableUrlization {
+		s = template.HTMLEscapeString(s)
+		s = strings.Replace(s, "\n", "<br>", -1)
+		return s
+	}
+
+	urlMap := make(map[string]string)
+	ns := ""
+	prevEnd := 0
+	for n, match := range matches {
+		start, end := match[0], match[1]
+		for end > start && notUrlEndChar(s[end-1]) {
+			end -= 1
+		}
+		url := s[start:end]
+		ns += s[prevEnd:start]
+
+		// placeHolder is meant to be an unlikely string
+		placeHolder, ok := urlMap[url]
+		if !ok {
+			placeHolder = fmt.Sprintf("a;dfsl;a__lkasjdfh1234098;lajksdf_%d", n)
+			urlMap[url] = placeHolder
+		}
+		ns += placeHolder
+		prevEnd = end
+	}
+
+	ns = template.HTMLEscapeString(ns)
+	for url, placeHolder := range urlMap {
+		url = fmt.Sprintf(`<a href="%s" rel="nofollow">%s</a>`, url, url)
+		ns = strings.Replace(ns, placeHolder, url, -1)
+	}
+	ns = strings.Replace(ns, "\n", "<br>", -1)
+	return ns
 }
 
 func getLogInOut(r *http.Request, c *SecureCookieValue) template.HTML {
@@ -85,7 +108,7 @@ func handleTopic(w http.ResponseWriter, r *http.Request) {
 	forumUrl := vars["forum"]
 	forum := findForum(forumUrl)
 	if nil == forum {
-		fmt.Print("handleTopic(): didn't find forum\n")
+		logger.Noticef("handleTopic(): didn't find forum\n")
 		http.Redirect(w, r, "/", 302)
 		return
 	}
@@ -99,7 +122,7 @@ func handleTopic(w http.ResponseWriter, r *http.Request) {
 	//fmt.Printf("handleTopic(): forum: '%s', topicId: %d\n", forumUrl, topicId)
 	topic := forum.Store.TopicById(topicId)
 	if nil == topic {
-		fmt.Printf("handleTopic(): didn't find topic with id %d\n", topicId)
+		logger.Noticef("handleTopic(): didn't find topic with id %d\n", topicId)
 		http.Redirect(w, r, fmt.Sprintf("/%s/", forumUrl), 302)
 		return
 	}
