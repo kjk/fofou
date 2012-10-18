@@ -61,32 +61,40 @@ func (b *CircularMessagesBuf) GetOrdered() []*TimestampedMsg {
 }
 
 type ServerLogger struct {
-	Errors  *CircularMessagesBuf
-	Notices *CircularMessagesBuf
+	Errors    *CircularMessagesBuf
+	Notices   *CircularMessagesBuf
+	UseStdout bool
 }
 
-func NewServerLogger(errorsMax, noticesMax int) *ServerLogger {
+func NewServerLogger(errorsMax, noticesMax int, useStdout bool) *ServerLogger {
 	l := &ServerLogger{
-		Errors:  NewCircularMessagesBuf(errorsMax),
-		Notices: NewCircularMessagesBuf(noticesMax),
+		Errors:    NewCircularMessagesBuf(errorsMax),
+		Notices:   NewCircularMessagesBuf(noticesMax),
+		UseStdout: useStdout,
 	}
 	return l
 }
 
 func (l *ServerLogger) Error(s string) {
 	l.Errors.Add(s)
+	fmt.Printf("Error: %s\n", s)
 }
 
 func (l *ServerLogger) Errorf(format string, v ...interface{}) {
-	l.Errors.Add(fmt.Sprintf(format, v...))
+	s := fmt.Sprintf(format, v...)
+	l.Errors.Add(s)
+	fmt.Printf("Error: %s\n", s)
 }
 
 func (l *ServerLogger) Notice(s string) {
 	l.Notices.Add(s)
+	fmt.Printf("%s\n", s)
 }
 
 func (l *ServerLogger) Noticef(format string, v ...interface{}) {
-	l.Notices.Add(fmt.Sprintf(format, v...))
+	s := fmt.Sprintf(format, v...)
+	l.Notices.Add(s)
+	fmt.Printf("%s\n", s)
 }
 
 func (l *ServerLogger) GetErrors() []*TimestampedMsg {

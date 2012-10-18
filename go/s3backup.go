@@ -2,7 +2,8 @@
 package main
 
 import (
-	"fmt"
+	"errors"
+	_ "fmt"
 	"launchpad.net/goamz/aws"
 	"launchpad.net/goamz/s3"
 	"log"
@@ -13,8 +14,10 @@ import (
 	"sort"
 	"strings"
 	"time"
-	"errors"
 )
+
+// TODO: s3 request have a tendency to block forever so I probably need something
+// for that
 
 var backupFreq = 12 * time.Hour
 var bucketDelim = "/"
@@ -48,12 +51,27 @@ func listBackupFiles(config *BackupConfig, max int) (*s3.ListResp, error) {
 	return b.List(dir, bucketDelim, "", max)
 }
 
-func listBlobFiles(config *BackupConfig, dir string) (*s3.ListResp, error) {
+func listBlobFiles(config *BackupConfig, dir string) ([]s3.Key, error) {
 	auth := aws.Auth{config.AwsAccess, config.AwsSecret}
 	b := s3.New(auth, aws.USEast).Bucket(config.Bucket)
+	ret := make([]s3.Key, 0)
 	dir = sanitizeDirForList(dir, bucketDelim)
-	// TODO: what to do if more files than 4096?
-	return b.List(dir, "", "", 4096)
+	marker := ""
+	for {
+		// note: according to my tests, 1000 is max
+		if res, err := b.List(dir, "", marker, 1000); err != nil {
+			return nil, err
+		} else {
+			for _, k := range res.Contents {
+				ret = append(ret, k)
+			}
+			if !res.IsTruncated {
+				break
+			}
+			marker = res.Contents[len(res.Contents)-1].Key
+		}
+	}
+	return ret, nil
 }
 
 func s3Del(config *BackupConfig, keyName string) error {
@@ -130,11 +148,9 @@ func alreadyUploaded(config *BackupConfig, sha1 string) bool {
 	}
 	for _, key := range rsp.Contents {
 		if strings.Contains(key.Key, sha1) {
-			//fmt.Printf("Backup file with sha1 %s already exists: %s\n", sha1, key.Key)
 			return true
 		}
 	}
-	//fmt.Printf("Backup file with sha1 %s hasn't been uploaded yet\n")
 	return false
 }
 
@@ -194,61 +210,54 @@ func copyBlobs(config *BackupConfig) error {
 	copied := 0
 	blobFilesInS3 := make(map[string]bool)
 
-	if rsp, err := listBlobFiles(config, blobsS3Dir); err != nil {
-		fmt.Printf("listBlobFiles() failed with %s\n", err.Error())
+	if keys, err := listBlobFiles(config, blobsS3Dir); err != nil {
+		logger.Errorf("listBlobFiles() failed with %s\n", err.Error())
 		return err
 	} else {
-		//fmt.Printf("%v\n", rsp.Contents)
-		for _, key := range rsp.Contents {
+		for _, key := range keys {
 			// the key values do not include '/' at the beginning, add it for
 			// the benefit of the later check
 			s := "/" + key.Key
-			//fmt.Printf("%s\n", s)
 			blobFilesInS3[s] = true
 		}
 	}
 
 	err := filepath.Walk(blobsDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			//fmt.Printf("WalkFunc() received err %s from filepath.Wath()\n", err.Error())
+			logger.Errorf("WalkFunc() received err %s from filepath.Wath()", err.Error())
 			return err
 		}
-		//fmt.Printf("%s\n", path)
 		isDir, err := PathIsDir(path)
 		if err != nil {
-			fmt.Printf("PathIsDir() for %s failed with %s\n", path, err.Error())
+			logger.Errorf("PathIsDir() for %s failed with %s\n", path, err.Error())
 			return err
 		}
 		if isDir {
 			return nil
 		}
 
-		//fmt.Printf("path: %s\n", path)
 		idx := strings.Index(path, "/blobs/")
 		if idx == -1 {
-			fmt.Printf("copyBlobs(): unknown file '%s'\n", path)
+			logger.Errorf("copyBlobs(): unknown file '%s'", path)
 			return errors.New("unknown file")
 		}
-		file := path[idx + len("/blobs/"):]
+		file := path[idx+len("/blobs/"):]
 		s3Path := filepath.Join(blobsS3Dir, file)
-		//fmt.Printf("s3 p: %s\n", s3Path)
 		if _, ok := blobFilesInS3[s3Path]; ok {
-			//fmt.Printf("Skipping existing '%s'\n", s3Path)
 			existing += 1
 			return nil
 		}
 
 		if err = s3PutRetry(config, path, s3Path, true); err != nil {
 			logger.Errorf("s3Put of '%s' to '%s' failed with %s", path, s3Path, err.Error())
-			fmt.Printf("s3Put of '%s' to '%s' failed with %s\n", path, s3Path, err.Error())
 			return err
 		} else {
-			fmt.Printf("s3Put '%s' as '%s'\n", path, s3Path)
+			logger.Noticef("copyBlobs(): s3Put '%s' as '%s'\n", path, s3Path)
 		}
 		copied += 1
 		return nil
 	})
-	fmt.Printf("copyBlobs(): skipped %d existing files, copied %d files\n", existing, copied)
+	logger.Noticef("copyBlobs(): skipped %d existing files, copied %d files\n", existing, copied)
 	return err
 }
 

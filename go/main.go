@@ -160,7 +160,7 @@ func NewForum(config *ForumConfig) *Forum {
 	if err != nil {
 		panic("failed to create store for a forum")
 	}
-	logger.Noticef("%d topics in forum '%s'\n", store.TopicsCount(), config.ForumUrl)
+	logger.Noticef("%d topics in forum '%s'", store.TopicsCount(), config.ForumUrl)
 	forum.Store = store
 	return forum
 }
@@ -303,7 +303,7 @@ func makeTimingHandler(fn func(http.ResponseWriter, *http.Request)) http.Handler
 			if len(r.URL.RawQuery) > 0 {
 				url = fmt.Sprintf("%s?%s", url, r.URL.RawQuery)
 			}
-			logger.Noticef("'%s' took %f seconds to serve\n", url, duration.Seconds())
+			logger.Noticef("'%s' took %f seconds to serve", url, duration.Seconds())
 		}
 	}
 }
@@ -323,7 +323,8 @@ func main() {
 		alwaysLogTime = false
 	}
 
-	logger = NewServerLogger(256, 256)
+	useStdout := !*inProduction
+	logger = NewServerLogger(256, 256, useStdout)
 
 	rand.Seed(time.Now().UnixNano())
 
@@ -372,16 +373,11 @@ func main() {
 		LocalDir:  getDataDir(),
 	}
 
-	doBackup(backupConfig)
-	log.Fatalf("And we're quitting")
-
-	if false && S3BackupEnabled() {
+	if S3BackupEnabled() {
 		go BackupLoop(backupConfig)
 	}
 
-	msg := fmt.Sprintf("Started runing on %s", *httpAddr)
-	logger.Noticef(msg)
-	fmt.Printf("%s\n", msg)
+	logger.Noticef(fmt.Sprintf("Started runing on %s", *httpAddr))
 	if err := http.ListenAndServe(*httpAddr, nil); err != nil {
 		fmt.Printf("http.ListendAndServer() failed with %s\n", err.Error())
 	}
