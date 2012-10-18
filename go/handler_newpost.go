@@ -3,7 +3,6 @@ package main
 
 import (
 	"bytes"
-	"code.google.com/p/gorilla/mux"
 	"fmt"
 	"html/template"
 	"math/rand"
@@ -156,12 +155,8 @@ func createNewPost(w http.ResponseWriter, r *http.Request, forumUrl string, mode
 // handler for url: /{forum}/newpost[?topicId={topicId}]
 func handleNewPost(w http.ResponseWriter, r *http.Request) {
 	var err error
-	vars := mux.Vars(r)
-	forumUrl := vars["forum"]
-	forum := findForum(forumUrl)
-	if nil == forum {
-		logger.Noticef("handleNewPost(): didn't find forum '%s'\n", forumUrl)
-		http.Redirect(w, r, "/", 302)
+	forumUrl, forum := mustGetForum(w, r)
+	if forum == nil {
 		return
 	}
 

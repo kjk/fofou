@@ -359,6 +359,7 @@ func main() {
 	r.HandleFunc("/{forum}/rss", makeTimingHandler(handleRss))
 	r.HandleFunc("/{forum}/rssall", makeTimingHandler(handleRssAll))
 	r.HandleFunc("/{forum}/topic", makeTimingHandler(handleTopic))
+	r.HandleFunc("/{forum}/postsby", makeTimingHandler(handlePostsBy))
 	r.HandleFunc("/{forum}/postdel", makeTimingHandler(handlePostDelete))
 	r.HandleFunc("/{forum}/postundel", makeTimingHandler(handlePostUndelete))
 	r.HandleFunc("/{forum}/newpost", makeTimingHandler(handleNewPost))

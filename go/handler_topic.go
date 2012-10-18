@@ -3,7 +3,6 @@ package main
 
 import (
 	"bytes"
-	"code.google.com/p/gorilla/mux"
 	"fmt"
 	"html/template"
 	"io/ioutil"
@@ -95,12 +94,8 @@ func getLogInOut(r *http.Request, c *SecureCookieValue) template.HTML {
 
 // handler for url: /{forum}/topic?id=${id}
 func handleTopic(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	forumUrl := vars["forum"]
-	forum := findForum(forumUrl)
-	if nil == forum {
-		logger.Noticef("handleTopic(): didn't find forum\n")
-		http.Redirect(w, r, "/", 302)
+	forumUrl, forum := mustGetForum(w, r)
+	if forum == nil {
 		return
 	}
 	idStr := strings.TrimSpace(r.FormValue("id"))

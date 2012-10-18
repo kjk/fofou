@@ -25,16 +25,24 @@ func plural(n int, s string) string {
 	return fmt.Sprintf("%d %ss", n, s)
 }
 
-// handler for url: /{forum}
-func handleForum(w http.ResponseWriter, r *http.Request) {
+func mustGetForum(w http.ResponseWriter, r *http.Request) (string, *Forum) {
 	vars := mux.Vars(r)
 	forumUrl := vars["forum"]
-	forum := findForum(forumUrl)
-	if nil == forum {
-		fmt.Print("handleForum(): didn't find forum\n")
-		serveErrorMsg(w, fmt.Sprintf("Forum \"%s\" doesn't exist", forumUrl))
+	if forum := findForum(forumUrl); forum != nil {
+		return forumUrl, forum
+	}
+	logger.Noticef("didn't find forum %s", forumUrl)
+	serveErrorMsg(w, fmt.Sprintf("Forum \"%s\" doesn't exist", forumUrl))
+	return "", nil
+}
+
+// handler for url: /{forum}
+func handleForum(w http.ResponseWriter, r *http.Request) {
+	forumUrl, forum := mustGetForum(w, r)
+	if forum == nil {
 		return
 	}
+
 	fromStr := strings.TrimSpace(r.FormValue("from"))
 	from := 0
 	if "" != fromStr {

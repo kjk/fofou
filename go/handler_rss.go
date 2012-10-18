@@ -3,7 +3,6 @@ package main
 
 import (
 	"atom"
-	"code.google.com/p/gorilla/mux"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -19,12 +18,8 @@ func buildTopicUrl(r *http.Request, forum *Forum, topicId int) string {
 }
 
 func handleRss2(w http.ResponseWriter, r *http.Request, all bool) {
-	vars := mux.Vars(r)
-	forumUrl := vars["forum"]
-	forum := findForum(forumUrl)
-	if nil == forum {
-		fmt.Print("handleRss2(): didn't find forum\n")
-		http.Redirect(w, r, "/", 302)
+	_, forum := mustGetForum(w, r)
+	if forum == nil {
 		return
 	}
 	var posts []PostTopic

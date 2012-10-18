@@ -2,7 +2,6 @@
 package main
 
 import (
-	"code.google.com/p/gorilla/mux"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -10,12 +9,9 @@ import (
 )
 
 func getTopicAndPostId(w http.ResponseWriter, r *http.Request) (*Forum, int, int) {
-	vars := mux.Vars(r)
-	forumUrl := vars["forum"]
-	forum := findForum(forumUrl)
-	if nil == forum {
-		fmt.Print("getTopicAndPostId(): didn't find forum\n")
-		return forum, 0, 0
+	_, forum := mustGetForum(w, r)
+	if forum == nil {
+		return nil, 0, 0
 	}
 	topicIdStr := strings.TrimSpace(r.FormValue("topicId"))
 	postIdStr := strings.TrimSpace(r.FormValue("postId"))
