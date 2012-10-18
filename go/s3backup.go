@@ -169,7 +169,7 @@ func deleteOldBackups(config *BackupConfig, maxToKeep int) {
 
 func doBackup(config *BackupConfig) {
 	startTime := time.Now()
-	zipLocalPath := filepath.Join(os.TempDir(), "apptranslator-tmp-backup.zip")
+	zipLocalPath := filepath.Join(os.TempDir(), "fofou-tmp-backup.zip")
 	// TODO: do I need os.Remove() won't os.Create() over-write the file anyway?
 	os.Remove(zipLocalPath) // remove before trying to create a new one, just in cased
 	err := CreateZipWithDirContent(zipLocalPath, config.LocalDir)

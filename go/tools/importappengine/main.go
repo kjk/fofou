@@ -38,12 +38,13 @@ func getDataDir() string {
 	return ""
 }
 
-func dataDirForApp(appName string) string {
-	return filepath.Join(getDataDir(), appName)
+func forumDataDir() string {
+	return filepath.Join(getDataDir(), "forum")
 }
 
 func dataFilePath(app string) string {
-	return filepath.Join(dataDirForApp(app), "data.txt")
+	fileName := fmt.Sprintf("%s.txt", app)
+	return filepath.Join(forumDataDir(), fileName)
 }
 
 type Post struct {
@@ -377,8 +378,7 @@ func copyBlobs(topics []*Topic) error {
 }
 
 func main() {
-	dataDir := dataDirForApp(APP_NAME)
-	if err := CreateDirIfNotExists(dataDir); err != nil {
+	if err := CreateDirIfNotExists(forumDataDir()); err != nil {
 		panic("failed to create dataDir")
 	}
 

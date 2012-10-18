@@ -154,13 +154,9 @@ func getDataDir() string {
 	return ""
 }
 
-func forumDataDir(forumDir string) string {
-	return filepath.Join(getDataDir(), forumDir)
-}
-
 func NewForum(config *ForumConfig) *Forum {
 	forum := &Forum{ForumConfig: *config}
-	store, err := NewStore(forumDataDir(config.DataDir))
+	store, err := NewStore(getDataDir(), config.DataDir)
 	if err != nil {
 		panic("failed to create store for a forum")
 	}
@@ -376,12 +372,13 @@ func main() {
 		LocalDir:  getDataDir(),
 	}
 
-	if S3BackupEnabled() {
+	if false && S3BackupEnabled() {
 		go BackupLoop(backupConfig)
 	}
 
 	msg := fmt.Sprintf("Started runing on %s", *httpAddr)
 	logger.Noticef(msg)
+	fmt.Printf("%s\n", msg)
 	if err := http.ListenAndServe(*httpAddr, nil); err != nil {
 		fmt.Printf("http.ListendAndServer() failed with %s\n", err.Error())
 	}

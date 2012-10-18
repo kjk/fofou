@@ -33,8 +33,9 @@ type Topic struct {
 }
 
 type Store struct {
-	dataDir string
-	topics  []Topic
+	dataDir   string
+	forumName string
+	topics    []Topic
 
 	// for rssall we need to quickly get all recent posts
 	// we could get them from topics and sort by time but
@@ -261,9 +262,13 @@ func verifyTopics(topics []Topic) {
 	}
 }
 
-func NewStore(dataDir string) (*Store, error) {
-	dataFilePath := filepath.Join(dataDir, "data.txt")
-	store := &Store{dataDir: dataDir, recentPosts: NewCircularPostsBuf(10)}
+func NewStore(dataDir, forumName string) (*Store, error) {
+	dataFilePath := filepath.Join(dataDir, "forum", forumName+".txt")
+	store := &Store{
+		dataDir:     dataDir,
+		forumName:   forumName,
+		recentPosts: NewCircularPostsBuf(10),
+	}
 	var err error
 	if PathExists(dataFilePath) {
 		store.topics, err = readExistingData(dataFilePath, store.recentPosts)
@@ -360,7 +365,7 @@ func (s *Store) TopicById(id int) *Topic {
 func blobPath(dir, sha1 string) string {
 	d1 := sha1[:2]
 	d2 := sha1[2:4]
-	return filepath.Join(dir, "..", "blobs", d1, d2, sha1)
+	return filepath.Join(dir, "blobs", d1, d2, sha1)
 }
 
 func (s *Store) MessageFilePath(sha1 [20]byte) string {
@@ -448,12 +453,9 @@ func remSep(s string) string {
 func (s *Store) writeMessageAsSha1(msg []byte, sha1 [20]byte) error {
 	path := s.MessageFilePath(sha1)
 	err := WriteBytesToFile(msg, path)
-	/*
-		if err != nil {
-			fmt.Printf("Store.writeMessageAsSha1(): failed to write %s with error %s\n", path, err.Error())
-		} else {
-			fmt.Printf("Store.writeMessageAsSha1(): wrote %s\n", path)
-		}*/
+	if err != nil {
+		logger.Errorf("Store.writeMessageAsSha1(): failed to write %s with error %s", path, err.Error())
+	}
 	return err
 }
 
@@ -468,7 +470,6 @@ func (s *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool
 	}
 	copy(p.MessageSha1[:], sha1)
 	if err := s.writeMessageAsSha1(msgBytes, p.MessageSha1); err != nil {
-		logger.Errorf("Store.addNewPost(): writeMessageAsSha1() failed with %s", err.Error())
 		return err
 	}
 
