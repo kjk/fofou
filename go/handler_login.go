@@ -61,20 +61,20 @@ func getSecureCookie(r *http.Request) *SecureCookieValue {
 			// most likely expired cookie, so ignore. Ideally should delete the
 			// cookie, but that requires access to http.ResponseWriter, so not
 			// convenient for us
-			logger.Noticef("Error decoding cookie %s\n", err.Error())
+			logger.Noticef("Error decoding cookie '%s', error: %s", cookie.Value, err.Error())
 			return new(SecureCookieValue)
 		}
 		var ok bool
 		if ret.AnonUser, ok = val["anonuser"]; !ok {
-			logger.Errorf("Error decoding cookie, no 'anonuser' field\n")
+			logger.Errorf("Error decoding cookie, no 'anonuser' field")
 			return new(SecureCookieValue)
 		}
 		if ret.TwitterUser, ok = val["twuser"]; !ok {
-			logger.Errorf("Error decoding cookie, no 'twuser' field\n")
+			logger.Errorf("Error decoding cookie, no 'twuser' field")
 			return new(SecureCookieValue)
 		}
 		if ret.TwitterTemp, ok = val["twittertemp"]; !ok {
-			logger.Errorf("Error decoding cookie, no 'twittertemp' field\n")
+			logger.Errorf("Error decoding cookie, no 'twittertemp' field")
 			return new(SecureCookieValue)
 		}
 	}
