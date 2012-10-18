@@ -24,6 +24,9 @@ type Post struct {
 	userNameInternal string
 	ipAddrInternal   string
 	IsDeleted        bool
+
+	// for convenience, we link to the topic this post belongs to
+	Topic *Topic
 }
 
 func (p *Post) IpAddress() string {
@@ -69,62 +72,17 @@ type Topic struct {
 }
 
 type Store struct {
+	sync.Mutex
 	dataDir   string
 	forumName string
 	topics    []Topic
 
-	// for rssall we need to quickly get all recent posts
-	// we could get them from topics and sort by time but
-	// instead we'll maintain them in a circular buffer
-	// with fixed capacity and update it during inserts
-	recentPosts *CircularPostsBuf
+	// for some functions it's convenient to traverse the posts ordered by
+	// time, so we keep them ordered here, even though they are already stored
+	// as part of Topic in topics
+	posts []*Post
 
 	dataFile *os.File
-	mu       sync.Mutex // to serialize writes
-}
-
-type PostTopic struct {
-	Post  *Post
-	Topic *Topic
-}
-
-type CircularPostsBuf struct {
-	Posts []PostTopic
-	pos   int
-	full  bool
-}
-
-func NewCircularPostsBuf(cap int) *CircularPostsBuf {
-	return &CircularPostsBuf{
-		Posts: make([]PostTopic, cap, cap),
-		pos:   0,
-		full:  false,
-	}
-}
-
-func (b *CircularPostsBuf) Add(p PostTopic) {
-	if b.pos == cap(b.Posts) {
-		b.pos = 0
-		b.full = true
-	}
-	b.Posts[b.pos] = p
-	b.pos += 1
-}
-
-func (b *CircularPostsBuf) GetOrdered() []PostTopic {
-	size := b.pos
-	if b.full {
-		size = cap(b.Posts)
-	}
-	res := make([]PostTopic, size, size)
-	for i := 0; i < size; i++ {
-		p := b.pos - 1 - i
-		if p < 0 {
-			p = cap(b.Posts) + p
-		}
-		res[i] = b.Posts[p]
-	}
-	return res
 }
 
 func (t *Topic) IsDeleted() bool {
@@ -165,7 +123,7 @@ func findPostToDelUndel(d []byte, topicIdToTopic map[int]*Topic) *Post {
 	return &topic.Posts[postId-1]
 }
 
-func parseTopics(d []byte, recentPosts *CircularPostsBuf) []Topic {
+func parseTopics(d []byte, recentPosts *[]*Post) []Topic {
 	topics := make([]Topic, 0)
 	topicIdToTopic := make(map[int]*Topic)
 	for len(d) > 0 {
@@ -249,13 +207,11 @@ func parseTopics(d []byte, recentPosts *CircularPostsBuf) []Topic {
 				userNameInternal: userName,
 				ipAddrInternal:   ipAddrInternal,
 				IsDeleted:        false,
+				Topic:            t,
 			}
 			copy(post.MessageSha1[:], msgSha1)
 			t.Posts = append(t.Posts, post)
-
-			postPtr := &t.Posts[len(t.Posts)-1]
-			pt := PostTopic{Post: postPtr, Topic: t}
-			recentPosts.Add(pt)
+			*recentPosts = append(*recentPosts, &t.Posts[len(t.Posts)-1])
 		} else if line[0] == 'D' {
 			// D|1234|1
 			post := findPostToDelUndel(line[1:], topicIdToTopic)
@@ -277,7 +233,7 @@ func parseTopics(d []byte, recentPosts *CircularPostsBuf) []Topic {
 	return topics
 }
 
-func readExistingData(fileDataPath string, recentPosts *CircularPostsBuf) ([]Topic, error) {
+func readExistingData(fileDataPath string, recentPosts *[]*Post) ([]Topic, error) {
 	f, err := os.Open(fileDataPath)
 	if err != nil {
 		return nil, err
@@ -301,13 +257,13 @@ func verifyTopics(topics []Topic) {
 func NewStore(dataDir, forumName string) (*Store, error) {
 	dataFilePath := filepath.Join(dataDir, "forum", forumName+".txt")
 	store := &Store{
-		dataDir:     dataDir,
-		forumName:   forumName,
-		recentPosts: NewCircularPostsBuf(10),
+		dataDir:   dataDir,
+		forumName: forumName,
+		posts:     make([]*Post, 0),
 	}
 	var err error
 	if PathExists(dataFilePath) {
-		store.topics, err = readExistingData(dataFilePath, store.recentPosts)
+		store.topics, err = readExistingData(dataFilePath, &store.posts)
 		if err != nil {
 			fmt.Printf("readExistingData() failed with %s", err.Error())
 			return nil, err
@@ -333,15 +289,15 @@ func NewStore(dataDir, forumName string) (*Store, error) {
 }
 
 func (s *Store) TopicsCount() int {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.Lock()
+	defer s.Unlock()
 	return len(s.topics)
 }
 
 func (s *Store) GetTopics(nMax, from int, withDeleted bool) ([]*Topic, int) {
 	res := make([]*Topic, 0, nMax)
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.Lock()
+	defer s.Unlock()
 	n := nMax
 	i := from
 	for n > 0 {
@@ -362,28 +318,9 @@ func (s *Store) GetTopics(nMax, from int, withDeleted bool) ([]*Topic, int) {
 	return res, newFrom
 }
 
-/*
-func findTopicById(topics []*Topic, id int) *Topic {
-	min := 0
-	max := len(topics) - 1
-	for max >= min {
-		mid := min + ((max - min) / 2)
-		topicId := topics[mid].Id
-		if topicId == id {
-			return topics[mid]
-		}
-		if id > topicId {
-			min = mid
-		} else {
-			max = mid
-		}
-	}
-	return nil
-}
-*/
-
+// note: could probably speed up with binary search, but given our sizes, we're
+// fast enough
 func (s *Store) topicByIdUnlocked(id int) *Topic {
-	// TODO: binary search?
 	for idx, t := range s.topics {
 		if id == t.Id {
 			return &s.topics[idx]
@@ -393,8 +330,8 @@ func (s *Store) topicByIdUnlocked(id int) *Topic {
 }
 
 func (s *Store) TopicById(id int) *Topic {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.Lock()
+	defer s.Unlock()
 	return s.topicByIdUnlocked(id)
 }
 
@@ -430,8 +367,8 @@ func (s *Store) appendString(str string) error {
 }
 
 func (s *Store) DeletePost(topicId, postId int) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.Lock()
+	defer s.Unlock()
 
 	post, err := s.findPost(topicId, postId)
 	if err != nil {
@@ -449,8 +386,8 @@ func (s *Store) DeletePost(topicId, postId int) error {
 }
 
 func (s *Store) UndeletePost(topicId, postId int) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.Lock()
+	defer s.Unlock()
 
 	post, err := s.findPost(topicId, postId)
 	if err != nil {
@@ -516,6 +453,7 @@ func (s *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool
 		userNameInternal: remSep(user),
 		ipAddrInternal:   remSep(ipAddrToInternal(ipAddr)),
 		IsDeleted:        false,
+		Topic:            topic,
 	}
 	copy(p.MessageSha1[:], sha1)
 	if err := s.writeMessageAsSha1(msgBytes, p.MessageSha1); err != nil {
@@ -543,16 +481,13 @@ func (s *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool
 	if newTopic {
 		s.topics = append(s.topics, *topic)
 	}
-
-	postPtr := &topic.Posts[len(topic.Posts)-1]
-	pt := PostTopic{Post: postPtr, Topic: topic}
-	s.recentPosts.Add(pt)
+	s.posts = append(s.posts, &topic.Posts[len(topic.Posts)-1])
 	return nil
 }
 
 func (s *Store) CreateNewPost(subject, msg, user, ipAddr string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.Lock()
+	defer s.Unlock()
 
 	topic := &Topic{
 		Id:      1,
@@ -567,8 +502,8 @@ func (s *Store) CreateNewPost(subject, msg, user, ipAddr string) error {
 }
 
 func (s *Store) AddPostToTopic(topicId int, msg, user, ipAddr string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.Lock()
+	defer s.Unlock()
 
 	topic := s.topicByIdUnlocked(topicId)
 	if topic == nil {
@@ -577,6 +512,37 @@ func (s *Store) AddPostToTopic(topicId int, msg, user, ipAddr string) error {
 	return s.addNewPost(msg, user, ipAddr, topic, false)
 }
 
-func (s *Store) GetRecentPosts() []PostTopic {
-	return s.recentPosts.GetOrdered()
+func (s *Store) GetRecentPosts() []*Post {
+	s.Lock()
+	defer s.Unlock()
+
+	first := len(s.posts) - 25 // get 25 last posts
+	if first < 0 {
+		first = 0
+	}
+	return s.posts[first:]
+}
+
+func (s *Store) GetPostsByUserInternal(userInternal string) []*Post {
+	s.Lock()
+	defer s.Unlock()
+
+	// TODO: actually filter by user
+	first := len(s.posts) - 25 // get 25 last posts
+	if first < 0 {
+		first = 0
+	}
+	return s.posts[first:]
+}
+
+func (s *Store) GetPostsByIpInternal(ipInternal string) []*Post {
+	s.Lock()
+	defer s.Unlock()
+
+	// TODO: actually filter by ip
+	first := len(s.posts) - 25 // get 25 last posts
+	if first < 0 {
+		first = 0
+	}
+	return s.posts[first:]
 }

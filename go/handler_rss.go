@@ -22,21 +22,20 @@ func handleRss2(w http.ResponseWriter, r *http.Request, all bool) {
 	if forum == nil {
 		return
 	}
-	var posts []PostTopic
+	var posts []*Post
 	if all {
 		posts = forum.Store.GetRecentPosts()
 	} else {
 		topics, _ := forum.Store.GetTopics(25, 0, false)
-		posts = make([]PostTopic, len(topics), len(topics))
+		posts = make([]*Post, len(topics), len(topics))
 		for i, t := range topics {
-			pt := PostTopic{Post: &t.Posts[0], Topic: t}
-			posts[i] = pt
+			posts[i] = &t.Posts[0]
 		}
 	}
 
 	pubTime := time.Now()
 	if len(posts) > 0 {
-		pubTime = posts[len(posts)-1].Post.CreatedOn
+		pubTime = posts[len(posts)-1].CreatedOn
 	}
 
 	feed := &atom.Feed{
@@ -45,8 +44,8 @@ func handleRss2(w http.ResponseWriter, r *http.Request, all bool) {
 		PubDate: pubTime,
 	}
 
-	for _, pt := range posts {
-		sha1 := pt.Post.MessageSha1
+	for _, p := range posts {
+		sha1 := p.MessageSha1
 		msgFilePath := forum.Store.MessageFilePath(sha1)
 		msg, err := ioutil.ReadFile(msgFilePath)
 		msgStr := ""
@@ -56,10 +55,11 @@ func handleRss2(w http.ResponseWriter, r *http.Request, all bool) {
 			msgStr = msgToHtml(string(msg))
 		}
 		e := &atom.Entry{
-			Title:       pt.Topic.Subject,
-			Link:        buildTopicUrl(r, forum, pt.Topic.Id),
+			Title:       p.Topic.Subject,
+			Link:        buildTopicUrl(r, forum, p.Topic.Id),
 			Description: msgStr,
-			PubDate:     pt.Post.CreatedOn}
+			PubDate:     p.CreatedOn,
+		}
 		feed.AddEntry(e)
 	}
 
