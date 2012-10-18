@@ -14,17 +14,6 @@ import (
 	"time"
 )
 
-type ModelTopic struct {
-	Forum
-	Topic
-	SidebarHtml   template.HTML
-	ForumUrl      string
-	Posts         []*PostDisplay
-	IsAdmin       bool
-	AnalyticsCode *string
-	LogInOut      template.HTML
-}
-
 type PostDisplay struct {
 	Post
 	Id           int
@@ -160,7 +149,16 @@ func handleTopic(w http.ResponseWriter, r *http.Request) {
 		posts = append(posts, pd)
 	}
 
-	model := &ModelTopic{
+	model := struct {
+		Forum
+		Topic
+		SidebarHtml   template.HTML
+		ForumUrl      string
+		Posts         []*PostDisplay
+		IsAdmin       bool
+		AnalyticsCode *string
+		LogInOut      template.HTML
+	}{
 		Forum:         *forum,
 		Topic:         *topic,
 		SidebarHtml:   template.HTML(forum.Sidebar),

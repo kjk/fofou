@@ -18,18 +18,6 @@ type TopicDisplay struct {
 	TopicUrl         string
 }
 
-type ModelForum struct {
-	Forum
-	ErrorMsg      string
-	RedirectUrl   string
-	SidebarHtml   template.HTML
-	ForumFullUrl  string
-	NewFrom       int
-	Topics        []*TopicDisplay
-	AnalyticsCode *string
-	LogInOut      template.HTML
-}
-
 func plural(n int, s string) string {
 	if 1 == n {
 		return fmt.Sprintf("%d %s", n, s)
@@ -89,7 +77,17 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 		topicsDisplay = append(topicsDisplay, d)
 	}
 
-	model := &ModelForum{
+	model := struct {
+		Forum
+		ErrorMsg      string
+		RedirectUrl   string
+		SidebarHtml   template.HTML
+		ForumFullUrl  string
+		NewFrom       int
+		Topics        []*TopicDisplay
+		AnalyticsCode *string
+		LogInOut      template.HTML
+	}{
 		Forum:         *forum,
 		Topics:        topicsDisplay,
 		SidebarHtml:   template.HTML(forum.Sidebar),

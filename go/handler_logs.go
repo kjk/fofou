@@ -10,17 +10,16 @@ import (
 // or even group by day, and say:
 // 2012-10-03:
 //   13:15:31
-type ModelLogs struct {
-	UserIsAdmin bool
-	Errors      []*TimestampedMsg
-	Notices     []*TimestampedMsg
-}
 
 // url: /logs
 func handleLogs(w http.ResponseWriter, r *http.Request) {
 	cookie := getSecureCookie(r)
 	isAdmin := cookie.TwitterUser == "kjk" // only I can see the logs
-	model := &ModelLogs{
+	model := struct {
+		UserIsAdmin bool
+		Errors      []*TimestampedMsg
+		Notices     []*TimestampedMsg
+	}{
 		UserIsAdmin: isAdmin,
 	}
 
