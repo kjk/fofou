@@ -19,11 +19,15 @@ import (
 // Note: to save memory, we don't store id and topic id, because they are
 // implicit (id == index withing topic.Posts array + 1)
 type Post struct {
-	CreatedOn    time.Time
-	MessageSha1  [20]byte
-	UserName     string
-	IpAddressHex string // TODO: string or something else?
-	IsDeleted    bool
+	CreatedOn      time.Time
+	MessageSha1    [20]byte
+	UserName       string
+	ipAddrInternal string
+	IsDeleted      bool
+}
+
+func (p *Post) IpAddress() string {
+	return ipAddrInternalToOriginal(p.ipAddrInternal)
 }
 
 type Topic struct {
@@ -174,7 +178,7 @@ func parseTopics(d []byte, recentPosts *CircularPostsBuf) []Topic {
 			idStr := parts[1]
 			createdOnSecondsStr := parts[2]
 			msgSha1b64 := parts[3] + "="
-			ipAddrHexStr := parts[4]
+			ipAddrInternal := parts[4]
 			userName := parts[5]
 
 			topicId, err := strconv.Atoi(topicIdStr)
@@ -209,10 +213,10 @@ func parseTopics(d []byte, recentPosts *CircularPostsBuf) []Topic {
 				panic("id != len(t.Posts) + 1")
 			}
 			post := Post{
-				CreatedOn:    createdOn,
-				UserName:     userName,
-				IpAddressHex: ipAddrHexStr,
-				IsDeleted:    false,
+				CreatedOn:      createdOn,
+				UserName:       userName,
+				ipAddrInternal: ipAddrInternal,
+				IsDeleted:      false,
 			}
 			copy(post.MessageSha1[:], msgSha1)
 			t.Posts = append(t.Posts, post)
@@ -431,19 +435,32 @@ func (s *Store) UndeletePost(topicId, postId int) error {
 	return nil
 }
 
-func ip2str(s string) uint32 {
+func ipAddrToInternal(ipAddr string) string {
 	var nums [4]uint32
-	parts := strings.Split(s, ".")
-	for n, p := range parts {
-		num, _ := strconv.Atoi(p)
-		nums[n] = uint32(num)
+	parts := strings.Split(ipAddr, ".")
+	if len(parts) == 4 {
+		for n, p := range parts {
+			num, _ := strconv.Atoi(p)
+			nums[n] = uint32(num)
+		}
+		n := (nums[0] << 24) | (nums[1] << 16) + (nums[2] << 8) | nums[3]
+		return fmt.Sprintf("%x", n)
 	}
-	return (nums[0] << 24) | (nums[1] << 16) + (nums[2] << 8) | nums[3]
+	// I assume it's ipv6
+	return ipAddr
 }
 
-func ipAddrToHex(ipAddr string) string {
-	// TODO: support ipv6
-	return fmt.Sprintf("%x", ip2str(ipAddr))
+func ipAddrInternalToOriginal(s string) string {
+	// check if ipv4 in hex form
+	if len(s) == 8 {
+		if d, err := hex.DecodeString(s); err != nil {
+			return s
+		} else {
+			return fmt.Sprintf("%d.%d.%d.%d", d[0], d[1], d[2], d[3])
+		}
+	}
+	// other format (ipv6?)
+	return s
 }
 
 func remSep(s string) string {
@@ -463,10 +480,10 @@ func (s *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool
 	msgBytes := []byte(msg)
 	sha1 := Sha1OfBytes(msgBytes)
 	p := &Post{
-		CreatedOn:    time.Now(),
-		UserName:     remSep(user),
-		IpAddressHex: ipAddrToHex(ipAddr),
-		IsDeleted:    false,
+		CreatedOn:      time.Now(),
+		UserName:       remSep(user),
+		ipAddrInternal: remSep(ipAddrToInternal(ipAddr)),
+		IsDeleted:      false,
 	}
 	copy(p.MessageSha1[:], sha1)
 	if err := s.writeMessageAsSha1(msgBytes, p.MessageSha1); err != nil {
@@ -484,7 +501,7 @@ func (s *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool
 	s2 := base64.StdEncoding.EncodeToString(p.MessageSha1[:])
 	s2 = s2[:len(s2)-1] // remove unnecessary '=' from the end
 	s3 := p.UserName
-	sIp := p.IpAddressHex
+	sIp := p.ipAddrInternal
 	postStr := fmt.Sprintf("P%d|%d|%s|%s|%s|%s\n", topic.Id, postId, s1, s2, sIp, s3)
 	str := topicStr + postStr
 	if err := s.appendString(str); err != nil {

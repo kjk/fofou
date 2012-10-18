@@ -17,7 +17,6 @@ import (
 type PostDisplay struct {
 	Post
 	Id           int
-	UserIpStr    string
 	UserHomepage string
 	CreatedOnStr string
 	MessageHtml  template.HTML
