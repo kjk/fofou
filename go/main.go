@@ -372,6 +372,9 @@ func main() {
 		LocalDir:  getDataDir(),
 	}
 
+	doBackup(backupConfig)
+	log.Fatalf("And we're quitting")
+
 	if false && S3BackupEnabled() {
 		go BackupLoop(backupConfig)
 	}
