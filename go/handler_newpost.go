@@ -72,6 +72,16 @@ func isMsgValid(msg string, topic *Topic) bool {
 	return true
 }
 
+// Request.RemoteAddress contains port, which we want to remove i.e.:
+// "[::1]:58292" => "[::1]"
+func ipAddrFromRemoteAddr(s string) string {
+	idx := strings.LastIndex(s, ":")
+	if idx == -1 {
+		return s
+	}
+	return s[:idx]
+}
+
 func createNewPost(w http.ResponseWriter, r *http.Request, forumUrl string, model *ModelNewPost, topic *Topic) {
 
 	// validate the fields
@@ -127,7 +137,7 @@ func createNewPost(w http.ResponseWriter, r *http.Request, forumUrl string, mode
 	userName = MakeInternalUserName(userName, twitterUser)
 
 	store := model.Forum.Store
-	ipAddr := r.RemoteAddr
+	ipAddr := ipAddrFromRemoteAddr(r.RemoteAddr)
 	if topic == nil {
 		if err := store.CreateNewPost(subject, msg, userName, ipAddr); err != nil {
 			logger.Errorf("createNewPost(): store.CreateNewPost() failed with %s", err.Error())
