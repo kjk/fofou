@@ -10,15 +10,16 @@ It's mostly a port of FruitShow PHP forum (http://sourceforge.net/projects/fruit
 
 There are two versions:
 
-* one for Google App Engine (directory appengine). I used this versions for a
-  few years but no longer use it and no longer work on it
+* one in Python for Google App Engine (directory appengine). I used this versions
+  for a few years but no longer use it and no longer work on it
 
-* second written in Go (directory go), which I currently use at http://forums.fofou.org
+* second written in Go (directory go), which I currently use at 
+  http://forums.fofou.org
 
 Where can I see it in action?
 =============================
 
-Forums for my Sumatra PDF viewer are powered by Fofou:
+Forums for my Sumatra PDF reader are powered by Fofou:
 http://forums.fofou.org/sumatrapdf/
 
 Installation.
@@ -50,10 +51,3 @@ The python/Go code is written completely by me and is in Public Domain.
 
 Html/css/js files are mostly lifted from FuitShow, so they fall under
 FruitShow's BSD license.
-
-Contributing.
-=============
-
-Fofou is open-source so if you want to improve the code, contribute more skins
-etc., fork http://github.com/kjk/fofou/tree/master, make your changes and let me
-know. If the changes are good, I'll pull them into my repo.

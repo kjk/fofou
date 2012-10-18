@@ -4,10 +4,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/garyburd/go-oauth/oauth"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"oauth"
 	"strings"
 )
 

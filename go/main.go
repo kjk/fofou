@@ -10,12 +10,12 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/garyburd/go-oauth/oauth"
 	"html/template"
 	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
-	"oauth"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -106,6 +106,34 @@ type Forum struct {
 type AppState struct {
 	Users  []*User
 	Forums []*Forum
+}
+
+func StringEmpty(s *string) bool {
+	return s == nil || 0 == len(*s)
+}
+
+func S3BackupEnabled() bool {
+	if !*inProduction {
+		logger.Notice("s3 backups disabled because not in production")
+		return false
+	}
+	if StringEmpty(config.AwsAccess) {
+		logger.Notice("s3 backups disabled because AwsAccess not defined in config.json\n")
+		return false
+	}
+	if StringEmpty(config.AwsSecret) {
+		logger.Notice("s3 backups disabled because AwsSecret not defined in config.json\n")
+		return false
+	}
+	if StringEmpty(config.S3BackupBucket) {
+		logger.Notice("s3 backups disabled because S3BackupBucket not defined in config.json\n")
+		return false
+	}
+	if StringEmpty(config.S3BackupDir) {
+		logger.Notice("s3 backups disabled because S3BackupDir not defined in config.json\n")
+		return false
+	}
+	return true
 }
 
 // data dir is ../../../data on the server or ../../fofoudata locally
@@ -339,6 +367,19 @@ func main() {
 	r.HandleFunc("/{forum}/newpost", makeTimingHandler(handleNewPost))
 
 	http.Handle("/", r)
+
+	backupConfig := &BackupConfig{
+		AwsAccess: *config.AwsAccess,
+		AwsSecret: *config.AwsSecret,
+		Bucket:    *config.S3BackupBucket,
+		S3Dir:     *config.S3BackupDir,
+		LocalDir:  getDataDir(),
+	}
+
+	if S3BackupEnabled() {
+		go BackupLoop(backupConfig)
+	}
+
 	msg := fmt.Sprintf("Started runing on %s", *httpAddr)
 	logger.Noticef(msg)
 	if err := http.ListenAndServe(*httpAddr, nil); err != nil {
