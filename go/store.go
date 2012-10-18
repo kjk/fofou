@@ -19,15 +19,47 @@ import (
 // Note: to save memory, we don't store id and topic id, because they are
 // implicit (id == index withing topic.Posts array + 1)
 type Post struct {
-	CreatedOn      time.Time
-	MessageSha1    [20]byte
-	UserName       string
-	ipAddrInternal string
-	IsDeleted      bool
+	CreatedOn        time.Time
+	MessageSha1      [20]byte
+	userNameInternal string
+	ipAddrInternal   string
+	IsDeleted        bool
 }
 
 func (p *Post) IpAddress() string {
 	return ipAddrInternalToOriginal(p.ipAddrInternal)
+}
+
+func (p *Post) IsTwitterUser() bool {
+	return strings.HasPrefix(p.userNameInternal, "t:")
+}
+
+func (p *Post) UserName() string {
+	s := p.userNameInternal
+	if p.IsTwitterUser() {
+		return s[2:]
+	}
+	return s
+}
+
+// in store, we need to distinguish between anonymous users and those that
+// are logged in via twitter, so we prepend "t:" to twitter user names
+// Note: in future we might add more login methods by adding more 
+// prefixes
+func MakeInternalUserName(userName string, twitter bool) string {
+	if twitter {
+		return "t:" + userName
+	}
+	// we can't have users pretending to be logged in, so if the name typed
+	// by the user has ':' as second character, we remove that prefix so that
+	// we can use "*:" prefix to distinguish logged in from not-logged in users
+	if len(userName) >= 2 && userName[1] == ':' {
+		if len(userName) > 2 {
+			return userName[2:]
+		}
+		return userName[:1]
+	}
+	return userName
 }
 
 type Topic struct {
@@ -213,10 +245,10 @@ func parseTopics(d []byte, recentPosts *CircularPostsBuf) []Topic {
 				panic("id != len(t.Posts) + 1")
 			}
 			post := Post{
-				CreatedOn:      createdOn,
-				UserName:       userName,
-				ipAddrInternal: ipAddrInternal,
-				IsDeleted:      false,
+				CreatedOn:        createdOn,
+				userNameInternal: userName,
+				ipAddrInternal:   ipAddrInternal,
+				IsDeleted:        false,
 			}
 			copy(post.MessageSha1[:], msgSha1)
 			t.Posts = append(t.Posts, post)
@@ -480,10 +512,10 @@ func (s *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool
 	msgBytes := []byte(msg)
 	sha1 := Sha1OfBytes(msgBytes)
 	p := &Post{
-		CreatedOn:      time.Now(),
-		UserName:       remSep(user),
-		ipAddrInternal: remSep(ipAddrToInternal(ipAddr)),
-		IsDeleted:      false,
+		CreatedOn:        time.Now(),
+		userNameInternal: remSep(user),
+		ipAddrInternal:   remSep(ipAddrToInternal(ipAddr)),
+		IsDeleted:        false,
 	}
 	copy(p.MessageSha1[:], sha1)
 	if err := s.writeMessageAsSha1(msgBytes, p.MessageSha1); err != nil {
@@ -500,7 +532,7 @@ func (s *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool
 	s1 := fmt.Sprintf("%d", p.CreatedOn.Unix())
 	s2 := base64.StdEncoding.EncodeToString(p.MessageSha1[:])
 	s2 = s2[:len(s2)-1] // remove unnecessary '=' from the end
-	s3 := p.UserName
+	s3 := p.userNameInternal
 	sIp := p.ipAddrInternal
 	postStr := fmt.Sprintf("P%d|%d|%s|%s|%s|%s\n", topic.Id, postId, s1, s2, sIp, s3)
 	str := topicStr + postStr

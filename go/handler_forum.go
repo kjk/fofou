@@ -58,7 +58,7 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 		}
 		d := &TopicDisplay{
 			Topic:     *t,
-			CreatedBy: t.Posts[0].UserName,
+			CreatedBy: t.Posts[0].UserName(),
 		}
 		nComments := len(t.Posts) - 1
 		if 0 == i {

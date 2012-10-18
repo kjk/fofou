@@ -118,16 +118,24 @@ func createNewPost(w http.ResponseWriter, r *http.Request, forumUrl string, mode
 	cookie.AnonUser = name
 	setSecureCookie(w, cookie)
 
+	userName := cookie.TwitterUser
+	twitterUser := true
+	if userName == "" {
+		userName = cookie.AnonUser
+		twitterUser = false
+	}
+	userName = MakeInternalUserName(userName, twitterUser)
+
 	store := model.Forum.Store
 	ipAddr := r.RemoteAddr
 	if topic == nil {
-		if err := store.CreateNewPost(subject, msg, name, ipAddr); err != nil {
+		if err := store.CreateNewPost(subject, msg, userName, ipAddr); err != nil {
 			logger.Errorf("createNewPost(): store.CreateNewPost() failed with %s", err.Error())
 			//fmt.Printf("createNewPost(): store.CreateNewPost() failed with %s\n", err.Error())
 		}
 		http.Redirect(w, r, fmt.Sprintf("/%s/", forumUrl), 302)
 	} else {
-		if err := store.AddPostToTopic(topic.Id, msg, name, ipAddr); err != nil {
+		if err := store.AddPostToTopic(topic.Id, msg, userName, ipAddr); err != nil {
 			logger.Errorf("createNewPost(): store.AddPostToTopic() failed with %s", err.Error())
 			//fmt.Printf("createNewPost(): store.AddPostToTopic() failed with %s\n", err.Error())
 		}

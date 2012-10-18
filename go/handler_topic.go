@@ -58,7 +58,10 @@ func msgToHtml(s string) string {
 		url := s[start:end]
 		ns += s[prevEnd:start]
 
-		// placeHolder is meant to be an unlikely string
+		// placeHolder is meant to be an unlikely string that doesn't exist in
+		// the message, so that we can replace the string with it and then
+		// revert the replacement. A more robust approach would be to remember
+		// offsets
 		placeHolder, ok := urlMap[url]
 		if !ok {
 			placeHolder = fmt.Sprintf("a;dfsl;a__lkasjdfh1234098;lajksdf_%d", n)
@@ -145,6 +148,19 @@ func handleTopic(w http.ResponseWriter, r *http.Request) {
 			msgStr = msgToHtml(string(msg))
 		}
 		pd.MessageHtml = template.HTML(msgStr)
+
+		if p.IsTwitterUser() {
+			pd.UserHomepage = "http://twitter.com/" + p.UserName()
+		}
+
+		if forumUrl == "sumatrapdf" {
+			// backwards-compatibility hack for posts imported from old version of
+			// fofou: hyper-link my name to my website
+			if p.UserName() == "Krzysztof Kowalczyk" || p.userNameInternal == "t:kjk" {
+				pd.UserHomepage = "http://blog.kowalczyk.info"
+			}
+		}
+
 		posts = append(posts, pd)
 	}
 
