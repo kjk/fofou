@@ -49,6 +49,7 @@ def zip_files(zip_path):
 	zf.write("config.json")
 	add_dir_files(zf, "scripts")
 	add_dir_files(zf, "ext")
+	add_dir_files(zf, "img")
 	add_dir_files(zf, "tmpl")
 	add_dir_files(zf, "static")
 	zf.close()

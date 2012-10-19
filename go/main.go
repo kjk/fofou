@@ -75,7 +75,7 @@ var (
 	tmplNewPost   = "newpost.html"
 	tmplLogs      = "logs.html"
 	templateNames = [...]string{tmplMain, tmplForum, tmplTopic, tmplPosts,
-		tmplNewPost, tmplLogs, "footer.html"}
+		tmplNewPost, tmplLogs, "footer.html", "analytics.html"}
 	templatePaths   []string
 	templates       *template.Template
 	reloadTemplates = true

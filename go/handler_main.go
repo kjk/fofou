@@ -7,7 +7,7 @@ import (
 
 type ModelMain struct {
 	Forums        *[]*Forum
-	AnalyticsCode *string
+	AnalyticsCode string
 }
 
 // handler for url: /
@@ -19,8 +19,7 @@ func handleMain(w http.ResponseWriter, r *http.Request) {
 
 	model := &ModelMain{
 		Forums:        &appState.Forums,
-		AnalyticsCode: config.AnalyticsCode,
+		AnalyticsCode: *config.AnalyticsCode,
 	}
-
 	ExecTemplate(w, tmplMain, model)
 }
