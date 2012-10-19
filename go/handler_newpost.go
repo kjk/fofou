@@ -150,7 +150,7 @@ func createNewPost(w http.ResponseWriter, r *http.Request, model *ModelNewPost, 
 	}
 }
 
-// handler for url: /{forum}/newpost[?topicId={topicId}]
+// url: /{forum}/newpost[?topicId={topicId}]
 func handleNewPost(w http.ResponseWriter, r *http.Request) {
 	var err error
 	forum := mustGetForum(w, r)

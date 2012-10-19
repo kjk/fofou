@@ -26,7 +26,7 @@ func getTopicAndPostId(w http.ResponseWriter, r *http.Request) (*Forum, int, int
 	return forum, topicId, postId
 }
 
-// handler for url: /{forum}/postdel?topicId=${topicId}&postId=${postId}
+// url: /{forum}/postdel?topicId=${topicId}&postId=${postId}
 func handlePostDelete(w http.ResponseWriter, r *http.Request) {
 	forum, topicId, postId := getTopicAndPostId(w, r)
 	if 0 == topicId {
@@ -39,7 +39,7 @@ func handlePostDelete(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/%s/topic?id=%d", forum.ForumUrl, topicId), 302)
 }
 
-// handler for url: /{forum}/postundel?topicId=${topicId}&postId=${postId}
+// url: /{forum}/postundel?topicId=${topicId}&postId=${postId}
 func handlePostUndelete(w http.ResponseWriter, r *http.Request) {
 	forum, topicId, postId := getTopicAndPostId(w, r)
 	if 0 == topicId {

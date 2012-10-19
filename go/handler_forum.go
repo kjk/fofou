@@ -36,7 +36,7 @@ func mustGetForum(w http.ResponseWriter, r *http.Request) *Forum {
 	return nil
 }
 
-// handler for url: /{forum}
+// url: /{forum}
 func handleForum(w http.ResponseWriter, r *http.Request) {
 	forum := mustGetForum(w, r)
 	if forum == nil {

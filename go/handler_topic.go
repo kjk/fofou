@@ -131,7 +131,7 @@ func getLogInOut(r *http.Request, c *SecureCookieValue) template.HTML {
 	return template.HTML(s)
 }
 
-// handler for url: /{forum}/topic?id=${id}
+// url: /{forum}/topic?id=${id}
 func handleTopic(w http.ResponseWriter, r *http.Request) {
 	forum := mustGetForum(w, r)
 	if forum == nil {

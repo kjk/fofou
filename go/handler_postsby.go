@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// handler for url: /{forum}/postsBy?[user=${userNameInternal}][ip=${ipInternal}]
+// url: /{forum}/postsBy?[user=${userNameInternal}][ip=${ipInternal}]
 func handlePostsBy(w http.ResponseWriter, r *http.Request) {
 	forum := mustGetForum(w, r)
 	if forum == nil {
