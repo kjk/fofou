@@ -82,7 +82,7 @@ def deploy():
 	git_ensure_clean()
 	local("./scripts/build.sh")
 	ensure_remote_dir_exists(app_dir)
-	ensure_remote_file_exists('www/data/sumatrapdf')
+	ensure_remote_file_exists('www/data')
 	sha1 = git_trunk_sha1()
 	code_path_remote = app_dir + '/' + sha1
 	if files.exists(code_path_remote):
