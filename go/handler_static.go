@@ -15,14 +15,19 @@ func serveFileFromDir(w http.ResponseWriter, r *http.Request, dir, fileName stri
 	http.ServeFile(w, r, filePath)
 }
 
-// handler for url: /s/
+// url: /s/*
 func handleStatic(w http.ResponseWriter, r *http.Request) {
 	file := r.URL.Path[len("/s/"):]
 	serveFileFromDir(w, r, "static", file)
 }
 
-// handler for url: /img/
+// url: /img/*
 func handleStaticImg(w http.ResponseWriter, r *http.Request) {
 	file := r.URL.Path[len("/img/"):]
 	serveFileFromDir(w, r, "img", file)
+}
+
+// url: /robots.txt
+func handleRobotsTxt(w http.ResponseWriter, r *http.Request) {
+	serveFileFromDir(w, r, "static", "robots.txt")
 }

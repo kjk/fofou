@@ -352,6 +352,7 @@ func main() {
 	r.HandleFunc("/logout", handleLogout)
 
 	r.HandleFunc("/favicon.ico", serve404)
+	r.HandleFunc("/robots.txt", handleRobotsTxt)
 	r.HandleFunc("/logs", handleLogs)
 	r.HandleFunc("/{forum}", makeTimingHandler(handleForum))
 	r.HandleFunc("/{forum}/", makeTimingHandler(handleForum))
