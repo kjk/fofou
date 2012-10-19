@@ -10,7 +10,7 @@ import (
 func serveFileFromDir(w http.ResponseWriter, r *http.Request, dir, fileName string) {
 	filePath := filepath.Join(dir, fileName)
 	if !PathExists(filePath) {
-		fmt.Printf("serveFileFromDir() file=%s doesn't exist\n", filePath)
+		logger.Noticef("serveFileFromDir() file '%s' doesn't exist, referer: '%s'", fileName, getReferer(r))
 	}
 	http.ServeFile(w, r, filePath)
 }
