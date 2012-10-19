@@ -59,8 +59,6 @@ var (
 	cookieEncrKey []byte
 	secureCookie  *securecookie.SecureCookie
 
-	// this is where we store information about users and translation.
-	// All in one place because I expect this data to be small
 	dataDir string
 
 	appState = AppState{
@@ -137,16 +135,16 @@ func S3BackupEnabled() bool {
 	return true
 }
 
-// data dir is ../../../data on the server or ../../fofoudata locally
-// the important part is that it's outside of the code
 func getDataDir() string {
 	if dataDir != "" {
 		return dataDir
 	}
+	// locally
 	dataDir = filepath.Join("..", "..", "fofoudata")
 	if PathExists(dataDir) {
 		return dataDir
 	}
+	// on the server
 	dataDir = filepath.Join("..", "..", "data")
 	if PathExists(dataDir) {
 		return dataDir
