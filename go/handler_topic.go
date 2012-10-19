@@ -59,7 +59,7 @@ func NewPostDisplay(p *Post, forum *Forum, isAdmin bool) *PostDisplay {
 	if forum.ForumUrl == "sumatrapdf" {
 		// backwards-compatibility hack for posts imported from old version of
 		// fofou: hyper-link my name to my website
-		if p.UserName() == "Krzysztof Kowalczyk" || p.UserNameInternal == "t:kjk" {
+		if p.UserName() == "Krzysztof Kowalczyk" {
 			pd.UserHomepage = "http://blog.kowalczyk.info"
 		}
 	}

@@ -36,6 +36,10 @@ func (p *Post) IsTwitterUser() bool {
 
 func (p *Post) UserName() string {
 	s := p.UserNameInternal
+	// note: a hack just for myself
+	if s == "t:kjk" {
+		return "Krzysztof Kowalczyk"
+	}
 	if p.IsTwitterUser() {
 		return s[2:]
 	}

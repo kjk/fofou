@@ -348,13 +348,9 @@ func main() {
 
 	r := mux.NewRouter()
 	r.HandleFunc("/", makeTimingHandler(handleMain))
-	http.HandleFunc("/s/", makeTimingHandler(handleStatic))
-	http.HandleFunc("/img/", makeTimingHandler(handleStaticImg))
-
 	r.HandleFunc("/oauthtwittercb", handleOauthTwitterCallback)
 	r.HandleFunc("/login", handleLogin)
 	r.HandleFunc("/logout", handleLogout)
-
 	r.HandleFunc("/favicon.ico", serve404)
 	r.HandleFunc("/robots.txt", handleRobotsTxt)
 	r.HandleFunc("/logs", handleLogs)
@@ -368,6 +364,8 @@ func main() {
 	r.HandleFunc("/{forum}/postundel", makeTimingHandler(handlePostUndelete))
 	r.HandleFunc("/{forum}/newpost", makeTimingHandler(handleNewPost))
 
+	http.HandleFunc("/s/", makeTimingHandler(handleStatic))
+	http.HandleFunc("/img/", makeTimingHandler(handleStaticImg))
 	http.Handle("/", r)
 
 	backupConfig := &BackupConfig{
