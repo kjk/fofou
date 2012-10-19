@@ -9,7 +9,7 @@ import (
 )
 
 func getTopicAndPostId(w http.ResponseWriter, r *http.Request) (*Forum, int, int) {
-	_, forum := mustGetForum(w, r)
+	forum := mustGetForum(w, r)
 	if forum == nil {
 		return nil, 0, 0
 	}

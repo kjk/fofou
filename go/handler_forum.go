@@ -25,20 +25,20 @@ func plural(n int, s string) string {
 	return fmt.Sprintf("%d %ss", n, s)
 }
 
-func mustGetForum(w http.ResponseWriter, r *http.Request) (string, *Forum) {
+func mustGetForum(w http.ResponseWriter, r *http.Request) *Forum {
 	vars := mux.Vars(r)
 	forumUrl := vars["forum"]
 	if forum := findForum(forumUrl); forum != nil {
-		return forumUrl, forum
+		return forum
 	}
 	logger.Noticef("didn't find forum %s", forumUrl)
 	serveErrorMsg(w, fmt.Sprintf("Forum \"%s\" doesn't exist", forumUrl))
-	return "", nil
+	return nil
 }
 
 // handler for url: /{forum}
 func handleForum(w http.ResponseWriter, r *http.Request) {
-	forumUrl, forum := mustGetForum(w, r)
+	forum := mustGetForum(w, r)
 	if forum == nil {
 		return
 	}
@@ -51,7 +51,7 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 			from = 0
 		}
 	}
-	//fmt.Printf("handleForum(): forum: '%s', from: %d\n", forumUrl, from)
+	//fmt.Printf("handleForum(): forum: '%s', from: %d\n", forum.ForumUrl, from)
 
 	nTopicsMax := 50
 	cookie := getSecureCookie(r)
@@ -78,9 +78,9 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 			d.TopicLinkClass = "deleted"
 		}
 		if 0 == nComments {
-			d.TopicUrl = fmt.Sprintf("/%s/topic?id=%d", forumUrl, t.Id)
+			d.TopicUrl = fmt.Sprintf("/%s/topic?id=%d", forum.ForumUrl, t.Id)
 		} else {
-			d.TopicUrl = fmt.Sprintf("/%s/topic?id=%d&comments=%d", forumUrl, t.Id, nComments)
+			d.TopicUrl = fmt.Sprintf("/%s/topic?id=%d&comments=%d", forum.ForumUrl, t.Id, nComments)
 		}
 		topicsDisplay = append(topicsDisplay, d)
 	}

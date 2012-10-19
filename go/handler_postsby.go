@@ -10,7 +10,7 @@ import (
 
 // handler for url: /{forum}/postsBy?[user=${userNameInternal}][ip=${ipInternal}]
 func handlePostsBy(w http.ResponseWriter, r *http.Request) {
-	_, forum := mustGetForum(w, r)
+	forum := mustGetForum(w, r)
 	if forum == nil {
 		return
 	}

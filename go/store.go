@@ -17,7 +17,7 @@ import (
 )
 
 type Post struct {
-	Id int
+	Id               int
 	CreatedOn        time.Time
 	MessageSha1      [20]byte
 	UserNameInternal string
@@ -200,7 +200,7 @@ func parseTopics(d []byte, recentPosts *[]*Post) []Topic {
 				panic("id != len(t.Posts) + 1")
 			}
 			post := Post{
-				Id: len(t.Posts) + 1,
+				Id:               len(t.Posts) + 1,
 				CreatedOn:        createdOn,
 				UserNameInternal: userName,
 				IpAddrInternal:   ipAddrInternal,
@@ -447,7 +447,7 @@ func (s *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool
 	msgBytes := []byte(msg)
 	sha1 := Sha1OfBytes(msgBytes)
 	p := &Post{
-		Id: len(topic.Posts) + 1,
+		Id:               len(topic.Posts) + 1,
 		CreatedOn:        time.Now(),
 		UserNameInternal: remSep(user),
 		IpAddrInternal:   remSep(ipAddrToInternal(ipAddr)),
@@ -482,7 +482,7 @@ func (s *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool
 	return nil
 }
 
-func (s *Store) CreateNewPost(subject, msg, user, ipAddr string) error {
+func (s *Store) CreateNewPost(subject, msg, user, ipAddr string) (int, error) {
 	s.Lock()
 	defer s.Unlock()
 
@@ -495,7 +495,8 @@ func (s *Store) CreateNewPost(subject, msg, user, ipAddr string) error {
 		// Id of the last topic + 1
 		topic.Id = s.topics[len(s.topics)-1].Id + 1
 	}
-	return s.addNewPost(msg, user, ipAddr, topic, true)
+	err := s.addNewPost(msg, user, ipAddr, topic, true)
+	return topic.Id, err
 }
 
 func (s *Store) AddPostToTopic(topicId int, msg, user, ipAddr string) error {

@@ -18,7 +18,7 @@ func buildTopicUrl(r *http.Request, forum *Forum, topicId int) string {
 }
 
 func handleRss2(w http.ResponseWriter, r *http.Request, all bool) {
-	_, forum := mustGetForum(w, r)
+	forum := mustGetForum(w, r)
 	if forum == nil {
 		return
 	}

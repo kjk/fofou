@@ -133,7 +133,7 @@ func getLogInOut(r *http.Request, c *SecureCookieValue) template.HTML {
 
 // handler for url: /{forum}/topic?id=${id}
 func handleTopic(w http.ResponseWriter, r *http.Request) {
-	_, forum := mustGetForum(w, r)
+	forum := mustGetForum(w, r)
 	if forum == nil {
 		return
 	}

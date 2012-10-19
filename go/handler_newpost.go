@@ -14,7 +14,6 @@ import (
 type ModelNewPost struct {
 	Forum
 	SidebarHtml     template.HTML
-	ForumUrl        string
 	AnalyticsCode   *string
 	Num1            int
 	Num2            int
@@ -81,7 +80,7 @@ func ipAddrFromRemoteAddr(s string) string {
 	return s[:idx]
 }
 
-func createNewPost(w http.ResponseWriter, r *http.Request, forumUrl string, model *ModelNewPost, topic *Topic) {
+func createNewPost(w http.ResponseWriter, r *http.Request, model *ModelNewPost, topic *Topic) {
 
 	// validate the fields
 	num1Str := strings.TrimSpace(r.FormValue("num1"))
@@ -138,24 +137,23 @@ func createNewPost(w http.ResponseWriter, r *http.Request, forumUrl string, mode
 	store := model.Forum.Store
 	ipAddr := ipAddrFromRemoteAddr(r.RemoteAddr)
 	if topic == nil {
-		if err := store.CreateNewPost(subject, msg, userName, ipAddr); err != nil {
+		if topicId, err := store.CreateNewPost(subject, msg, userName, ipAddr); err != nil {
 			logger.Errorf("createNewPost(): store.CreateNewPost() failed with %s", err.Error())
-			//fmt.Printf("createNewPost(): store.CreateNewPost() failed with %s\n", err.Error())
+		} else {
+			http.Redirect(w, r, fmt.Sprintf("/%s/topic?id=%d", model.ForumUrl, topicId), 302)
 		}
-		http.Redirect(w, r, fmt.Sprintf("/%s/", forumUrl), 302)
 	} else {
 		if err := store.AddPostToTopic(topic.Id, msg, userName, ipAddr); err != nil {
 			logger.Errorf("createNewPost(): store.AddPostToTopic() failed with %s", err.Error())
-			//fmt.Printf("createNewPost(): store.AddPostToTopic() failed with %s\n", err.Error())
 		}
-		http.Redirect(w, r, fmt.Sprintf("/%s/topic?id=%d", forumUrl, topic.Id), 302)
+		http.Redirect(w, r, fmt.Sprintf("/%s/topic?id=%d", model.ForumUrl, topic.Id), 302)
 	}
 }
 
 // handler for url: /{forum}/newpost[?topicId={topicId}]
 func handleNewPost(w http.ResponseWriter, r *http.Request) {
 	var err error
-	forumUrl, forum := mustGetForum(w, r)
+	forum := mustGetForum(w, r)
 	if forum == nil {
 		return
 	}
@@ -165,21 +163,20 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 	topicIdStr := strings.TrimSpace(r.FormValue("topicId"))
 	if topicIdStr != "" {
 		if topicId, err = strconv.Atoi(topicIdStr); err != nil {
-			http.Redirect(w, r, fmt.Sprintf("/%s/", forumUrl), 302)
+			http.Redirect(w, r, fmt.Sprintf("/%s/", forum.ForumUrl), 302)
 			return
 		}
 		if topic = forum.Store.TopicById(topicId); topic == nil {
 			logger.Noticef("handleNewPost(): invalid topicId: %d\n", topicId)
-			http.Redirect(w, r, fmt.Sprintf("/%s/", forumUrl), 302)
+			http.Redirect(w, r, fmt.Sprintf("/%s/", forum.ForumUrl), 302)
 			return
 		}
 	}
-	//fmt.Printf("handleNewPost(): forum: '%s', topicId: %d\n", forumUrl, topicId)
+	//fmt.Printf("handleNewPost(): forum: '%s', topicId: %d\n", forum.ForumUrl, topicId)
 	cookie := getSecureCookie(r)
 	model := &ModelNewPost{
 		Forum:           *forum,
 		SidebarHtml:     template.HTML(forum.Sidebar),
-		ForumUrl:        forumUrl,
 		AnalyticsCode:   config.AnalyticsCode,
 		Num1:            rand.Intn(9) + 1,
 		Num2:            rand.Intn(9) + 1,
@@ -191,7 +188,7 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 	model.Num3 = model.Num1 + model.Num2
 
 	if r.Method == "POST" {
-		createNewPost(w, r, forumUrl, model, topic)
+		createNewPost(w, r, model, topic)
 		return
 	}
 
