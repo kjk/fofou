@@ -118,4 +118,4 @@ def deploy():
 		run("/sbin/start-stop-daemon --start --background --chdir /home/fofou/www/app/current --exec fofou_app -- -production")
 		run("ps aux | grep _app")
 
-    delete_old_deploys()
+	delete_old_deploys()

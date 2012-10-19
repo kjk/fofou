@@ -1,3 +1,4 @@
 *.pyc
 fofou_app
 config.json
+appengine/imported_data/
