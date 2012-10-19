@@ -953,7 +953,22 @@ class PostForm(FofouBase):
     else:
       self.redirect(siteroot)
 
+class WeMoved(webapp.RequestHandler):
+  def get(self):
+    self.response.headers['Content-Type'] = 'text/html'
+    url = self.request.path_info
+    new_url = "http://forums.fofou.org" + url
+    s = """<html><body>This forum has moved! Please try 
+<a href="%s">%s</a><body></html>""" % (new_url, new_url)
+    self.response.out.write(s)
+
 def main():
+  application = webapp.WSGIApplication(
+     [('/.*', WeMoved)],
+     debug=False)
+  wsgiref.handlers.CGIHandler().run(application)
+
+def main_old():
   application = webapp.WSGIApplication(
      [  ('/', ForumList),
         ('/manageforums', ManageForums),
