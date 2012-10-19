@@ -1,0 +1,5 @@
+* banning of ip addresses:
+ - remember banned/unbanned ip addresses in store, in internal format,
+   add Store.BanIp(ipAddr), Store.UnbanIp(ipAddr), Store.IsBanned(ipAddr)
+ - add admin UI to ban/unban ip addresses
+ 

@@ -15,16 +15,55 @@ import (
 
 type PostDisplay struct {
 	Post
-	Id           int
 	UserHomepage string
-	CreatedOnStr string
 	MessageHtml  template.HTML
 	CssClass     string
 }
 
-func formatTime(t time.Time) string {
+func formatPostCreatedOnTime(t time.Time) string {
 	s := t.Format("January 2, 2006")
 	return s
+}
+
+func (p *PostDisplay) CreatedOnStr() string {
+	return formatPostCreatedOnTime(p.CreatedOn)
+}
+
+func NewPostDisplay(p *Post, forum *Forum, isAdmin bool) *PostDisplay {
+	if p.IsDeleted && !isAdmin {
+		return nil
+	}
+
+	pd := &PostDisplay{
+		Post:     *p,
+		CssClass: "post",
+	}
+	if p.IsDeleted {
+		pd.CssClass = "post deleted"
+	}
+	sha1 := p.MessageSha1
+	msgFilePath := forum.Store.MessageFilePath(sha1)
+	msg, err := ioutil.ReadFile(msgFilePath)
+	msgStr := ""
+	if err != nil {
+		msgStr = fmt.Sprintf("Error: failed to fetch a message with sha1 %x, file: %s", sha1[:], msgFilePath)
+	} else {
+		msgStr = msgToHtml(string(msg))
+	}
+	pd.MessageHtml = template.HTML(msgStr)
+
+	if p.IsTwitterUser() {
+		pd.UserHomepage = "http://twitter.com/" + p.UserName()
+	}
+
+	if forum.ForumUrl == "sumatrapdf" {
+		// backwards-compatibility hack for posts imported from old version of
+		// fofou: hyper-link my name to my website
+		if p.UserName() == "Krzysztof Kowalczyk" || p.UserNameInternal == "t:kjk" {
+			pd.UserHomepage = "http://blog.kowalczyk.info"
+		}
+	}
+	return pd
 }
 
 // TODO: this is simplistic but work for me, http://net.tutsplus.com/tutorials/other/8-regular-expressions-you-should-know/
@@ -94,76 +133,43 @@ func getLogInOut(r *http.Request, c *SecureCookieValue) template.HTML {
 
 // handler for url: /{forum}/topic?id=${id}
 func handleTopic(w http.ResponseWriter, r *http.Request) {
-	forumUrl, forum := mustGetForum(w, r)
+	_, forum := mustGetForum(w, r)
 	if forum == nil {
 		return
 	}
 	idStr := strings.TrimSpace(r.FormValue("id"))
 	topicId, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Redirect(w, r, fmt.Sprintf("/%s/", forumUrl), 302)
+		http.Redirect(w, r, fmt.Sprintf("/%s/", forum.ForumUrl), 302)
 		return
 	}
 
-	//fmt.Printf("handleTopic(): forum: '%s', topicId: %d\n", forumUrl, topicId)
+	//fmt.Printf("handleTopic(): forum: '%s', topicId: %d\n", forum.ForumUrl, topicId)
 	topic := forum.Store.TopicById(topicId)
 	if nil == topic {
 		logger.Noticef("handleTopic(): didn't find topic with id %d\n", topicId)
-		http.Redirect(w, r, fmt.Sprintf("/%s/", forumUrl), 302)
+		http.Redirect(w, r, fmt.Sprintf("/%s/", forum.ForumUrl), 302)
 		return
 	}
 
 	isAdmin := userIsAdmin(forum, getSecureCookie(r))
 	if topic.IsDeleted() && !isAdmin {
-		http.Redirect(w, r, fmt.Sprintf("/%s/", forumUrl), 302)
+		http.Redirect(w, r, fmt.Sprintf("/%s/", forum.ForumUrl), 302)
 		return
 	}
 
 	posts := make([]*PostDisplay, 0)
-	for idx, p := range topic.Posts {
-		pd := &PostDisplay{
-			Post:         p,
-			Id:           idx + 1,
-			CssClass:     "post",
-			CreatedOnStr: formatTime(p.CreatedOn),
+	for _, p := range topic.Posts {
+		pd := NewPostDisplay(&p, forum, isAdmin)
+		if pd != nil {
+			posts = append(posts, pd)
 		}
-		if pd.IsDeleted {
-			if !isAdmin {
-				continue
-			}
-			pd.CssClass = "post deleted"
-		}
-		sha1 := p.MessageSha1
-		msgFilePath := forum.Store.MessageFilePath(sha1)
-		msg, err := ioutil.ReadFile(msgFilePath)
-		msgStr := ""
-		if err != nil {
-			msgStr = fmt.Sprintf("Error: failed to fetch a message with sha1 %x, file: %s", sha1[:], msgFilePath)
-		} else {
-			msgStr = msgToHtml(string(msg))
-		}
-		pd.MessageHtml = template.HTML(msgStr)
-
-		if p.IsTwitterUser() {
-			pd.UserHomepage = "http://twitter.com/" + p.UserName()
-		}
-
-		if forumUrl == "sumatrapdf" {
-			// backwards-compatibility hack for posts imported from old version of
-			// fofou: hyper-link my name to my website
-			if p.UserName() == "Krzysztof Kowalczyk" || p.userNameInternal == "t:kjk" {
-				pd.UserHomepage = "http://blog.kowalczyk.info"
-			}
-		}
-
-		posts = append(posts, pd)
 	}
 
 	model := struct {
 		Forum
 		Topic
 		SidebarHtml   template.HTML
-		ForumUrl      string
 		Posts         []*PostDisplay
 		IsAdmin       bool
 		AnalyticsCode *string
@@ -172,10 +178,9 @@ func handleTopic(w http.ResponseWriter, r *http.Request) {
 		Forum:         *forum,
 		Topic:         *topic,
 		SidebarHtml:   template.HTML(forum.Sidebar),
-		ForumUrl:      forumUrl,
 		Posts:         posts,
-		AnalyticsCode: config.AnalyticsCode,
 		IsAdmin:       isAdmin,
+		AnalyticsCode: config.AnalyticsCode,
 		LogInOut:      getLogInOut(r, getSecureCookie(r)),
 	}
 	ExecTemplate(w, tmplTopic, model)

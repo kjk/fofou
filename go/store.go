@@ -16,29 +16,26 @@ import (
 	"time"
 )
 
-// Note: to save memory, we don't store id and topic id, because they are
-// implicit (id == index withing topic.Posts array + 1)
 type Post struct {
+	Id int
 	CreatedOn        time.Time
 	MessageSha1      [20]byte
-	userNameInternal string
-	ipAddrInternal   string
+	UserNameInternal string
+	IpAddrInternal   string
 	IsDeleted        bool
-
-	// for convenience, we link to the topic this post belongs to
-	Topic *Topic
+	Topic            *Topic // for convenience, we link to the topic this post belongs to
 }
 
 func (p *Post) IpAddress() string {
-	return ipAddrInternalToOriginal(p.ipAddrInternal)
+	return ipAddrInternalToOriginal(p.IpAddrInternal)
 }
 
 func (p *Post) IsTwitterUser() bool {
-	return strings.HasPrefix(p.userNameInternal, "t:")
+	return strings.HasPrefix(p.UserNameInternal, "t:")
 }
 
 func (p *Post) UserName() string {
-	s := p.userNameInternal
+	s := p.UserNameInternal
 	if p.IsTwitterUser() {
 		return s[2:]
 	}
@@ -203,9 +200,10 @@ func parseTopics(d []byte, recentPosts *[]*Post) []Topic {
 				panic("id != len(t.Posts) + 1")
 			}
 			post := Post{
+				Id: len(t.Posts) + 1,
 				CreatedOn:        createdOn,
-				userNameInternal: userName,
-				ipAddrInternal:   ipAddrInternal,
+				UserNameInternal: userName,
+				IpAddrInternal:   ipAddrInternal,
 				IsDeleted:        false,
 				Topic:            t,
 			}
@@ -449,9 +447,10 @@ func (s *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool
 	msgBytes := []byte(msg)
 	sha1 := Sha1OfBytes(msgBytes)
 	p := &Post{
+		Id: len(topic.Posts) + 1,
 		CreatedOn:        time.Now(),
-		userNameInternal: remSep(user),
-		ipAddrInternal:   remSep(ipAddrToInternal(ipAddr)),
+		UserNameInternal: remSep(user),
+		IpAddrInternal:   remSep(ipAddrToInternal(ipAddr)),
 		IsDeleted:        false,
 		Topic:            topic,
 	}
@@ -459,8 +458,6 @@ func (s *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool
 	if err := s.writeMessageAsSha1(msgBytes, p.MessageSha1); err != nil {
 		return err
 	}
-
-	postId := len(topic.Posts) + 1
 
 	topicStr := ""
 	if newTopic {
@@ -470,9 +467,9 @@ func (s *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool
 	s1 := fmt.Sprintf("%d", p.CreatedOn.Unix())
 	s2 := base64.StdEncoding.EncodeToString(p.MessageSha1[:])
 	s2 = s2[:len(s2)-1] // remove unnecessary '=' from the end
-	s3 := p.userNameInternal
-	sIp := p.ipAddrInternal
-	postStr := fmt.Sprintf("P%d|%d|%s|%s|%s|%s\n", topic.Id, postId, s1, s2, sIp, s3)
+	s3 := p.UserNameInternal
+	sIp := p.IpAddrInternal
+	postStr := fmt.Sprintf("P%d|%d|%s|%s|%s|%s\n", topic.Id, p.Id, s1, s2, sIp, s3)
 	str := topicStr + postStr
 	if err := s.appendString(str); err != nil {
 		return err
@@ -523,26 +520,36 @@ func (s *Store) GetRecentPosts() []*Post {
 	return s.posts[first:]
 }
 
-func (s *Store) GetPostsByUserInternal(userInternal string) []*Post {
+func (s *Store) GetPostsByUserInternal(userNameInternal string, max int) []*Post {
 	s.Lock()
 	defer s.Unlock()
 
-	// TODO: actually filter by user
-	first := len(s.posts) - 25 // get 25 last posts
-	if first < 0 {
-		first = 0
+	res := make([]*Post, 0)
+	for i := len(s.posts) - 1; i >= 0; i-- {
+		p := s.posts[i]
+		if p.UserNameInternal == userNameInternal {
+			res = append(res, p)
+			if len(res) > max {
+				break
+			}
+		}
 	}
-	return s.posts[first:]
+	return res
 }
 
-func (s *Store) GetPostsByIpInternal(ipInternal string) []*Post {
+func (s *Store) GetPostsByIpInternal(ipAddrInternal string, max int) []*Post {
 	s.Lock()
 	defer s.Unlock()
 
-	// TODO: actually filter by ip
-	first := len(s.posts) - 25 // get 25 last posts
-	if first < 0 {
-		first = 0
+	res := make([]*Post, 0)
+	for i := len(s.posts) - 1; i >= 0; i-- {
+		p := s.posts[i]
+		if p.IpAddrInternal == ipAddrInternal {
+			res = append(res, p)
+			if len(res) > max {
+				break
+			}
+		}
 	}
-	return s.posts[first:]
+	return res
 }

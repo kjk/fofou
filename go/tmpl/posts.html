@@ -22,7 +22,7 @@
   </tr>
 
   {{ $isAdmin := .IsAdmin }}
-  {{ $forumUrl := .Forum.ForumUrl }}
+  {{ $forumUrl := .ForumUrl }}
 
   <tr>
     <td class="sidebar">{{ .SidebarHtml }}</td>
@@ -36,10 +36,10 @@
 			rolloverInit('undo', '/img/undo_over.jpg');
 		</script>
 		<div class="posts">
-			<h3>{{ .Subject }}</h3>
 
 			{{ range .Posts }}
 			<div>
+				<h3>{{ .Topic.Subject }}</h3>
 				<div class="{{.CssClass}}">{{ .MessageHtml }}</div>
 				<div class="signature">
 					{{ if $isAdmin }}
@@ -51,36 +51,18 @@
 							<img align="right" id="delete{{.Id}}" src="/img/delete.jpg" width="16" height="16" border="0" /></a>
 						{{ end }}
 					{{ end }}
-
-					{{ if $isAdmin }}
-						<a href="/{{$forumUrl}}/postsby?user={{ .UserNameInternal }}">{{ .UserName }}</a> on {{ .CreatedOnStr }}
+					{{ if .UserHomepage }}
+						<a href="{{ .UserHomepage }}">{{ .UserName }}</a> on {{ .CreatedOnStr }}
 					{{ else }}
-						{{ if .UserHomepage }}
-							<a href="{{ .UserHomepage }}">{{ .UserName }}</a> on {{ .CreatedOnStr }}
-						{{ else }}
-							{{.UserName}} on {{.CreatedOnStr}}
-						{{ end }}
+						{{ .UserName}} on {{ .CreatedOnStr }}
 					{{ end }}
 
 					{{ if $isAdmin }}
-						<br/>From ip:
-						<a href="/{{$forumUrl}}/postsby?ip={{.IpAddrInternal}}">{{ .IpAddress }}</a>
+						<br /> From ip: {{ .IpAddress }}
 					{{ end }}
 				</div>
 			</div>
 			{{ end }}
-
-			<div class="buttons">
-				<a accesskey="t" href="/{{ .ForumUrl }}">
-					<img src="/img/topics.gif" alt="Other recent topics" border="0" height="14" width="13">
-					Other recent <u>t</u>opics
-				</a>
-
-				<a accesskey="r" href="/{{ .ForumUrl }}/newpost?topicId={{.Topic.Id}}">
-					<img src="/img/edit.gif" alt="Reply to this topic" border="0" height="14" width="13">
-					<u>R</u>eply to this topic
-				</a>
-			</div>
 		</div>
 	</td>
 </tr>
