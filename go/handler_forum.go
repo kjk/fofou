@@ -31,7 +31,7 @@ func mustGetForum(w http.ResponseWriter, r *http.Request) *Forum {
 	if forum := findForum(forumUrl); forum != nil {
 		return forum
 	}
-	logger.Noticef("didn't find forum %s", forumUrl)
+	logger.Noticef("didn't find forum %s, referer: '%s'", forumUrl, getReferer(r))
 	serveErrorMsg(w, fmt.Sprintf("Forum \"%s\" doesn't exist", forumUrl))
 	return nil
 }

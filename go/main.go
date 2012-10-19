@@ -285,6 +285,10 @@ func readConfig(configFile string) error {
 	return err
 }
 
+func getReferer(r *http.Request) string {
+	return r.Header.Get("Referer")
+}
+
 func makeTimingHandler(fn func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
