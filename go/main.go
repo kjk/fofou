@@ -147,11 +147,11 @@ func getDataDir() string {
 	if PathExists(dataDir) {
 		return dataDir
 	}
-	dataDir = filepath.Join("..", "..", "..", "data")
+	dataDir = filepath.Join("..", "..", "data")
 	if PathExists(dataDir) {
 		return dataDir
 	}
-	log.Fatal("data directory (../../../data or ../../fofoudata) doesn't exist")
+	log.Fatal("data directory (../../data or ../../fofoudata) doesn't exist")
 	return ""
 }
 
