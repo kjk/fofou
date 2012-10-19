@@ -5,11 +5,6 @@ import (
 	"net/http"
 )
 
-type ModelMain struct {
-	Forums        *[]*Forum
-	AnalyticsCode string
-}
-
 // url: /
 func handleMain(w http.ResponseWriter, r *http.Request) {
 	if !isTopLevelUrl(r.URL.Path) {
@@ -17,7 +12,10 @@ func handleMain(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	model := &ModelMain{
+	model := struct {
+		Forums        *[]*Forum
+		AnalyticsCode string
+	}{
 		Forums:        &appState.Forums,
 		AnalyticsCode: *config.AnalyticsCode,
 	}
