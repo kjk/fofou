@@ -956,9 +956,8 @@ class PostForm(FofouBase):
 class WeMoved(webapp.RequestHandler):
   def get(self):
     url = self.request.path_info
-    if url in ["/sumatrapdf/rss", "/sumatrapdf/rssall"] {
+    if url in ["/sumatrapdf/rss", "/sumatrapdf/rssall"]:
       return self.redirect("http://forums.fofou.org" + url, permanent=True)      
-    }
 
     self.response.headers['Content-Type'] = 'text/html'
     new_url = "http://forums.fofou.org" + url
