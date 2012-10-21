@@ -25,13 +25,30 @@ func plural(n int, s string) string {
 	return fmt.Sprintf("%d %ss", n, s)
 }
 
+// those happen often so exclude them in order to not overwhelm the logs
+func logMissingForum(forumUrl, referer string) bool {
+	if forumUrl == "forum" && referer == "" {
+		return false
+	}
+	if forumUrl == "topic.php" && referer == "http://forums.fofou.org/topic.php" {
+		return false
+	}
+	if forumUrl == "post" && referer == "http://forums.fofou.org/post/" {
+		return false
+	}
+	return true
+}
+
 func mustGetForum(w http.ResponseWriter, r *http.Request) *Forum {
 	vars := mux.Vars(r)
 	forumUrl := vars["forum"]
 	if forum := findForum(forumUrl); forum != nil {
 		return forum
 	}
-	logger.Noticef("didn't find forum %s, referer: '%s'", forumUrl, getReferer(r))
+
+	if logMissingForum(forumUrl, getReferer(r)) {
+		logger.Noticef("didn't find forum %s, referer: '%s'", forumUrl, getReferer(r))
+	}
 	serveErrorMsg(w, fmt.Sprintf("Forum \"%s\" doesn't exist", forumUrl))
 	return nil
 }
