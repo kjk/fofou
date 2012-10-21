@@ -19,6 +19,7 @@ func handleLogs(w http.ResponseWriter, r *http.Request) {
 		UserIsAdmin bool
 		Errors      []*TimestampedMsg
 		Notices     []*TimestampedMsg
+		Header      *http.Header
 	}{
 		UserIsAdmin: isAdmin,
 	}
@@ -26,6 +27,10 @@ func handleLogs(w http.ResponseWriter, r *http.Request) {
 	if model.UserIsAdmin {
 		model.Errors = logger.GetErrors()
 		model.Notices = logger.GetNotices()
+	}
+
+	if r.FormValue("show") != "" {
+		model.Header = &r.Header
 	}
 
 	ExecTemplate(w, tmplLogs, model)

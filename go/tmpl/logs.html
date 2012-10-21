@@ -3,13 +3,25 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
 	<title>Fofou logs</title>
-	<link href="/s/default.css" rel="stylesheet" type="text/css">
 </head>
 <body>
 
-<h2><a href="/">Home</a> : Fofou logs</h2>
+<h2><a href="/">Home</a> : server logs <font size=-1>{{if not .Header}}<a href="/logs?show=true">show headers</a>{{else}}<a href="/logs">hide headers</a>{{end}}</font></h2>
 
 {{if not .UserIsAdmin}}No logs for you!!!{{end}}
+
+{{ if .Header }}
+<pre style="font-size: 80%">
+<table>
+{{ range $k, $v := .Header }}
+	<tr>
+		<td><nobr>{{$k}}:</nobr></td>
+		<td>{{$v}}</td>
+	</tr>
+{{ end }}
+</table>
+</pre>
+{{ end }}
 
 {{if len .Errors}}
 	<div style="color:red">Errors:</div>
