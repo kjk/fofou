@@ -955,8 +955,11 @@ class PostForm(FofouBase):
 
 class WeMoved(webapp.RequestHandler):
   def get(self):
-    self.response.headers['Content-Type'] = 'text/html'
     url = self.request.path_info
+    if url in ["/sumatrapdf/rss", "/sumatrapdf/rssall"]:
+      return self.redirect("http://forums.fofou.org" + url, permanent=True)      
+
+    self.response.headers['Content-Type'] = 'text/html'
     new_url = "http://forums.fofou.org" + url
     s = """<html><body>This forum has moved! Please try 
 <a href="%s">%s</a><body></html>""" % (new_url, new_url)
