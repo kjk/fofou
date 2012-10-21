@@ -24,7 +24,7 @@ func handleRss2(w http.ResponseWriter, r *http.Request, all bool) {
 	}
 	var posts []*Post
 	if all {
-		posts = forum.Store.GetRecentPosts()
+		posts = forum.Store.GetRecentPosts(25)
 	} else {
 		topics, _ := forum.Store.GetTopics(25, 0, false)
 		posts = make([]*Post, len(topics), len(topics))
@@ -35,7 +35,7 @@ func handleRss2(w http.ResponseWriter, r *http.Request, all bool) {
 
 	pubTime := time.Now()
 	if len(posts) > 0 {
-		pubTime = posts[len(posts)-1].CreatedOn
+		pubTime = posts[0].CreatedOn
 	}
 
 	feed := &atom.Feed{
@@ -54,10 +54,12 @@ func handleRss2(w http.ResponseWriter, r *http.Request, all bool) {
 		} else {
 			msgStr = msgToHtml(string(msg))
 		}
+		id := fmt.Sprintf("tag:forums.fofou.org,1999:%s-topic-%d-post-%d", forum.ForumUrl, p.Topic.Id, p.Id)
 		e := &atom.Entry{
+			Id:          id,
 			Title:       p.Topic.Subject,
 			Link:        buildTopicUrl(r, forum, p.Topic.Id),
-			Description: msgStr,
+			ContentHtml: msgStr,
 			PubDate:     p.CreatedOn,
 		}
 		feed.AddEntry(e)
