@@ -31,6 +31,7 @@ func handleLogs(w http.ResponseWriter, r *http.Request) {
 
 	if r.FormValue("show") != "" {
 		model.Header = &r.Header
+		model.Header.Add("RealIp", getIpAddress(r))
 	}
 
 	ExecTemplate(w, tmplLogs, model)

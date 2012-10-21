@@ -80,8 +80,26 @@ func ipAddrFromRemoteAddr(s string) string {
 	return s[:idx]
 }
 
-func createNewPost(w http.ResponseWriter, r *http.Request, model *ModelNewPost, topic *Topic) {
+func getIpAddress(r *http.Request) string {
+	hdr := r.Header
+	hdrRealIp := hdr.Get("X-Real-Ip")
+	hdrForwardedFor := hdr.Get("X-Forwarded-For")
+	if hdrRealIp == "" && hdrForwardedFor == "" {
+		return ipAddrFromRemoteAddr(r.RemoteAddr)
+	}
+	if hdrForwardedFor != "" {
+		// X-Forwarded-For is potentially a list of addresses separated with ","
+		parts := strings.Split(hdrForwardedFor, ",")
+		for i, p := range parts {
+			parts[i] = strings.TrimSpace(p)
+		}
+		// TODO: should return first non-local address
+		return parts[0]
+	}
+	return hdrRealIp
+}
 
+func createNewPost(w http.ResponseWriter, r *http.Request, model *ModelNewPost, topic *Topic) {
 	// validate the fields
 	num1Str := strings.TrimSpace(r.FormValue("num1"))
 	num2Str := strings.TrimSpace(r.FormValue("num2"))
@@ -135,7 +153,7 @@ func createNewPost(w http.ResponseWriter, r *http.Request, model *ModelNewPost, 
 	userName = MakeInternalUserName(userName, twitterUser)
 
 	store := model.Forum.Store
-	ipAddr := ipAddrFromRemoteAddr(r.RemoteAddr)
+	ipAddr := getIpAddress(r)
 	if topic == nil {
 		if topicId, err := store.CreateNewPost(subject, msg, userName, ipAddr); err != nil {
 			logger.Errorf("createNewPost(): store.CreateNewPost() failed with %s", err.Error())
