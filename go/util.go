@@ -6,6 +6,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -58,6 +59,15 @@ func Sha1OfBytes(data []byte) []byte {
 	h := sha1.New()
 	h.Write(data)
 	return h.Sum(nil)
+}
+
+func ReadFileAll(fileDataPath string) ([]byte, error) {
+	f, err := os.Open(fileDataPath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return ioutil.ReadAll(f)
 }
 
 func WriteBytesToFile(d []byte, path string) error {

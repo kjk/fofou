@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -124,6 +123,85 @@ func findPostToDelUndel(d []byte, topicIdToTopic map[int]*Topic) *Post {
 	return &topic.Posts[postId-1]
 }
 
+func parseTopic(line []byte) Topic {
+	// parse: "T1|Subject"
+	s := string(line[1:])
+	parts := strings.Split(s, "|")
+	if len(parts) != 2 {
+		panic("len(parts) != 2")
+	}
+	subject := parts[1]
+	idStr := parts[0]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		panic("idStr is not a number")
+	}
+	t := Topic{
+		Id:      id,
+		Subject: subject,
+		Posts:   make([]Post, 0),
+	}
+	return t
+}
+
+func parsePost(line []byte, topicIdToTopic map[int]*Topic) Post {
+	// parse:
+	// P1|1|1148874103|K4hYtOI8xYt5dYH25VQ7Qcbk73A|4b0af66e|Krzysztof Kowalczyk
+	s := string(line[1:])
+	parts := strings.Split(s, "|")
+	if len(parts) != 6 {
+		panic("len(parts) != 6")
+	}
+	topicIdStr := parts[0]
+	idStr := parts[1]
+	createdOnSecondsStr := parts[2]
+	msgSha1b64 := parts[3] + "="
+	ipAddrInternal := parts[4]
+	userName := parts[5]
+
+	topicId, err := strconv.Atoi(topicIdStr)
+	if err != nil {
+		panic("topicIdStr not a number")
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		panic("idStr not a number")
+	}
+	createdOnSeconds, err := strconv.Atoi(createdOnSecondsStr)
+	if err != nil {
+		panic("createdOnSeconds not a number")
+	}
+	createdOn := time.Unix(int64(createdOnSeconds), 0)
+	msgSha1, err := base64.StdEncoding.DecodeString(msgSha1b64)
+	if err != nil {
+		panic("msgSha1b64 not valid base64")
+	}
+	if len(msgSha1) != 20 {
+		panic("len(msgSha1) != 20")
+	}
+	t, ok := topicIdToTopic[topicId]
+	if !ok {
+		panic("didn't find topic with a given topicId")
+	}
+	if id != len(t.Posts)+1 {
+		fmt.Printf("%s\n", string(line))
+		fmt.Printf("topicId=%d, id=%d, len(topic.Posts)=%d\n", topicId, id, len(t.Posts))
+		fmt.Printf("%v\n", t)
+		panic("id != len(t.Posts) + 1")
+	}
+	post := Post{
+		Id:               len(t.Posts) + 1,
+		CreatedOn:        createdOn,
+		UserNameInternal: userName,
+		IpAddrInternal:   ipAddrInternal,
+		IsDeleted:        false,
+		Topic:            t,
+	}
+	copy(post.MessageSha1[:], msgSha1)
+	return post
+}
+
 func parseTopics(d []byte, recentPosts *[]*Post) []Topic {
 	topics := make([]Topic, 0)
 	topicIdToTopic := make(map[int]*Topic)
@@ -138,80 +216,12 @@ func parseTopics(d []byte, recentPosts *[]*Post) []Topic {
 		//fmt.Printf("'%s' len(topics)=%d\n", string(line), len(topics))
 		d = d[idx+1:]
 		if line[0] == 'T' {
-			// parse: "T1|Subject"
-			s := string(line[1:])
-			parts := strings.Split(s, "|")
-			if len(parts) != 2 {
-				panic("len(parts) != 2")
-			}
-			subject := parts[1]
-			idStr := parts[0]
-			id, err := strconv.Atoi(idStr)
-			if err != nil {
-				panic("idStr is not a number")
-			}
-			t := Topic{
-				Id:      id,
-				Subject: subject,
-				Posts:   make([]Post, 0),
-			}
+			t := parseTopic(line)
 			topics = append(topics, t)
 			topicIdToTopic[t.Id] = &topics[len(topics)-1]
 		} else if line[0] == 'P' {
-			// parse:
-			// P1|1|1148874103|K4hYtOI8xYt5dYH25VQ7Qcbk73A|4b0af66e|Krzysztof Kowalczyk
-			s := string(line[1:])
-			parts := strings.Split(s, "|")
-			if len(parts) != 6 {
-				panic("len(parts) != 6")
-			}
-			topicIdStr := parts[0]
-			idStr := parts[1]
-			createdOnSecondsStr := parts[2]
-			msgSha1b64 := parts[3] + "="
-			ipAddrInternal := parts[4]
-			userName := parts[5]
-
-			topicId, err := strconv.Atoi(topicIdStr)
-			if err != nil {
-				panic("topicIdStr not a number")
-			}
-
-			id, err := strconv.Atoi(idStr)
-			if err != nil {
-				panic("idStr not a number")
-			}
-			createdOnSeconds, err := strconv.Atoi(createdOnSecondsStr)
-			if err != nil {
-				panic("createdOnSeconds not a number")
-			}
-			createdOn := time.Unix(int64(createdOnSeconds), 0)
-			msgSha1, err := base64.StdEncoding.DecodeString(msgSha1b64)
-			if err != nil {
-				panic("msgSha1b64 not valid base64")
-			}
-			if len(msgSha1) != 20 {
-				panic("len(msgSha1) != 20")
-			}
-			t, ok := topicIdToTopic[topicId]
-			if !ok {
-				panic("didn't find topic with a given topicId")
-			}
-			if id != len(t.Posts)+1 {
-				fmt.Printf("%s\n", string(line))
-				fmt.Printf("topicId=%d, id=%d, len(topic.Posts)=%d\n", topicId, id, len(t.Posts))
-				fmt.Printf("%v\n", t)
-				panic("id != len(t.Posts) + 1")
-			}
-			post := Post{
-				Id:               len(t.Posts) + 1,
-				CreatedOn:        createdOn,
-				UserNameInternal: userName,
-				IpAddrInternal:   ipAddrInternal,
-				IsDeleted:        false,
-				Topic:            t,
-			}
-			copy(post.MessageSha1[:], msgSha1)
+			post := parsePost(line, topicIdToTopic)
+			t := post.Topic
 			t.Posts = append(t.Posts, post)
 			*recentPosts = append(*recentPosts, &t.Posts[len(t.Posts)-1])
 		} else if line[0] == 'D' {
@@ -236,12 +246,7 @@ func parseTopics(d []byte, recentPosts *[]*Post) []Topic {
 }
 
 func readExistingData(fileDataPath string, recentPosts *[]*Post) ([]Topic, error) {
-	f, err := os.Open(fileDataPath)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	data, err := ioutil.ReadAll(f)
+	data, err := ReadFileAll(fileDataPath)
 	if err != nil {
 		return nil, err
 	}

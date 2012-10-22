@@ -165,13 +165,8 @@ func parseTopics(d []byte) []*Topic {
 
 func loadTopics() []*Topic {
 	data_dir := filepath.Join("..", "appengine", "imported_data")
-	file_path := filepath.Join(data_dir, "topics.txt")
-	f, err := os.Open(file_path)
-	if err != nil {
-		log.Fatalf("failed to open %s with error %s", file_path, err.Error())
-	}
-	defer f.Close()
-	data, err := ioutil.ReadAll(f)
+	filePath := filepath.Join(data_dir, "topics.txt")
+	data, err := ReadFileAll(filePath)
 	if err != nil {
 		log.Fatalf("ReadAll() failed with error %s", err.Error())
 	}
@@ -193,13 +188,8 @@ func parsePosts(d []byte) []*Post {
 }
 
 func loadPosts() []*Post {
-	file_path := filepath.Join(srcDataDir, "posts.txt")
-	f, err := os.Open(file_path)
-	if err != nil {
-		log.Fatalf("failed to open %s with error %s", file_path, err.Error())
-	}
-	defer f.Close()
-	data, err := ioutil.ReadAll(f)
+	filePath := filepath.Join(srcDataDir, "posts.txt")
+	data, err := ReadFileAll(filePath)
 	if err != nil {
 		log.Fatalf("ReadAll() failed with error %s", err.Error())
 	}

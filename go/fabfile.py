@@ -3,8 +3,6 @@ import zipfile
 from fabric.api import *
 from fabric.contrib import *
 
-# Deploys a new version of fofou to the server
-
 env.hosts = ['test.fofou.org']
 env.user = 'fofou'
 
