@@ -215,23 +215,24 @@ func parseTopics(d []byte, recentPosts *[]*Post) []Topic {
 		line := d[:idx]
 		//fmt.Printf("'%s' len(topics)=%d\n", string(line), len(topics))
 		d = d[idx+1:]
-		if line[0] == 'T' {
+		c := line[0]
+		if c == 'T' {
 			t := parseTopic(line)
 			topics = append(topics, t)
 			topicIdToTopic[t.Id] = &topics[len(topics)-1]
-		} else if line[0] == 'P' {
+		} else if c == 'P' {
 			post := parsePost(line, topicIdToTopic)
 			t := post.Topic
 			t.Posts = append(t.Posts, post)
 			*recentPosts = append(*recentPosts, &t.Posts[len(t.Posts)-1])
-		} else if line[0] == 'D' {
+		} else if c == 'D' {
 			// D|1234|1
 			post := findPostToDelUndel(line[1:], topicIdToTopic)
 			if post.IsDeleted {
 				panic("post already deleted")
 			}
 			post.IsDeleted = true
-		} else if line[0] == 'U' {
+		} else if c == 'U' {
 			// U|1234|1
 			post := findPostToDelUndel(line[1:], topicIdToTopic)
 			if !post.IsDeleted {
