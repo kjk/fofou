@@ -27,7 +27,10 @@ func plural(n int, s string) string {
 
 // those happen often so exclude them in order to not overwhelm the logs
 func logMissingForum(forumUrl, referer string) bool {
-	if forumUrl == "forum" && referer == "" {
+	if forumUrl == "fofou" && referer == "" {
+		return false
+	}
+	if forumUrl == "fofou" && strings.HasPrefix(referer, "http://forums.fofou.org") {
 		return false
 	}
 	if forumUrl == "topic.php" && referer == "http://forums.fofou.org/topic.php" {
