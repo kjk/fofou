@@ -519,15 +519,20 @@ func (s *Store) AddPostToTopic(topicId int, msg, user, ipAddr string) error {
 	return s.addNewPost(msg, user, ipAddr, topic, false)
 }
 
-func (s *Store) GetRecentPosts() []*Post {
+func (s *Store) GetRecentPosts(max int) []*Post {
 	s.Lock()
 	defer s.Unlock()
 
-	first := len(s.posts) - 25 // get 25 last posts
-	if first < 0 {
-		first = 0
+	// return the oldest at the beginning of the returned array
+	if max > len(s.posts) {
+		max = len(s.posts)
 	}
-	return s.posts[first:]
+
+	res := make([]*Post, max, max)
+	for i := 0; i < max; i++ {
+		res[i] = s.posts[len(s.posts)-1-i]
+	}
+	return res
 }
 
 func (s *Store) GetPostsByUserInternal(userNameInternal string, max int) []*Post {

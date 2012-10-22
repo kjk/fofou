@@ -19,9 +19,10 @@ type Feed struct {
 }
 
 type Entry struct {
+	Id          string
 	Title       string
 	Link        string
-	Description string
+	ContentHtml string
 	PubDate     time.Time
 }
 
@@ -29,7 +30,7 @@ func (f *Feed) AddEntry(e *Entry) {
 	f.entries = append(f.entries, e)
 }
 
-type entrySummary struct {
+type entryContent struct {
 	S    string `xml:",chardata"`
 	Type string `xml:"type,attr"`
 }
@@ -40,7 +41,7 @@ type entryXml struct {
 	Link    *linkXml
 	Updated string        `xml:"updated"`
 	Id      string        `xml:"id"`
-	Summary *entrySummary `xml:"summary"`
+	Content *entryContent `xml:"content"`
 }
 
 type linkXml struct {
@@ -60,17 +61,21 @@ type feedXml struct {
 }
 
 func newEntryXml(e *Entry) *entryXml {
-	s := &entrySummary{e.Description, "html"}
-	// <id>tag:blog.kowalczyk.info,2012-09-11:/item/1.html</id>
-	idDate := e.PubDate.Format("2006-01-02")
-	id := "tag:" + e.Link + "," + idDate + ":/invalid.html"
-	if url, err := url.Parse(e.Link); err == nil {
-		id = "tag:" + url.Host + "," + idDate + ":" + url.Path
+	s := &entryContent{e.ContentHtml, "html"}
+	id := e.Id
+	// generate id if not provided
+	if id == "" {
+		// <id>tag:blog.kowalczyk.info,2012-09-11:/item/1.html</id>
+		idDate := e.PubDate.Format("2006-01-02")
+		id = "tag:" + e.Link + "," + idDate + ":/invalid.html"
+		if url, err := url.Parse(e.Link); err == nil {
+			id = "tag:" + url.Host + "," + idDate + ":" + url.Path
+		}
 	}
 	x := &entryXml{
 		Title:   e.Title,
 		Link:    &linkXml{Href: e.Link, Rel: "alternate"},
-		Summary: s,
+		Content: s,
 		Id:      id,
 		Updated: e.PubDate.Format(time.RFC3339)}
 	return x
@@ -82,7 +87,8 @@ func (f *Feed) GenXml() (string, error) {
 		Title:   f.Title,
 		Link:    &linkXml{Href: f.Link, Rel: "alternate"},
 		Id:      f.Link,
-		Updated: f.PubDate.Format(time.RFC3339)}
+		Updated: f.PubDate.Format(time.RFC3339),
+	}
 	for _, e := range f.entries {
 		feed.Entries = append(feed.Entries, newEntryXml(e))
 	}
