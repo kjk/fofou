@@ -44,13 +44,13 @@ func NewPostDisplay(p *Post, forum *Forum, isAdmin bool) *PostDisplay {
 	sha1 := p.MessageSha1
 	msgFilePath := forum.Store.MessageFilePath(sha1)
 	msg, err := ioutil.ReadFile(msgFilePath)
-	msgStr := ""
+	msgHtml := ""
 	if err != nil {
-		msgStr = fmt.Sprintf("Error: failed to fetch a message with sha1 %x, file: %s", sha1[:], msgFilePath)
+		msgHtml = fmt.Sprintf("Error: failed to fetch a message with sha1 %x, file: %s", sha1[:], msgFilePath)
 	} else {
-		msgStr = msgToHtml(string(msg))
+		msgHtml = msgToHtml(string(msg))
 	}
-	pd.MessageHtml = template.HTML(msgStr)
+	pd.MessageHtml = template.HTML(msgHtml)
 
 	if p.IsTwitterUser() {
 		pd.UserHomepage = "http://twitter.com/" + p.UserName()
