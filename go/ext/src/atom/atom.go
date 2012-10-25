@@ -1,4 +1,5 @@
-// This code is under BSD license. See license-bsd.txt
+// This code is under BSD license
+// Written by Krzysztof Kowalczyk http://blog.kowalczyk.info
 package atom
 
 import (
@@ -79,6 +80,25 @@ func newEntryXml(e *Entry) *entryXml {
 		Id:      id,
 		Updated: e.PubDate.Format(time.RFC3339)}
 	return x
+}
+
+func (f *Feed) GenXmlCompact() (string, error) {
+	feed := &feedXml{
+		Ns:      ns,
+		Title:   f.Title,
+		Link:    &linkXml{Href: f.Link, Rel: "alternate"},
+		Id:      f.Link,
+		Updated: f.PubDate.Format(time.RFC3339),
+	}
+	for _, e := range f.entries {
+		feed.Entries = append(feed.Entries, newEntryXml(e))
+	}
+	data, err := xml.Marshal(feed)
+	if err != nil {
+		return "", err
+	}
+	s := xml.Header[:len(xml.Header)-1] + string(data)
+	return s, nil
 }
 
 func (f *Feed) GenXml() (string, error) {
