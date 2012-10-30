@@ -356,6 +356,7 @@ func main() {
 	r.HandleFunc("/{forum}/postsby", makeTimingHandler(handlePostsBy))
 	r.HandleFunc("/{forum}/postdel", makeTimingHandler(handlePostDelete))
 	r.HandleFunc("/{forum}/postundel", makeTimingHandler(handlePostUndelete))
+	r.HandleFunc("/{forum}/viewraw", makeTimingHandler(handleViewRaw))
 	r.HandleFunc("/{forum}/newpost", makeTimingHandler(handleNewPost))
 
 	http.HandleFunc("/oauthtwittercb", handleOauthTwitterCallback)

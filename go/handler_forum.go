@@ -26,18 +26,17 @@ func plural(n int, s string) string {
 }
 
 // those happen often so exclude them in order to not overwhelm the logs
+var skipForums = []string{"fofou", "topic.php", "post", "newpost",
+	"crossdomain.xml", "azenv.php", "index.php"}
+
 func logMissingForum(forumUrl, referer string) bool {
-	if forumUrl == "fofou" && referer == "" {
+	if referer == "" {
 		return false
 	}
-	if forumUrl == "fofou" && strings.HasPrefix(referer, "http://forums.fofou.org") {
-		return false
-	}
-	if forumUrl == "topic.php" && referer == "http://forums.fofou.org/topic.php" {
-		return false
-	}
-	if forumUrl == "post" && referer == "http://forums.fofou.org/post/" {
-		return false
+	for _, forum := range skipForums {
+		if forum == forumUrl {
+			return false
+		}
 	}
 	return true
 }

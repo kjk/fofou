@@ -66,6 +66,7 @@
 					{{ if $isAdmin }}
 						<br/>From ip:
 						<a href="/{{$forumUrl}}/postsby?ip={{.IpAddrInternal}}">{{ .IpAddress }}</a>
+						<a href="/{{$forumUrl}}/viewraw?topicId={{.Topic.Id}}&postId={{.Id}}">view raw</a>
 					{{ end }}
 				</div>
 			</div>
