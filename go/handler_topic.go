@@ -90,7 +90,6 @@ func msgToHtml(s string) string {
 	prevEnd := 0
 	for n, match := range matches {
 		start, end := match[0], match[1]
-		fmt.Printf("match %d: '%s'\n", n, s[start:end])
 		for end > start && notUrlEndChar(s[end-1]) {
 			end -= 1
 		}
