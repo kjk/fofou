@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 func PathExists(path string) bool {
@@ -105,6 +106,21 @@ func CreateDirIfNotExists(path string) error {
 		return os.MkdirAll(path, 0777)
 	}
 	return nil
+}
+
+func TimeSinceNowAsString(t time.Time) string {
+	d := time.Now().Sub(t)
+	minutes := int(d.Minutes()) % 60
+	hours := int(d.Hours())
+	days := hours / 24
+	hours = hours % 24
+	if days > 0 {
+		return fmt.Sprintf("%dd %dhr", days, hours)
+	}
+	if hours > 0 {
+		return fmt.Sprintf("%dhr %dm", hours, minutes)
+	}
+	return fmt.Sprintf("%dm", minutes)
 }
 
 // the names of files inside the zip file are relatitve to dirToZip e.g.
