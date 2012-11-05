@@ -115,6 +115,6 @@ def deploy():
 	# start it
 	with cd(curr_dir):
 		run("/sbin/start-stop-daemon --start --background --chdir /home/fofou/www/app/current --exec fofou_app -- -production")
-		run("ps aux | grep _app")
+		run("ps aux | grep fofou_app | grep -v grep")
 
 	delete_old_deploys()
