@@ -4,7 +4,7 @@
 	<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
 	<title>Fofou - forums for you</title>
 	<link href="/s/default.css" rel="stylesheet" type="text/css">
-	<script language="javascript" src="/s/default.js" type="text/javascript"></script>
+	<script src="/s/default.js" type="text/javascript"></script>
     {{ template "analytics.html" . }}
 </head>
 <body>
@@ -14,7 +14,7 @@
 	Forums:
 	<ul>
 		{{ range .Forums }}
-		<li> <a href="/{{ .ForumUrl }}">{{ .Title }}</a>
+		<li> <a href="/{{ .ForumUrl }}">{{ .Title }}</a></li>
 		{{ end }}
 	</ul>
 	{{ else }}

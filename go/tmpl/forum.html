@@ -4,7 +4,7 @@
 	<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
 	<title>{{.Title}}</title>
 	<link href="/s/default.css" rel="stylesheet" type="text/css">
-	<script language="javascript" src="/s/default.js" type="text/javascript"></script>
+	<script src="/s/default.js" type="text/javascript"></script>
 	<link type="application/rss+xml" rel="alternate" title="Discussion Group" href="/{{.ForumUrl}}/rss">
   {{ template "analytics.html" . }}
 </head>
@@ -32,7 +32,7 @@
       <input type="hidden" name="IncludeBlogs" value="1">
       <input type="hidden" name="as_sitesearch" value="{{.ForumFullUrl}}">
       <div class="searchBox">
-      	<label for="search">Search this forum:</label></br>
+      	<label for="search">Search this forum:</label><br/>
         <input name="q" id="search" value="" type="text">
         <input class="button" value="Go" type="submit">&nbsp;
       </div>
