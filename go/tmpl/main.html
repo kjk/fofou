@@ -9,17 +9,15 @@
 </head>
 <body>
 
-<p>
-	{{ if len .Forums }}
-	Forums:
-	<ul>
-		{{ range .Forums }}
-		<li> <a href="/{{ .ForumUrl }}">{{ .Title }}</a></li>
-		{{ end }}
-	</ul>
-	{{ else }}
-	There are no forums here.
+{{ if len .Forums }}
+<p>Forums:</p>
+<ul>
+	{{ range .Forums }}
+	<li> <a href="/{{ .ForumUrl }}">{{ .Title }}</a></li>
 	{{ end }}
-</p>
+</ul>
+{{ else }}
+<p>There are no forums here.</p>
+{{ end }}
 
 {{ template "footer.html" }}
