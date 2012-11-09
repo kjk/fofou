@@ -4,7 +4,7 @@
 	<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
 	<title>Fofou logs</title>
 </head>
-<body>
+<body style="font-size:80%;">
 
 <h2><a href="/">Home</a> : server logs <font size=-1>{{if not .Header}}<a href="/logs?show=true">show headers</a>{{else}}<a href="/logs">hide headers</a>{{end}}</font></h2>
 
@@ -26,14 +26,15 @@
 {{if len .Errors}}
 	<div style="color:red">Errors:</div>
 	{{range .Errors}}
-		<div><font style="color:gray;">{{.Time.Format "2006-01-02 15:04:05"}}</font> {{.Msg}}</div>
+		<div><font style="color:gray;">{{.TimeSinceStr}} ago</font> {{.Msg}}</div>
 	{{end}}
+	<p></p>
 {{end}}
 
 {{if len .Notices}}
 	<div>Notices:</div>
 	{{range .Notices}}
-		<div><font style="color:gray;">{{.Time.Format "2006-01-02 15:04:05"}}</font> {{.Msg}}</div>
+		<div><font style="color:gray;">{{.TimeSinceStr}} ago </font> {{.Msg}}</div>
 	{{end}}
 {{end}}
 

@@ -26,6 +26,14 @@ type CircularMessagesBuf struct {
 	full bool
 }
 
+func (m *TimestampedMsg) TimeStr() string {
+	return m.Time.Format("2006-01-02 15:04:05")
+}
+
+func (m *TimestampedMsg) TimeSinceStr() string {
+	return TimeSinceNowAsString(m.Time)
+}
+
 func NewCircularMessagesBuf(cap int) *CircularMessagesBuf {
 	return &CircularMessagesBuf{
 		Msgs: make([]TimestampedMsg, cap, cap),
