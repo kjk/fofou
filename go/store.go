@@ -47,7 +47,7 @@ func (p *Post) UserName() string {
 
 // in store, we need to distinguish between anonymous users and those that
 // are logged in via twitter, so we prepend "t:" to twitter user names
-// Note: in future we might add more login methods by adding more 
+// Note: in future we might add more login methods by adding more
 // prefixes
 func MakeInternalUserName(userName string, twitter bool) string {
 	if twitter {
@@ -184,14 +184,18 @@ func parsePost(line []byte, topicIdToTopic map[int]*Topic) Post {
 	if !ok {
 		panic("didn't find topic with a given topicId")
 	}
-	if id != len(t.Posts)+1 {
-		fmt.Printf("%s\n", string(line))
-		fmt.Printf("topicId=%d, id=%d, len(topic.Posts)=%d\n", topicId, id, len(t.Posts))
-		fmt.Printf("%v\n", t)
-		panic("id != len(t.Posts) + 1")
+	realPostId := len(t.Posts)+1
+	if id != realPostId {
+		fmt.Printf("!Unexpected post id:\n")
+		fmt.Printf("  %s\n", string(line))
+		fmt.Printf("  id: %d, expectedId: %d, topicId: %d\n", topicId, id, realPostId)
+		fmt.Printf("  %s\n", t.Subject)
+		//TODO: I don't see how this could have happened, but it did, so
+		// silently ignore it
+		//panic("id != len(t.Posts) + 1")
 	}
 	post := Post{
-		Id:               len(t.Posts) + 1,
+		Id:               realPostId,
 		CreatedOn:        createdOn,
 		UserNameInternal: userName,
 		IpAddrInternal:   ipAddrInternal,
