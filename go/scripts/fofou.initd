@@ -1,0 +1,40 @@
+#!/bin/sh
+## BEGIN INIT INFO
+#
+# Provides : fofou
+# Required-Start : $remote_fs
+# Required-Stop  : $remote_fs
+# Default-Start     : 2 3 4 5
+# Default-Stop     : 0 1 6
+# Short-Description : Fofou initscript
+# Description : Fofou initscript, symlink from /etc/init.d/fofou
+#
+### END INIT INFO
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/home/fofou/www/app/current/fofou_app
+NAME=fofou
+DESC=fofou
+
+test -x $DAEMON || exit 0
+
+set -e
+
+. /lib/lsb/init-functions
+
+case "$1" in
+	start)
+		echo -n "Starting $DESC: "
+		start-stop-daemon --start --background --chdir /home/fofou/www/app/current --exec $DAEMON -- -production || true
+		echo "$NAME."
+		;;
+
+	stop)
+		echo -n "Stopping $DESC: "
+		start-stop-daemon --stop --oknodo --exec $DAEMON || true
+		echo "$NAME."
+		;;
+
+esac
+
+exit 0
