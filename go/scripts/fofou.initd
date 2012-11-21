@@ -25,7 +25,7 @@ set -e
 case "$1" in
 	start)
 		echo -n "Starting $DESC: "
-		start-stop-daemon --start --background --chdir /home/fofou/www/app/current --exec $DAEMON -- -production || true
+		start-stop-daemon --start --background --chuid fofou --chdir /home/fofou/www/app/current --exec $DAEMON -- -production || true
 		echo "$NAME."
 		;;
 
