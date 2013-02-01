@@ -417,26 +417,33 @@ func (s *Store) UndeletePost(topicId, postId int) error {
 }
 
 func ipAddrToInternal(ipAddr string) string {
-	var nums [4]uint32
+	var nums [4]byte
 	parts := strings.Split(ipAddr, ".")
 	if len(parts) == 4 {
 		for n, p := range parts {
 			num, _ := strconv.Atoi(p)
-			nums[n] = uint32(num)
+			nums[n] = byte(num)
 		}
-		n := (nums[0] << 24) | (nums[1] << 16) + (nums[2] << 8) | nums[3]
-		return fmt.Sprintf("%x", n)
+		return hex.EncodeToString(nums[:])
 	}
 	// I assume it's ipv6
 	return ipAddr
 }
 
 func ipAddrInternalToOriginal(s string) string {
-	// check if ipv4 in hex form
+	// an earlier version of ipAddrToInternal would sometimes generate
+	// 7-byte string (due to Printf() %x not printing the most significant
+	// byte as 0 padded), so we're fixing it up here
+	if len(s) == 7 {
+		// check if ipv4 in hex form
+		s2 := "0" + s
+		if d, err := hex.DecodeString(s2); err == nil {
+			return fmt.Sprintf("%d.%d.%d.%d", d[0], d[1], d[2], d[3])
+		}
+	}
 	if len(s) == 8 {
-		if d, err := hex.DecodeString(s); err != nil {
-			return s
-		} else {
+		// check if ipv4 in hex form
+		if d, err := hex.DecodeString(s); err == nil {
 			return fmt.Sprintf("%d.%d.%d.%d", d[0], d[1], d[2], d[3])
 		}
 	}
