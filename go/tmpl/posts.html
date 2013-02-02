@@ -36,7 +36,7 @@
 			rolloverInit('undo', '/img/undo_over.jpg');
 		</script>
 		<div class="posts">
-
+			<div>Total <b>{{ .TotalCount }}</b> posts.</div><br>
 			{{ range .Posts }}
 			<div>
 				<h3>{{ .Topic.Subject }}</h3>

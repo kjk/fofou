@@ -24,10 +24,11 @@ func handlePostsBy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var total int
 	if userInternal != "" {
-		posts = forum.Store.GetPostsByUserInternal(userInternal, 50)
+		posts, total = forum.Store.GetPostsByUserInternal(userInternal, 50)
 	} else {
-		posts = forum.Store.GetPostsByIpInternal(ipAddrInternal, 50)
+		posts, total = forum.Store.GetPostsByIpInternal(ipAddrInternal, 50)
 	}
 
 	isAdmin := userIsAdmin(forum, getSecureCookie(r))
@@ -43,6 +44,7 @@ func handlePostsBy(w http.ResponseWriter, r *http.Request) {
 		Forum
 		SidebarHtml   template.HTML
 		Posts         []*PostDisplay
+		TotalCount    int
 		IsAdmin       bool
 		AnalyticsCode *string
 		LogInOut      template.HTML
@@ -50,6 +52,7 @@ func handlePostsBy(w http.ResponseWriter, r *http.Request) {
 		Forum:         *forum,
 		SidebarHtml:   template.HTML(forum.Sidebar),
 		Posts:         displayPosts,
+		TotalCount:    total,
 		IsAdmin:       isAdmin,
 		AnalyticsCode: config.AnalyticsCode,
 		LogInOut:      getLogInOut(r, getSecureCookie(r)),

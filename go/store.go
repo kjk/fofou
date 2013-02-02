@@ -84,7 +84,7 @@ type Store struct {
 
 	// those are in the "internal" (more compact) form
 	blockedIpAddresses []string
-	dataFile *os.File
+	dataFile           *os.File
 }
 
 func stringIndex(arr []string, el string) int {
@@ -98,7 +98,7 @@ func stringIndex(arr []string, el string) int {
 
 func deleteStringAt(arr *[]string, i int) {
 	a := *arr
-	l := len(a)-1
+	l := len(a) - 1
 	a[i] = a[l]
 	*arr = a[:l]
 }
@@ -236,7 +236,7 @@ func parsePost(line []byte, topicIdToTopic map[int]*Topic) Post {
 	if !ok {
 		panic("didn't find topic with a given topicId")
 	}
-	realPostId := len(t.Posts)+1
+	realPostId := len(t.Posts) + 1
 	if id != realPostId {
 		fmt.Printf("!Unexpected post id:\n")
 		fmt.Printf("  %s\n", string(line))
@@ -338,7 +338,7 @@ func NewStore(dataDir, forumName string) (*Store, error) {
 		dataDir:   dataDir,
 		forumName: forumName,
 		posts:     make([]*Post, 0),
-		topics:	make([]Topic, 0),
+		topics:    make([]Topic, 0),
 	}
 	var err error
 	if PathExists(dataFilePath) {
@@ -624,7 +624,7 @@ func (store *Store) BlockIp(ipAddr string) {
 
 func (store *Store) UnblockIp(ipAddr string) {
 	store.Lock()
-	defer store.Unlock()	
+	defer store.Unlock()
 	store.unblockIp(ipAddr)
 }
 
@@ -644,36 +644,38 @@ func (store *Store) GetRecentPosts(max int) []*Post {
 	return res
 }
 
-func (store *Store) GetPostsByUserInternal(userNameInternal string, max int) []*Post {
+func (store *Store) GetPostsByUserInternal(userNameInternal string, max int) ([]*Post, int) {
 	store.Lock()
 	defer store.Unlock()
 
 	res := make([]*Post, 0)
+	total := 0
 	for i := len(store.posts) - 1; i >= 0; i-- {
 		p := store.posts[i]
 		if p.UserNameInternal == userNameInternal {
-			res = append(res, p)
-			if len(res) > max {
-				break
+			if total < max {
+				res = append(res, p)
 			}
+			total += 1
 		}
 	}
-	return res
+	return res, total
 }
 
-func (store *Store) GetPostsByIpInternal(ipAddrInternal string, max int) []*Post {
+func (store *Store) GetPostsByIpInternal(ipAddrInternal string, max int) ([]*Post, int) {
 	store.Lock()
 	defer store.Unlock()
 
 	res := make([]*Post, 0)
+	total := 0
 	for i := len(store.posts) - 1; i >= 0; i-- {
 		p := store.posts[i]
 		if p.IpAddrInternal == ipAddrInternal {
-			res = append(res, p)
-			if len(res) > max {
-				break
+			if total < max {
+				res = append(res, p)
 			}
+			total += 1
 		}
 	}
-	return res
+	return res, total
 }
