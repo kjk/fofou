@@ -173,7 +173,7 @@ func parseTopic(line []byte) Topic {
 }
 
 func intStrToBool(s string) bool {
-	if i, err := strconv.Atoi(s); err != nil {
+	if i, err := strconv.Atoi(s); err == nil {
 		if i == 0 {
 			return false
 		}
@@ -365,6 +365,16 @@ func NewStore(dataDir, forumName string) (*Store, error) {
 	return store, nil
 }
 
+func (store *Store) PostsCount() int {
+	store.Lock()
+	defer store.Unlock()
+	n := 0
+	for _, topic := range store.topics {
+		n += len(topic.Posts)
+	}
+	return n
+}
+
 func (store *Store) TopicsCount() int {
 	store.Lock()
 	defer store.Unlock()
@@ -536,14 +546,14 @@ func (store *Store) writeMessageAsSha1(msg []byte, sha1 [20]byte) error {
 }
 
 func (store *Store) blockIp(ipAddr string) {
-	s := fmt.Sprintf("B%s|1", ipAddrToInternal(ipAddr))
+	s := fmt.Sprintf("B%s|1\n", ipAddrToInternal(ipAddr))
 	if err := store.appendString(s); err == nil {
 		store.markIpBlockedOrUnblocked(ipAddr, true)
 	}
 }
 
 func (store *Store) unblockIp(ipAddr string) {
-	s := fmt.Sprintf("B%s|0", ipAddrToInternal(ipAddr))
+	s := fmt.Sprintf("B%s|0\n", ipAddrToInternal(ipAddr))
 	if err := store.appendString(s); err == nil {
 		store.markIpBlockedOrUnblocked(ipAddr, false)
 	}
@@ -616,16 +626,23 @@ func (store *Store) AddPostToTopic(topicId int, msg, user, ipAddr string) error 
 	return store.addNewPost(msg, user, ipAddr, topic, false)
 }
 
-func (store *Store) BlockIp(ipAddr string) {
+func (store *Store) BlockIp(ipAddrInternal string) {
 	store.Lock()
 	defer store.Unlock()
-	store.blockIp(ipAddr)
+	store.blockIp(ipAddrInternal)
 }
 
-func (store *Store) UnblockIp(ipAddr string) {
+func (store *Store) UnblockIp(ipAddrInternal string) {
 	store.Lock()
 	defer store.Unlock()
-	store.unblockIp(ipAddr)
+	store.unblockIp(ipAddrInternal)
+}
+
+func (store *Store) IsIpBlocked(ipAddrInternal string) bool {
+	store.Lock()
+	defer store.Unlock()
+	i := stringIndex(store.blockedIpAddresses, ipAddrInternal)
+	return i != -1
 }
 
 func (store *Store) GetRecentPosts(max int) []*Post {

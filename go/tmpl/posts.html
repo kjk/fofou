@@ -36,7 +36,20 @@
 			rolloverInit('undo', '/img/undo_over.jpg');
 		</script>
 		<div class="posts">
-			<div>Total <b>{{ .TotalCount }}</b> posts.</div><br>
+			{{ if .IpAddr }}
+				<div>Total <b>{{ .TotalCount }}</b> posts from ip address {{ .IpAddr }} 
+					{{ if .IpBlocked }}
+					  (<a href="/{{$forumUrl}}/unblockip?ip={{.IpAddrInternal}}">unblock this ip</a>)
+					{{ else }}
+					  (<a href="/{{$forumUrl}}/blockip?ip={{.IpAddrInternal}}">block this ip</a>)
+					{{ end }}
+				.</div><br>
+			{{ end }}
+
+			{{ if .Nick }}
+			<div>Total <b>{{ .TotalCount }}</b> posts by user {{ .Nick }}.</div><br>
+			{{ end }}
+
 			{{ range .Posts }}
 			<div>
 				<h3>{{ .Topic.Subject }}</h3>

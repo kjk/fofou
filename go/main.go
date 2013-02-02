@@ -159,7 +159,7 @@ func NewForum(config *ForumConfig) *Forum {
 	if err != nil {
 		panic("failed to create store for a forum")
 	}
-	logger.Noticef("%d topics in forum '%s'", store.TopicsCount(), config.ForumUrl)
+	logger.Noticef("%d topics, %d posts in forum '%s'", store.TopicsCount(), store.PostsCount(), config.ForumUrl)
 	forum.Store = store
 	return forum
 }
@@ -358,6 +358,8 @@ func main() {
 	r.HandleFunc("/{forum}/postundel", makeTimingHandler(handlePostUndelete))
 	r.HandleFunc("/{forum}/viewraw", makeTimingHandler(handleViewRaw))
 	r.HandleFunc("/{forum}/newpost", makeTimingHandler(handleNewPost))
+	r.HandleFunc("/{forum}/blockip", makeTimingHandler(handleBlockIp))
+	r.HandleFunc("/{forum}/unblockip", makeTimingHandler(handleUnblockIp))
 
 	http.HandleFunc("/oauthtwittercb", handleOauthTwitterCallback)
 	http.HandleFunc("/login", handleLogin)
