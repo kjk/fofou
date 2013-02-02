@@ -82,7 +82,32 @@ type Store struct {
 	// as part of Topic in topics
 	posts []*Post
 
+	// those are in the "internal" (more compact) form
+	blockedIpAddresses []string
 	dataFile *os.File
+}
+
+func stringIndex(arr []string, el string) int {
+	for i, s := range arr {
+		if s == el {
+			return i
+		}
+	}
+	return -1
+}
+
+func deleteStringAt(arr *[]string, i int) {
+	a := *arr
+	l := len(a)-1
+	a[i] = a[l]
+	*arr = a[:l]
+}
+
+func deleteStringIn(a *[]string, el string) {
+	i := stringIndex(*a, el)
+	if -1 != i {
+		deleteStringAt(a, i)
+	}
 }
 
 func (t *Topic) IsDeleted() bool {
@@ -94,8 +119,10 @@ func (t *Topic) IsDeleted() bool {
 	return true
 }
 
+// parse: 
+// D|1234|1
 func parseDelUndel(d []byte) (int, int) {
-	s := string(d)
+	s := string(d[1:])
 	parts := strings.Split(s, "|")
 	if len(parts) != 2 {
 		panic("len(parts) != 2")
@@ -123,8 +150,9 @@ func findPostToDelUndel(d []byte, topicIdToTopic map[int]*Topic) *Post {
 	return &topic.Posts[postId-1]
 }
 
+// parse:
+// T$id|$subject
 func parseTopic(line []byte) Topic {
-	// parse: "T1|Subject"
 	s := string(line[1:])
 	parts := strings.Split(s, "|")
 	if len(parts) != 2 {
@@ -144,9 +172,33 @@ func parseTopic(line []byte) Topic {
 	return t
 }
 
+func intStrToBool(s string) bool {
+	if i, err := strconv.Atoi(s); err != nil {
+		if i == 0 {
+			return false
+		}
+		if i == 1 {
+			return true
+		}
+		panic("i is not 0 or 1")
+	}
+	panic("s is not an integer")
+}
+
+// parse:
+// B$ipAddr|$isBlocked
+func parseBlockUnblockIpAddr(line []byte) (string, bool) {
+	s := string(line[1:])
+	parts := strings.Split(s, "|")
+	if len(parts) != 2 {
+		panic("len(parts) != 2")
+	}
+	return parts[0], intStrToBool(parts[1])
+}
+
+// parse:
+// P1|1|1148874103|K4hYtOI8xYt5dYH25VQ7Qcbk73A|4b0af66e|Krzysztof Kowalczyk
 func parsePost(line []byte, topicIdToTopic map[int]*Topic) Post {
-	// parse:
-	// P1|1|1148874103|K4hYtOI8xYt5dYH25VQ7Qcbk73A|4b0af66e|Krzysztof Kowalczyk
 	s := string(line[1:])
 	parts := strings.Split(s, "|")
 	if len(parts) != 6 {
@@ -206,8 +258,20 @@ func parsePost(line []byte, topicIdToTopic map[int]*Topic) Post {
 	return post
 }
 
-func parseTopics(d []byte, recentPosts *[]*Post) []Topic {
-	topics := make([]Topic, 0)
+func (store *Store) markIpBlockedOrUnblocked(ipAddrInternal string, blocked bool) {
+	if blocked {
+		store.blockedIpAddresses = append(store.blockedIpAddresses, ipAddrInternal)
+	} else {
+		deleteStringIn(&store.blockedIpAddresses, ipAddrInternal)
+	}
+}
+
+func (store *Store) readExistingData(fileDataPath string) error {
+	d, err := ReadFileAll(fileDataPath)
+	if err != nil {
+		return err
+	}
+
 	topicIdToTopic := make(map[int]*Topic)
 	for len(d) > 0 {
 		idx := bytes.IndexByte(d, '\n')
@@ -228,43 +292,36 @@ func parseTopics(d []byte, recentPosts *[]*Post) []Topic {
 		switch c {
 		case 'T':
 			t := parseTopic(line)
-			topics = append(topics, t)
-			topicIdToTopic[t.Id] = &topics[len(topics)-1]
+			store.topics = append(store.topics, t)
+			topicIdToTopic[t.Id] = &store.topics[len(store.topics)-1]
 		case 'P':
 			post := parsePost(line, topicIdToTopic)
 			t := post.Topic
 			t.Posts = append(t.Posts, post)
-			*recentPosts = append(*recentPosts, &t.Posts[len(t.Posts)-1])
+			store.posts = append(store.posts, &t.Posts[len(t.Posts)-1])
 		case 'D':
 			// D|1234|1
-			post := findPostToDelUndel(line[1:], topicIdToTopic)
+			post := findPostToDelUndel(line, topicIdToTopic)
 			if post.IsDeleted {
 				panic("post already deleted")
 			}
 			post.IsDeleted = true
 		case 'U':
 			// U|1234|1
-			post := findPostToDelUndel(line[1:], topicIdToTopic)
+			post := findPostToDelUndel(line, topicIdToTopic)
 			if !post.IsDeleted {
 				panic("post already undeleted")
 			}
 			post.IsDeleted = false
 		case 'B':
-			// B|$ipAddr|$isBlocked
-			// TODO: write me
+			// B$ipAddr|$isBlocked
+			ipAddr, blocked := parseBlockUnblockIpAddr(line[1:])
+			store.markIpBlockedOrUnblocked(ipAddr, blocked)
 		default:
 			panic("Unexpected line type")
 		}
 	}
-	return topics
-}
-
-func readExistingData(fileDataPath string, recentPosts *[]*Post) ([]Topic, error) {
-	data, err := ReadFileAll(fileDataPath)
-	if err != nil {
-		return nil, err
-	}
-	return parseTopics(data, recentPosts), nil
+	return nil
 }
 
 func verifyTopics(topics []Topic) {
@@ -281,11 +338,11 @@ func NewStore(dataDir, forumName string) (*Store, error) {
 		dataDir:   dataDir,
 		forumName: forumName,
 		posts:     make([]*Post, 0),
+		topics:	make([]Topic, 0),
 	}
 	var err error
 	if PathExists(dataFilePath) {
-		store.topics, err = readExistingData(dataFilePath, &store.posts)
-		if err != nil {
+		if err = store.readExistingData(dataFilePath); err != nil {
 			fmt.Printf("readExistingData() failed with %s", err.Error())
 			return nil, err
 		}
@@ -296,7 +353,6 @@ func NewStore(dataDir, forumName string) (*Store, error) {
 			return nil, err
 		}
 		f.Close()
-		store.topics = make([]Topic, 0)
 	}
 
 	verifyTopics(store.topics)
@@ -433,7 +489,13 @@ func ipAddrToInternal(ipAddr string) string {
 			num, _ := strconv.Atoi(p)
 			nums[n] = byte(num)
 		}
-		return hex.EncodeToString(nums[:])
+		s := hex.EncodeToString(nums[:])
+		// note: this is for backwards compatibility to match past
+		// behavior when we used to trim leading 0
+		if s[0] == '0' {
+			s = s[1:]
+		}
+		return s
 	}
 	// I assume it's ipv6
 	return ipAddr
@@ -474,15 +536,17 @@ func (store *Store) writeMessageAsSha1(msg []byte, sha1 [20]byte) error {
 }
 
 func (store *Store) blockIp(ipAddr string) {
-	ipAddrInternal := ipAddrToInternal(ipAddr)
-	s := fmt.Sprintf("U:%s|1", ipAddrInternal)
-	store.appendString(s)
+	s := fmt.Sprintf("B%s|1", ipAddrToInternal(ipAddr))
+	if err := store.appendString(s); err == nil {
+		store.markIpBlockedOrUnblocked(ipAddr, true)
+	}
 }
 
 func (store *Store) unblockIp(ipAddr string) {
-	ipAddrInternal := ipAddrToInternal(ipAddr)
-	s := fmt.Sprintf("U:%s|0", ipAddrInternal)
-	store.appendString(s)
+	s := fmt.Sprintf("B%s|0", ipAddrToInternal(ipAddr))
+	if err := store.appendString(s); err == nil {
+		store.markIpBlockedOrUnblocked(ipAddr, false)
+	}
 }
 
 func (store *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool) error {
@@ -551,7 +615,6 @@ func (store *Store) AddPostToTopic(topicId int, msg, user, ipAddr string) error 
 	}
 	return store.addNewPost(msg, user, ipAddr, topic, false)
 }
-
 
 func (store *Store) BlockIp(ipAddr string) {
 	store.Lock()

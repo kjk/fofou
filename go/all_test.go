@@ -28,8 +28,20 @@ func testipAddrFromRemoteAddr(t *testing.T, s, expected string) {
 	}
 }
 
+func testStringSliceEq(t *testing.T, s1, s2 []string) {
+	if len(s1) != len(s2) {
+		t.Fatalf("len(s1) != len(s2) (%d != %d)", len(s1), len(s2))
+	}
+	for i, _ := range s1 {
+		if s1[i] != s2[i] {
+			t.Fatalf("s1[%d] != s2[%d] (%s != %s)", i, i, s1[i], s2[i])
+		}
+	}
+}
+
 func TestIpConv(t *testing.T) {
 	testIpConvOne(t, "127.0.0.1")
+	testIpConvOne(t, "27.3.255.238")
 	testIpConvOne(t, "hello kitty")
 
 	testMakeInternalUserName(t, "foo", false, "foo")
@@ -40,4 +52,14 @@ func TestIpConv(t *testing.T) {
 	testipAddrFromRemoteAddr(t, "foo", "foo")
 	testipAddrFromRemoteAddr(t, "[::1]:58292", "[::1]")
 	testipAddrFromRemoteAddr(t, "127.0.0.1:856", "127.0.0.1")
+
+	a := []string{"foo", "bar", "go"}
+	deleteStringIn(&a, "foo")
+	testStringSliceEq(t, a, []string{"go", "bar"})
+	deleteStringIn(&a, "go")
+	testStringSliceEq(t, a, []string{"bar"})
+	deleteStringIn(&a, "baro")
+	testStringSliceEq(t, a, []string{"bar"})
+	deleteStringIn(&a, "bar")
+	testStringSliceEq(t, a, []string{})
 }
