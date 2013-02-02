@@ -24,7 +24,7 @@ func getIpAddr(w http.ResponseWriter, r *http.Request) (*Forum, string) {
 // url: /{forum}/blockip?ip=${ip}
 func handleBlockIp(w http.ResponseWriter, r *http.Request) {
 	if forum, ip := getIpAddr(w, r); forum != nil {
-		fmt.Printf("handleBlockIp(): forum: '%s', ip: %s\n", forum.ForumUrl, ip)
+		//fmt.Printf("handleBlockIp(): forum: '%s', ip: %s\n", forum.ForumUrl, ip)
 		forum.Store.BlockIp(ip)
 		http.Redirect(w, r, fmt.Sprintf("/%s/postsby?ip=%s", forum.ForumUrl, ip), 302)
 	}
@@ -33,7 +33,7 @@ func handleBlockIp(w http.ResponseWriter, r *http.Request) {
 // url: /{forum}/unblockip?ip=${ip}
 func handleUnblockIp(w http.ResponseWriter, r *http.Request) {
 	if forum, ip := getIpAddr(w, r); forum != nil {
-		fmt.Printf("handleUnblockIp(): forum: '%s', ip: %s\n", forum.ForumUrl, ip)
+		//fmt.Printf("handleUnblockIp(): forum: '%s', ip: %s\n", forum.ForumUrl, ip)
 		forum.Store.UnblockIp(ip)
 		http.Redirect(w, r, fmt.Sprintf("/%s/postsby?ip=%s", forum.ForumUrl, ip), 302)
 	}
