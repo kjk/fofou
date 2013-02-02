@@ -85,7 +85,7 @@ type ForumConfig struct {
 	Title      string
 	ForumUrl   string
 	WebsiteUrl string
-	Sidebar    string
+	SidebarTmpl *template.Template
 	Tagline    string
 	DataDir    string
 	// we authenticate only with Twitter, this is the twitter user name
@@ -155,6 +155,13 @@ func getDataDir() string {
 
 func NewForum(config *ForumConfig) *Forum {
 	forum := &Forum{ForumConfig: *config}
+	sidebarTmplPath := filepath.Join("tmpl", fmt.Sprintf("%s_sidebar.html", forum.ForumUrl))
+	if !PathExists(sidebarTmplPath) {
+		panic(fmt.Sprintf("sidebar template %s for forum %s doesn't exist", sidebarTmplPath, forum.ForumUrl))
+	}
+
+	forum.SidebarTmpl = template.Must(template.ParseFiles(sidebarTmplPath))
+
 	store, err := NewStore(getDataDir(), config.DataDir)
 	if err != nil {
 		panic("failed to create store for a forum")
@@ -218,6 +225,28 @@ func GetTemplates() *template.Template {
 		templates = template.Must(template.ParseFiles(templatePaths...))
 	}
 	return templates
+}
+
+func DoSidebarTemplate(forum *Forum, isAdmin bool) string {
+	n := forum.Store.GetBlockedIpsCount()
+	model := struct {
+		IsAdmin bool
+		BlockedIpsCount int
+	} {
+		IsAdmin: isAdmin,
+		BlockedIpsCount: n,
+	}
+
+	var buf bytes.Buffer
+	tmpl := forum.SidebarTmpl
+
+	s := ""
+	if err := tmpl.Execute(&buf, model); err != nil {
+		logger.Errorf("Failed to execute sidebar template for forum '%s' error: %s", forum.ForumUrl, err.Error())
+	} else {
+		s = string(buf.Bytes())
+	}
+	return s
 }
 
 func ExecTemplate(w http.ResponseWriter, templateName string, model interface{}) bool {

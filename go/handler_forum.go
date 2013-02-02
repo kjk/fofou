@@ -104,6 +104,7 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 		topicsDisplay = append(topicsDisplay, d)
 	}
 
+	sidebar := DoSidebarTemplate(forum, isAdmin)
 	model := struct {
 		Forum
 		ErrorMsg      string
@@ -117,7 +118,7 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 	}{
 		Forum:         *forum,
 		Topics:        topicsDisplay,
-		SidebarHtml:   template.HTML(forum.Sidebar),
+		SidebarHtml:   template.HTML(sidebar),
 		ForumFullUrl:  buildForumUrl(r, forum),
 		NewFrom:       newFrom,
 		AnalyticsCode: config.AnalyticsCode,

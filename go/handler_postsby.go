@@ -48,6 +48,8 @@ func handlePostsBy(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	sidebar := DoSidebarTemplate(forum, isAdmin)
+
 	model := struct {
 		Forum
 		SidebarHtml    template.HTML
@@ -62,7 +64,7 @@ func handlePostsBy(w http.ResponseWriter, r *http.Request) {
 		LogInOut       template.HTML
 	}{
 		Forum:          *forum,
-		SidebarHtml:    template.HTML(forum.Sidebar),
+		SidebarHtml:    template.HTML(sidebar),
 		Posts:          displayPosts,
 		TotalCount:     total,
 		IsAdmin:        isAdmin,

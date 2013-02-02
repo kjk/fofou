@@ -645,6 +645,12 @@ func (store *Store) IsIpBlocked(ipAddrInternal string) bool {
 	return i != -1
 }
 
+func (store *Store) GetBlockedIpsCount() int {
+	store.Lock()
+	defer store.Unlock()
+	return len(store.blockedIpAddresses)
+}
+
 func (store *Store) GetRecentPosts(max int) []*Post {
 	store.Lock()
 	defer store.Unlock()

@@ -167,6 +167,7 @@ func handleTopic(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	sidebar := DoSidebarTemplate(forum, isAdmin)
 	model := struct {
 		Forum
 		Topic
@@ -178,7 +179,7 @@ func handleTopic(w http.ResponseWriter, r *http.Request) {
 	}{
 		Forum:         *forum,
 		Topic:         *topic,
-		SidebarHtml:   template.HTML(forum.Sidebar),
+		SidebarHtml:   template.HTML(sidebar),
 		Posts:         posts,
 		IsAdmin:       isAdmin,
 		AnalyticsCode: config.AnalyticsCode,
