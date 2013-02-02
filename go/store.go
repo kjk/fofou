@@ -220,30 +220,39 @@ func parseTopics(d []byte, recentPosts *[]*Post) []Topic {
 		//fmt.Printf("'%s' len(topics)=%d\n", string(line), len(topics))
 		d = d[idx+1:]
 		c := line[0]
-		if c == 'T' {
+		// T - topic
+		// P - post
+		// D - delete post
+		// U - undelete post
+		// B - block/unblock ipaddr
+		switch c {
+		case 'T':
 			t := parseTopic(line)
 			topics = append(topics, t)
 			topicIdToTopic[t.Id] = &topics[len(topics)-1]
-		} else if c == 'P' {
+		case 'P':
 			post := parsePost(line, topicIdToTopic)
 			t := post.Topic
 			t.Posts = append(t.Posts, post)
 			*recentPosts = append(*recentPosts, &t.Posts[len(t.Posts)-1])
-		} else if c == 'D' {
+		case 'D':
 			// D|1234|1
 			post := findPostToDelUndel(line[1:], topicIdToTopic)
 			if post.IsDeleted {
 				panic("post already deleted")
 			}
 			post.IsDeleted = true
-		} else if c == 'U' {
+		case 'U':
 			// U|1234|1
 			post := findPostToDelUndel(line[1:], topicIdToTopic)
 			if !post.IsDeleted {
 				panic("post already undeleted")
 			}
 			post.IsDeleted = false
-		} else {
+		case 'B':
+			// B|$ipAddr|$isBlocked
+			// TODO: write me
+		default:
 			panic("Unexpected line type")
 		}
 	}
@@ -464,6 +473,18 @@ func (s *Store) writeMessageAsSha1(msg []byte, sha1 [20]byte) error {
 	return err
 }
 
+func (store *Store) blockIp(ipAddr string) {
+	ipAddrInternal := ipAddrToInternal(ipAddr)
+	s := fmt.Sprintf("U:%s|1", ipAddrInternal)
+	store.appendString(s)
+}
+
+func (store *Store) unblockIp(ipAddr string) {
+	ipAddrInternal := ipAddrToInternal(ipAddr)
+	s := fmt.Sprintf("U:%s|0", ipAddrInternal)
+	store.appendString(s)
+}
+
 func (s *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool) error {
 	msgBytes := []byte(msg)
 	sha1 := Sha1OfBytes(msgBytes)
@@ -529,6 +550,19 @@ func (s *Store) AddPostToTopic(topicId int, msg, user, ipAddr string) error {
 		return errors.New("invalid topicId")
 	}
 	return s.addNewPost(msg, user, ipAddr, topic, false)
+}
+
+
+func (s *Store) BlockIp(ipAddr string) {
+	s.Lock()
+	defer s.Unlock()
+	s.blockIp(ipAddr)
+}
+
+func (s *Store) UnblockIp(ipAddr string) {
+	s.Lock()
+	defer s.Unlock()	
+	s.unblockIp(ipAddr)
 }
 
 func (s *Store) GetRecentPosts(max int) []*Post {
