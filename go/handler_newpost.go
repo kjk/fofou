@@ -99,7 +99,29 @@ func getIpAddress(r *http.Request) string {
 	return hdrRealIp
 }
 
+var badUserHtml string = `
+<html>
+<head>
+</head>
+
+<body>
+Internal problem 0xcc03fad detected ...
+</body>
+</html>
+`
+
 func createNewPost(w http.ResponseWriter, r *http.Request, model *ModelNewPost, topic *Topic) {
+	store := model.Forum.Store
+
+	ipAddr := getIpAddress(r)
+	ipAddrInternal := ipAddrToInternal(ipAddr)
+	isBlocked := store.IsIpBlocked(ipAddrInternal)
+	if isBlocked {
+		logger.Noticef("blocked a post from ip address %s (%s)", ipAddr, ipAddrInternal)
+		w.Write([]byte(badUserHtml))
+		return
+	}
+
 	// validate the fields
 	num1Str := strings.TrimSpace(r.FormValue("num1"))
 	num2Str := strings.TrimSpace(r.FormValue("num2"))
@@ -152,8 +174,6 @@ func createNewPost(w http.ResponseWriter, r *http.Request, model *ModelNewPost, 
 	}
 	userName = MakeInternalUserName(userName, twitterUser)
 
-	store := model.Forum.Store
-	ipAddr := getIpAddress(r)
 	if topic == nil {
 		if topicId, err := store.CreateNewPost(subject, msg, userName, ipAddr); err != nil {
 			logger.Errorf("createNewPost(): store.CreateNewPost() failed with %s", err.Error())
