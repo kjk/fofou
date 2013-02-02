@@ -309,31 +309,31 @@ func NewStore(dataDir, forumName string) (*Store, error) {
 	return store, nil
 }
 
-func (s *Store) TopicsCount() int {
-	s.Lock()
-	defer s.Unlock()
-	return len(s.topics)
+func (store *Store) TopicsCount() int {
+	store.Lock()
+	defer store.Unlock()
+	return len(store.topics)
 }
 
-func (s *Store) GetTopics(nMax, from int, withDeleted bool) ([]*Topic, int) {
+func (store *Store) GetTopics(nMax, from int, withDeleted bool) ([]*Topic, int) {
 	res := make([]*Topic, 0, nMax)
-	s.Lock()
-	defer s.Unlock()
+	store.Lock()
+	defer store.Unlock()
 	n := nMax
 	i := from
 	for n > 0 {
-		idx := len(s.topics) - 1 - i
+		idx := len(store.topics) - 1 - i
 		if idx < 0 {
 			break
 		}
-		t := &s.topics[idx]
+		t := &store.topics[idx]
 		res = append(res, t)
 		n -= 1
 		i += 1
 	}
 
 	newFrom := i
-	if len(s.topics)-1-newFrom <= 0 {
+	if len(store.topics)-1-newFrom <= 0 {
 		newFrom = 0
 	}
 	return res, newFrom
@@ -341,19 +341,19 @@ func (s *Store) GetTopics(nMax, from int, withDeleted bool) ([]*Topic, int) {
 
 // note: could probably speed up with binary search, but given our sizes, we're
 // fast enough
-func (s *Store) topicByIdUnlocked(id int) *Topic {
-	for idx, t := range s.topics {
+func (store *Store) topicByIdUnlocked(id int) *Topic {
+	for idx, t := range store.topics {
 		if id == t.Id {
-			return &s.topics[idx]
+			return &store.topics[idx]
 		}
 	}
 	return nil
 }
 
-func (s *Store) TopicById(id int) *Topic {
-	s.Lock()
-	defer s.Unlock()
-	return s.topicByIdUnlocked(id)
+func (store *Store) TopicById(id int) *Topic {
+	store.Lock()
+	defer store.Unlock()
+	return store.topicByIdUnlocked(id)
 }
 
 func blobPath(dir, sha1 string) string {
@@ -362,13 +362,13 @@ func blobPath(dir, sha1 string) string {
 	return filepath.Join(dir, "blobs", d1, d2, sha1)
 }
 
-func (s *Store) MessageFilePath(sha1 [20]byte) string {
+func (store *Store) MessageFilePath(sha1 [20]byte) string {
 	sha1Str := hex.EncodeToString(sha1[:])
-	return blobPath(s.dataDir, sha1Str)
+	return blobPath(store.dataDir, sha1Str)
 }
 
-func (s *Store) findPost(topicId, postId int) (*Post, error) {
-	topic := s.topicByIdUnlocked(topicId)
+func (store *Store) findPost(topicId, postId int) (*Post, error) {
+	topic := store.topicByIdUnlocked(topicId)
 	if nil == topic {
 		return nil, errors.New("didn't find a topic with this id")
 	}
@@ -379,19 +379,19 @@ func (s *Store) findPost(topicId, postId int) (*Post, error) {
 	return &topic.Posts[postId-1], nil
 }
 
-func (s *Store) appendString(str string) error {
-	_, err := s.dataFile.WriteString(str)
+func (store *Store) appendString(str string) error {
+	_, err := store.dataFile.WriteString(str)
 	if err != nil {
 		fmt.Printf("appendString() error: %s\n", err.Error())
 	}
 	return err
 }
 
-func (s *Store) DeletePost(topicId, postId int) error {
-	s.Lock()
-	defer s.Unlock()
+func (store *Store) DeletePost(topicId, postId int) error {
+	store.Lock()
+	defer store.Unlock()
 
-	post, err := s.findPost(topicId, postId)
+	post, err := store.findPost(topicId, postId)
 	if err != nil {
 		return err
 	}
@@ -399,18 +399,18 @@ func (s *Store) DeletePost(topicId, postId int) error {
 		return errors.New("post already deleted")
 	}
 	str := fmt.Sprintf("D%d|%d\n", topicId, postId)
-	if err = s.appendString(str); err != nil {
+	if err = store.appendString(str); err != nil {
 		return err
 	}
 	post.IsDeleted = true
 	return nil
 }
 
-func (s *Store) UndeletePost(topicId, postId int) error {
-	s.Lock()
-	defer s.Unlock()
+func (store *Store) UndeletePost(topicId, postId int) error {
+	store.Lock()
+	defer store.Unlock()
 
-	post, err := s.findPost(topicId, postId)
+	post, err := store.findPost(topicId, postId)
 	if err != nil {
 		return err
 	}
@@ -418,7 +418,7 @@ func (s *Store) UndeletePost(topicId, postId int) error {
 		return errors.New("post already not deleted")
 	}
 	str := fmt.Sprintf("U%d|%d\n", topicId, postId)
-	if err = s.appendString(str); err != nil {
+	if err = store.appendString(str); err != nil {
 		return err
 	}
 	post.IsDeleted = false
@@ -464,8 +464,8 @@ func remSep(s string) string {
 	return strings.Replace(s, "|", "", -1)
 }
 
-func (s *Store) writeMessageAsSha1(msg []byte, sha1 [20]byte) error {
-	path := s.MessageFilePath(sha1)
+func (store *Store) writeMessageAsSha1(msg []byte, sha1 [20]byte) error {
+	path := store.MessageFilePath(sha1)
 	err := WriteBytesToFile(msg, path)
 	if err != nil {
 		logger.Errorf("Store.writeMessageAsSha1(): failed to write %s with error %s", path, err.Error())
@@ -485,7 +485,7 @@ func (store *Store) unblockIp(ipAddr string) {
 	store.appendString(s)
 }
 
-func (s *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool) error {
+func (store *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool) error {
 	msgBytes := []byte(msg)
 	sha1 := Sha1OfBytes(msgBytes)
 	p := &Post{
@@ -497,7 +497,7 @@ func (s *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool
 		Topic:            topic,
 	}
 	copy(p.MessageSha1[:], sha1)
-	if err := s.writeMessageAsSha1(msgBytes, p.MessageSha1); err != nil {
+	if err := store.writeMessageAsSha1(msgBytes, p.MessageSha1); err != nil {
 		return err
 	}
 
@@ -513,81 +513,81 @@ func (s *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool
 	sIp := p.IpAddrInternal
 	postStr := fmt.Sprintf("P%d|%d|%s|%s|%s|%s\n", topic.Id, p.Id, s1, s2, sIp, s3)
 	str := topicStr + postStr
-	if err := s.appendString(str); err != nil {
+	if err := store.appendString(str); err != nil {
 		return err
 	}
 	topic.Posts = append(topic.Posts, *p)
 	if newTopic {
-		s.topics = append(s.topics, *topic)
+		store.topics = append(store.topics, *topic)
 	}
-	s.posts = append(s.posts, &topic.Posts[len(topic.Posts)-1])
+	store.posts = append(store.posts, &topic.Posts[len(topic.Posts)-1])
 	return nil
 }
 
-func (s *Store) CreateNewPost(subject, msg, user, ipAddr string) (int, error) {
-	s.Lock()
-	defer s.Unlock()
+func (store *Store) CreateNewPost(subject, msg, user, ipAddr string) (int, error) {
+	store.Lock()
+	defer store.Unlock()
 
 	topic := &Topic{
 		Id:      1,
 		Subject: remSep(subject),
 		Posts:   make([]Post, 0),
 	}
-	if len(s.topics) > 0 {
+	if len(store.topics) > 0 {
 		// Id of the last topic + 1
-		topic.Id = s.topics[len(s.topics)-1].Id + 1
+		topic.Id = store.topics[len(store.topics)-1].Id + 1
 	}
-	err := s.addNewPost(msg, user, ipAddr, topic, true)
+	err := store.addNewPost(msg, user, ipAddr, topic, true)
 	return topic.Id, err
 }
 
-func (s *Store) AddPostToTopic(topicId int, msg, user, ipAddr string) error {
-	s.Lock()
-	defer s.Unlock()
+func (store *Store) AddPostToTopic(topicId int, msg, user, ipAddr string) error {
+	store.Lock()
+	defer store.Unlock()
 
-	topic := s.topicByIdUnlocked(topicId)
+	topic := store.topicByIdUnlocked(topicId)
 	if topic == nil {
 		return errors.New("invalid topicId")
 	}
-	return s.addNewPost(msg, user, ipAddr, topic, false)
+	return store.addNewPost(msg, user, ipAddr, topic, false)
 }
 
 
-func (s *Store) BlockIp(ipAddr string) {
-	s.Lock()
-	defer s.Unlock()
-	s.blockIp(ipAddr)
+func (store *Store) BlockIp(ipAddr string) {
+	store.Lock()
+	defer store.Unlock()
+	store.blockIp(ipAddr)
 }
 
-func (s *Store) UnblockIp(ipAddr string) {
-	s.Lock()
-	defer s.Unlock()	
-	s.unblockIp(ipAddr)
+func (store *Store) UnblockIp(ipAddr string) {
+	store.Lock()
+	defer store.Unlock()	
+	store.unblockIp(ipAddr)
 }
 
-func (s *Store) GetRecentPosts(max int) []*Post {
-	s.Lock()
-	defer s.Unlock()
+func (store *Store) GetRecentPosts(max int) []*Post {
+	store.Lock()
+	defer store.Unlock()
 
 	// return the oldest at the beginning of the returned array
-	if max > len(s.posts) {
-		max = len(s.posts)
+	if max > len(store.posts) {
+		max = len(store.posts)
 	}
 
 	res := make([]*Post, max, max)
 	for i := 0; i < max; i++ {
-		res[i] = s.posts[len(s.posts)-1-i]
+		res[i] = store.posts[len(store.posts)-1-i]
 	}
 	return res
 }
 
-func (s *Store) GetPostsByUserInternal(userNameInternal string, max int) []*Post {
-	s.Lock()
-	defer s.Unlock()
+func (store *Store) GetPostsByUserInternal(userNameInternal string, max int) []*Post {
+	store.Lock()
+	defer store.Unlock()
 
 	res := make([]*Post, 0)
-	for i := len(s.posts) - 1; i >= 0; i-- {
-		p := s.posts[i]
+	for i := len(store.posts) - 1; i >= 0; i-- {
+		p := store.posts[i]
 		if p.UserNameInternal == userNameInternal {
 			res = append(res, p)
 			if len(res) > max {
@@ -598,13 +598,13 @@ func (s *Store) GetPostsByUserInternal(userNameInternal string, max int) []*Post
 	return res
 }
 
-func (s *Store) GetPostsByIpInternal(ipAddrInternal string, max int) []*Post {
-	s.Lock()
-	defer s.Unlock()
+func (store *Store) GetPostsByIpInternal(ipAddrInternal string, max int) []*Post {
+	store.Lock()
+	defer store.Unlock()
 
 	res := make([]*Post, 0)
-	for i := len(s.posts) - 1; i >= 0; i-- {
-		p := s.posts[i]
+	for i := len(store.posts) - 1; i >= 0; i-- {
+		p := store.posts[i]
 		if p.IpAddrInternal == ipAddrInternal {
 			res = append(res, p)
 			if len(res) > max {
