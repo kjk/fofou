@@ -184,7 +184,7 @@ def to_utf8(s):
     s = to_unicode(s)
     return s.encode("utf-8")
 
-def req_get_vals(req, names, strip=True): 
+def req_get_vals(req, names, strip=True):
   if strip:
     return [req.get(name).strip() for name in names]
   else:
@@ -245,7 +245,7 @@ def valid_email(txt):
   if '.' not in txt:
     return False
   return True
-      
+
 def forum_root(forum): return "/" + forum.url + "/"
 
 def clear_forums_memcache():
@@ -261,7 +261,7 @@ def get_forum_by_url(forumurl):
     forums = Forum.all().fetch(200) # this effectively limits number of forums to 200
     if not forums:
       return None
-    
+
     memcache.set(FORUMS_MEMCACHE_KEY, forums)
   for forum in forums:
     if forumurl == forum.url:
@@ -293,7 +293,7 @@ def get_log_in_out(url):
     else:
       return "Welcome, %s! <a href=\"%s\">Log out</a>" % (user.nickname(), users.create_logout_url(url))
   else:
-    return "<a href=\"%s\">Log in or register</a>" % users.create_login_url(url)    
+    return "<a href=\"%s\">Log in or register</a>" % users.create_login_url(url)
 
 class FofouBase(webapp.RequestHandler):
 
@@ -432,7 +432,7 @@ class ManageForums(FofouBase):
     }
     if forum:
       forum.title_non_empty = forum.title or "Title."
-      forum.sidebar_non_empty = forum.sidebar or "Sidebar." 
+      forum.sidebar_non_empty = forum.sidebar or "Sidebar."
       disable = self.request.get('disable')
       enable = self.request.get('enable')
       if disable or enable:
@@ -460,7 +460,7 @@ class ManageForums(FofouBase):
         f.enable_disable_url = edit_url + "&enable=yes"
       else:
         f.enable_disable_txt = "disable"
-        f.enable_disable_url = edit_url + "&disable=yes"      
+        f.enable_disable_url = edit_url + "&disable=yes"
       if forum and f.key() == forum.key():
         # editing existing forum
         f.no_edit_link = True
@@ -661,12 +661,12 @@ class RssFeed(webapp.RequestHandler):
       self.response.headers['Content-Type'] = 'text/xml'
       self.response.out.write(cached_feed)
       return
-      
+
     feed = feedgenerator.Atom1Feed(
       title = forum.title or forum.url,
       link = my_hostname() + siteroot + "rss",
       description = forum.tagline)
-  
+
     topics = Topic.gql("WHERE forum = :1 AND is_deleted = False ORDER BY created_on DESC", forum).fetch(25)
     for topic in topics:
       title = topic.subject
@@ -702,7 +702,7 @@ class RssAllFeed(webapp.RequestHandler):
       title = forum.title or forum.url,
       link = my_hostname() + siteroot + "rssall",
       description = forum.tagline)
-  
+
     posts = Post.gql("WHERE forum = :1 AND is_deleted = False ORDER BY created_on DESC", forum).fetch(25)
     for post in posts:
       topic = post.topic
@@ -769,7 +769,7 @@ class EmailForm(FofouBase):
       'forum' : forum,
       'topic' : topic,
       'log_in_out' : get_log_in_out(siteroot + "post")
-    }    
+    }
     tmpl = os.path.join(tmpldir, "email_sent.html")
     self.template_out(tmpl, tvals)
 
@@ -826,7 +826,7 @@ class PostForm(FofouBase):
     (forum, siteroot, tmpldir) = forum_siteroot_tmpldir_from_url(self.request.path_info)
     if not forum or forum.is_disabled:
       return self.redirect("/")
-    if self.request.get('Cancel'): 
+    if self.request.get('Cancel'):
       return self.redirect(siteroot)
 
     ip = get_remote_ip()
@@ -869,7 +869,7 @@ class PostForm(FofouBase):
       "prevTopicId" : topic_id,
       "log_in_out" : get_log_in_out(siteroot + "post")
     }
-    
+
     # validate captcha and other values
     errclass = None
     if not validCaptcha or (captcha != (num1 + num2)): errclass = 'captcha_class'
@@ -957,21 +957,21 @@ class WeMoved(webapp.RequestHandler):
   def get(self):
     url = self.request.path_info
     if url in ["/sumatrapdf/rss", "/sumatrapdf/rssall"]:
-      return self.redirect("http://forums.fofou.org" + url, permanent=True)      
+      return self.redirect("http://forums.fofou.org" + url, permanent=True)
 
     self.response.headers['Content-Type'] = 'text/html'
     new_url = "http://forums.fofou.org" + url
-    s = """<html><body>This forum has moved! Please try 
+    s = """<html><body>This forum has moved! Please try
 <a href="%s">%s</a><body></html>""" % (new_url, new_url)
     self.response.out.write(s)
 
-def main():
+def main_moved():
   application = webapp.WSGIApplication(
      [('/.*', WeMoved)],
      debug=False)
   wsgiref.handlers.CGIHandler().run(application)
 
-def main_old():
+def main():
   application = webapp.WSGIApplication(
      [  ('/', ForumList),
         ('/manageforums', ManageForums),
