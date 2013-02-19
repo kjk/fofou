@@ -63,3 +63,20 @@ func TestIpConv(t *testing.T) {
 	deleteStringIn(&a, "bar")
 	testStringSliceEq(t, a, []string{})
 }
+
+func testUnCaps(t *testing.T, s, exp string) {
+	got := UnCaps(s)
+	if got != exp {
+		t.Fatalf("\n%#v !=\n%#v (for '%#v')", got, exp, s)
+	}
+}
+
+func TestUnCaps(t *testing.T) {
+	d := []string{
+		"FOO", "Foo",
+		//"FOO BAR. IS IT ME?\nOR ME", "Foo bar. Is it me?\nOr me",
+	}
+	for i := 0; i < len(d)/2; i++ {
+		testUnCaps(t, d[i*2], d[i*2+1])
+	}
+}

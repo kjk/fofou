@@ -82,12 +82,12 @@ var (
 
 // a static configuration of a single forum
 type ForumConfig struct {
-	Title      string
-	ForumUrl   string
-	WebsiteUrl string
+	Title       string
+	ForumUrl    string
+	WebsiteUrl  string
 	SidebarTmpl *template.Template
-	Tagline    string
-	DataDir    string
+	Tagline     string
+	DataDir     string
 	// we authenticate only with Twitter, this is the twitter user name
 	// of the admin user
 	AdminTwitterUser string
@@ -230,10 +230,10 @@ func GetTemplates() *template.Template {
 func DoSidebarTemplate(forum *Forum, isAdmin bool) string {
 	n := forum.Store.GetBlockedIpsCount()
 	model := struct {
-		IsAdmin bool
+		IsAdmin         bool
 		BlockedIpsCount int
-	} {
-		IsAdmin: isAdmin,
+	}{
+		IsAdmin:         isAdmin,
 		BlockedIpsCount: n,
 	}
 
