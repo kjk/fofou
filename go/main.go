@@ -38,7 +38,6 @@ var (
 
 	config = struct {
 		TwitterOAuthCredentials *oauth.Credentials
-		Forums                  []ForumConfig
 		CookieAuthKeyHexStr     *string
 		CookieEncrKeyHexStr     *string
 		AnalyticsCode           *string
@@ -48,12 +47,14 @@ var (
 		S3BackupDir             *string
 	}{
 		&oauthClient.Credentials,
-		nil,
 		nil, nil,
 		nil,
 		nil, nil,
 		nil, nil,
 	}
+
+	forums = make([]*ForumConfig, 0)
+
 	logger        *ServerLogger
 	cookieAuthKey []byte
 	cookieEncrKey []byte
@@ -91,6 +92,7 @@ type ForumConfig struct {
 	// we authenticate only with Twitter, this is the twitter user name
 	// of the admin user
 	AdminTwitterUser string
+	Disabled         bool
 }
 
 type User struct {
@@ -155,7 +157,7 @@ func getDataDir() string {
 
 func NewForum(config *ForumConfig) *Forum {
 	forum := &Forum{ForumConfig: *config}
-	sidebarTmplPath := filepath.Join("tmpl", fmt.Sprintf("%s_sidebar.html", forum.ForumUrl))
+	sidebarTmplPath := filepath.Join("forums", fmt.Sprintf("%s_sidebar.html", forum.ForumUrl))
 	if !PathExists(sidebarTmplPath) {
 		panic(fmt.Sprintf("sidebar template %s for forum %s doesn't exist", sidebarTmplPath, forum.ForumUrl))
 	}
@@ -278,6 +280,36 @@ func userIsAdmin(f *Forum, cookie *SecureCookieValue) bool {
 	return cookie.TwitterUser == f.AdminTwitterUser
 }
 
+// reads forums/*_config.json files
+func readForumConfigs(configDir string) error {
+	pat := filepath.Join(configDir, "*_config.json")
+	files, err := filepath.Glob(pat)
+	if err != nil {
+		return err
+	}
+	if files == nil {
+		return errors.New("No forums configured!")
+	}
+	for _, configFile := range files {
+		var forum ForumConfig
+		b, err := ioutil.ReadFile(configFile)
+		if err != nil {
+			return err
+		}
+		err = json.Unmarshal(b, &forum)
+		if err != nil {
+			return err
+		}
+		if !forum.Disabled {
+			forums = append(forums, &forum)
+		}
+	}
+	if len(forums) == 0 {
+		return errors.New("All forums are disabled!")
+	}
+	return nil
+}
+
 // reads the configuration file from the path specified by
 // the config command line flag.
 func readConfig(configFile string) error {
@@ -364,8 +396,12 @@ func main() {
 		log.Fatalf("Failed reading config file %s. %s\n", *configPath, err.Error())
 	}
 
-	for _, forumData := range config.Forums {
-		f := NewForum(&forumData)
+	if err := readForumConfigs("forums"); err != nil {
+		log.Fatalf("Failed to read forum configs, err: %s", err.Error())
+	}
+
+	for _, forumData := range forums {
+		f := NewForum(forumData)
 		if err := addForum(f); err != nil {
 			log.Fatalf("Failed to add the forum: %s, err: %s\n", f.Title, err.Error())
 		}

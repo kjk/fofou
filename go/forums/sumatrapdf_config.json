@@ -1,0 +1,10 @@
+{
+	"Title":"Sumatra PDF Reader forum",
+	"ForumUrl":"sumatrapdf",
+	"WebsiteUrl":"http://blog.kowalczyk.info/software/sumatrapdf",
+	"Sidebar":"Forum for users and developers of <a href=\"http://blog.kowalczyk.info/software/sumatrapdf/\">Sumatra PDF Reader</a> for Windows.<p><a href=\"http://code.google.com/p/sumatrapdf/wiki/SubmittingBugReports\">Report a bug</a></p><p><a href=\"/sumatrapdf/newpost\">Create new topic</a></p>",
+	"Tagline":"Small, fast, free PDF, EPUB, MOBI, CHM, DJVU, CBR, CBZ reader for Windows",
+	"DataDir":"SumatraPDF",
+	"AdminTwitterUser":"kjk",
+	"Disabled":false
+}
