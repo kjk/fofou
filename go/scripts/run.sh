@@ -1,2 +1,3 @@
 export GOPATH=`pwd`/ext:$GOPATH
-go run *.go
+go build -o fofou_app *.go || exit 1
+./fofou_app

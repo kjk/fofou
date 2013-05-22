@@ -119,7 +119,7 @@ func (t *Topic) IsDeleted() bool {
 	return true
 }
 
-// parse: 
+// parse:
 // D|1234|1
 func parseDelUndel(d []byte) (int, int) {
 	s := string(d[1:])

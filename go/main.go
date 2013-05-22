@@ -17,6 +17,7 @@ import (
 	"math/rand"
 	"net/http"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -93,6 +94,7 @@ type ForumConfig struct {
 	// of the admin user
 	AdminTwitterUser string
 	Disabled         bool
+	BannedIps        *[]string
 }
 
 type User struct {
@@ -212,6 +214,16 @@ func addForum(forum *Forum) error {
 	}
 	if forumAlreadyExists(forum.ForumUrl) {
 		return errors.New("Forum already exists")
+	}
+	// verify BannedIps are valid regexpes
+	banned := forum.BannedIps
+	if banned != nil {
+		for _, s := range *banned {
+			_, err := regexp.Compile(s)
+			if err != nil {
+				log.Fatalf("'%s' is not a valid regexp, err: %s", s, err.Error())
+			}
+		}
 	}
 	appState.Forums = append(appState.Forums, forum)
 	return nil

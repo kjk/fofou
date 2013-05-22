@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"math/rand"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -109,14 +110,30 @@ Internal problem 0xcc03fad detected ...
 </body>
 </html>
 `
+func isIpBlocked(forum Forum, ip string, ipInternal string) bool {
+	if forum.Store.IsIpBlocked(ipInternal) {
+		return true
+	}
+	banned := forum.BannedIps
+	if banned != nil {
+		for _, s := range *banned {
+			// we have already checked that s is a valid regexp in addForum()
+			r := regexp.MustCompile(s)
+			if r.MatchString(ip) {
+				return true
+			}
+		}
+	}
+	return false
+}
 
 func createNewPost(w http.ResponseWriter, r *http.Request, model *ModelNewPost, topic *Topic) {
 	store := model.Forum.Store
 
 	ipAddr := getIpAddress(r)
 	ipAddrInternal := ipAddrToInternal(ipAddr)
-	isBlocked := store.IsIpBlocked(ipAddrInternal)
-	if isBlocked {
+	logger.Noticef("ip address %s (%s)", ipAddr, ipAddrInternal)
+	if isIpBlocked(model.Forum, ipAddr, ipAddrInternal) {
 		logger.Noticef("blocked a post from ip address %s (%s)", ipAddr, ipAddrInternal)
 		w.Write([]byte(badUserHtml))
 		return

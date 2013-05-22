@@ -10,11 +10,11 @@ It's mostly a port of FruitShow PHP forum (http://sourceforge.net/projects/fruit
 
 There are two versions:
 
+* one written in Go (directory go), which I currently use at
+  http://forums.fofou.org
+
 * one in Python for Google App Engine (directory appengine). I used this versions
   for a few years but no longer use it and no longer work on it
-
-* second written in Go (directory go), which I currently use at 
-  http://forums.fofou.org
 
 Where can I see it in action?
 =============================
