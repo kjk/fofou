@@ -45,11 +45,12 @@ def zip_files(zip_path):
 	files = [f for f in os.listdir(".") if f.endswith(".go") and not f in blacklist]
 	for f in files: zf.write(f)
 	zf.write("config.json")
-	add_dir_files(zf, "scripts")
 	add_dir_files(zf, "ext")
+	add_dir_files(zf, "forums")
 	add_dir_files(zf, "img")
-	add_dir_files(zf, "tmpl")
+	add_dir_files(zf, "scripts")
 	add_dir_files(zf, "static")
+	add_dir_files(zf, "tmpl")
 	zf.close()
 
 def delete_old_deploys(to_keep=5):
