@@ -110,6 +110,7 @@ Internal problem 0xcc03fad detected ...
 </body>
 </html>
 `
+
 func isIpBlocked(forum Forum, ip string, ipInternal string) bool {
 	if forum.Store.IsIpBlocked(ipInternal) {
 		return true
@@ -127,12 +128,21 @@ func isIpBlocked(forum Forum, ip string, ipInternal string) bool {
 	return false
 }
 
-func createNewPost(w http.ResponseWriter, r *http.Request, model *ModelNewPost, topic *Topic) {
-	store := model.Forum.Store
+func isMessageBlocked(forum Forum, msg string) bool {
+	bannedWords := forum.BannedWords
+	if bannedWords != nil {
+		for _, s := range *bannedWords {
+			if strings.Index(msg, s) != -1 {
+				return true
+			}
+		}
+	}
+	return false
+}
 
+func createNewPost(w http.ResponseWriter, r *http.Request, model *ModelNewPost, topic *Topic) {
 	ipAddr := getIpAddress(r)
 	ipAddrInternal := ipAddrToInternal(ipAddr)
-	logger.Noticef("ip address %s (%s)", ipAddr, ipAddrInternal)
 	if isIpBlocked(model.Forum, ipAddr, ipAddrInternal) {
 		logger.Noticef("blocked a post from ip address %s (%s)", ipAddr, ipAddrInternal)
 		w.Write([]byte(badUserHtml))
@@ -146,6 +156,12 @@ func createNewPost(w http.ResponseWriter, r *http.Request, model *ModelNewPost, 
 	subject := strings.TrimSpace(r.FormValue("Subject"))
 	msg := strings.TrimSpace(r.FormValue("Message"))
 	name := strings.TrimSpace(r.FormValue("Name"))
+
+	if isMessageBlocked(model.Forum, msg) {
+		logger.Notice("blocked a post because has a banned word in it")
+		w.Write([]byte(badUserHtml))
+		return
+	}
 
 	model.Num1, _ = strconv.Atoi(num1Str)
 	model.Num2, _ = strconv.Atoi(num2Str)
@@ -191,6 +207,7 @@ func createNewPost(w http.ResponseWriter, r *http.Request, model *ModelNewPost, 
 	}
 	userName = MakeInternalUserName(userName, twitterUser)
 
+	store := model.Forum.Store
 	if topic == nil {
 		if topicId, err := store.CreateNewPost(subject, msg, userName, ipAddr); err != nil {
 			logger.Errorf("createNewPost(): store.CreateNewPost() failed with %s", err.Error())

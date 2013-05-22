@@ -6,5 +6,6 @@
 	"DataDir":"SumatraPDF",
 	"AdminTwitterUser":"kjk",
 	"Disabled":false,
-	"BannedIps": ["^118\\.248\\..*"]
+	"BannedIps": ["^118\\.248\\..*"],
+	"BannedWords": ["ebookconverter.com"]
 }

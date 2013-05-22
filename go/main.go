@@ -95,6 +95,7 @@ type ForumConfig struct {
 	AdminTwitterUser string
 	Disabled         bool
 	BannedIps        *[]string
+	BannedWords      *[]string
 }
 
 type User struct {
