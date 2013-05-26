@@ -149,6 +149,12 @@ func createNewPost(w http.ResponseWriter, r *http.Request, model *ModelNewPost, 
 		return
 	}
 
+	if r.FormValue("Cancel") != "" {
+		logger.Notice("Pressed cancel")
+		http.Redirect(w, r, fmt.Sprintf("/%s/", model.Forum.ForumUrl), 302)
+		return
+	}
+
 	// validate the fields
 	num1Str := strings.TrimSpace(r.FormValue("num1"))
 	num2Str := strings.TrimSpace(r.FormValue("num2"))
