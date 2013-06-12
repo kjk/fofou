@@ -140,7 +140,7 @@ func handleOauthTwitterCallback(w http.ResponseWriter, r *http.Request) {
 	var info map[string]interface{}
 	if err := getTwitter(
 		tokenCred,
-		"https://api.twitter.com/1/account/verify_credentials.json",
+		"https://api.twitter.com/1.1/account/verify_credentials.json",
 		nil,
 		&info); err != nil {
 		http.Error(w, "Error getting timeline, "+err.Error(), 500)
