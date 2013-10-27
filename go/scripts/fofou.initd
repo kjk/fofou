@@ -15,7 +15,7 @@
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 DAEMON=/home/fofou/www/app/current/fofou_app
-DAEMON_ARGS=
+DAEMON_ARGS=-production
 NAME=fofou
 DESC=fofou
 
