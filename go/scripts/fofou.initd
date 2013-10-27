@@ -10,8 +10,12 @@
 # Description:       starts fofou using start-stop-daemon
 ### END INIT INFO
 
+# /etc/init.d/fofou must be symlinked to this file i.e. /home/fofou/www/app/current/scripts/fofou.initd
+# sudo ln -s /home/fofou/www/app/current/scripts/fofou.initd /etc/init.d/fofou
+
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 DAEMON=/home/fofou/www/app/current/fofou_app
+DAEMON_ARGS=
 NAME=fofou
 DESC=fofou
 
@@ -21,19 +25,33 @@ set -e
 
 . /lib/lsb/init-functions
 
+start() {
+	start-stop-daemon --oknodo --start --verbose --background \
+		--chuid fofou --chdir /home/fofou/www/app/current \
+		--exec $DAEMON -- $DAEMON_ARGS
+}
+
+stop() {
+	start-stop-daemon --oknodo --stop --verbose \
+		--exec $DAEMON
+}
+
 case "$1" in
 	start)
-		echo -n "Starting $DESC: "
-		start-stop-daemon --start --background --chuid fofou --chdir /home/fofou/www/app/current --exec $DAEMON -- -production || true
-		echo "$NAME."
+		log_daemon_msg "Starting $NAME"
+		start
+		log_end_msg $?
 		;;
 
 	stop)
-		echo -n "Stopping $DESC: "
-		start-stop-daemon --stop --oknodo --exec $DAEMON || true
-		echo "$NAME."
+		log_daemon_msg "Stopping $NAME"
+		stop
+		log_end_msg $?
 		;;
 
+	status)
+		status_of_proc "$DAEMON" "$NAME"
+		;;
 esac
 
 exit 0
