@@ -134,7 +134,7 @@ def deploy():
 		sudo("update-rc.d fofou defaults")
 
 	# start it
-	sudo("/etc/init.d/blog start", pty=False)
+	sudo("/etc/init.d/fofou start", pty=False)
 	run("ps aux | grep fofou_app | grep -v grep")
 
 	delete_old_deploys()
