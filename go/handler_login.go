@@ -4,11 +4,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/garyburd/go-oauth/oauth"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/garyburd/go-oauth/oauth"
 )
 
 type SecureCookieValue struct {

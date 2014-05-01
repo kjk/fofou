@@ -2,12 +2,13 @@
 package main
 
 import (
-	"code.google.com/p/gorilla/mux"
 	"fmt"
 	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"code.google.com/p/gorilla/mux"
 )
 
 type TopicDisplay struct {

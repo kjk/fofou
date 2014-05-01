@@ -3,14 +3,11 @@ package main
 
 import (
 	"bytes"
-	"code.google.com/p/gorilla/mux"
-	"code.google.com/p/gorilla/securecookie"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/garyburd/go-oauth/oauth"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -21,6 +18,10 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"code.google.com/p/gorilla/mux"
+	"code.google.com/p/gorilla/securecookie"
+	"github.com/garyburd/go-oauth/oauth"
 )
 
 var (

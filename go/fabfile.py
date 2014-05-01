@@ -93,6 +93,7 @@ def check_config():
 
 
 def deploy():
+	check_config()
 	#git_pull()
 	git_ensure_clean()
 	local("./scripts/build.sh")
