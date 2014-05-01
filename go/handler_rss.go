@@ -2,11 +2,12 @@
 package main
 
 import (
-	"atom"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	atom "github.com/thomas11/atomgenerator"
 )
 
 func buildForumUrl(r *http.Request, forum *Forum) string {
@@ -54,23 +55,22 @@ func handleRss2(w http.ResponseWriter, r *http.Request, all bool) {
 		} else {
 			msgStr = msgToHtml(string(msg))
 		}
-		id := fmt.Sprintf("tag:forums.fofou.org,1999:%s-topic-%d-post-%d", forum.ForumUrl, p.Topic.Id, p.Id)
+		//id := fmt.Sprintf("tag:forums.fofou.org,1999:%s-topic-%d-post-%d", forum.ForumUrl, p.Topic.Id, p.Id)
 		e := &atom.Entry{
-			Id:          id,
-			Title:       p.Topic.Subject,
-			Link:        buildTopicUrl(r, forum, p.Topic.Id),
-			ContentHtml: msgStr,
-			PubDate:     p.CreatedOn,
+			Title:   p.Topic.Subject,
+			PubDate: p.CreatedOn,
+			Link:    buildTopicUrl(r, forum, p.Topic.Id),
+			Content: msgStr,
 		}
 		feed.AddEntry(e)
 	}
 
 	s, err := feed.GenXml()
 	if err != nil {
-		s = "Failed to generate XML feed"
+		s = []byte("Failed to generate XML feed")
 	}
 
-	w.Write([]byte(s))
+	w.Write(s)
 }
 
 // url: /{forum}/rss

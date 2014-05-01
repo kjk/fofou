@@ -1,3 +1,8 @@
-export GOPATH=`pwd`/ext:$GOPATH
-go build -o fofou_app *.go || exit 1
+#!/bin/bash
+
+set -o nounset
+set -o errexit
+set -o pipefail
+
+go build -o fofou_app *.go
 ./fofou_app
