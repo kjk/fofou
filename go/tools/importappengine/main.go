@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/kjk/u"
 )
 
 var dataDir = ""
@@ -27,11 +29,11 @@ func getDataDir() string {
 		return dataDir
 	}
 	dataDir = filepath.Join("..", "..", "fofoudata")
-	if PathExists(dataDir) {
+	if u.PathExists(dataDir) {
 		return dataDir
 	}
 	dataDir = filepath.Join("..", "..", "..", "data")
-	if PathExists(dataDir) {
+	if u.PathExists(dataDir) {
 		return dataDir
 	}
 	log.Fatal("data directory (../../../data or ../../fofoudata) doesn't exist")
@@ -166,7 +168,7 @@ func parseTopics(d []byte) []*Topic {
 func loadTopics() []*Topic {
 	data_dir := filepath.Join("..", "appengine", "imported_data")
 	filePath := filepath.Join(data_dir, "topics.txt")
-	data, err := ReadFileAll(filePath)
+	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		log.Fatalf("ReadAll() failed with error %s", err.Error())
 	}
@@ -189,7 +191,7 @@ func parsePosts(d []byte) []*Post {
 
 func loadPosts() []*Post {
 	filePath := filepath.Join(srcDataDir, "posts.txt")
-	data, err := ReadFileAll(filePath)
+	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		log.Fatalf("ReadAll() failed with error %s", err.Error())
 	}
@@ -349,14 +351,14 @@ func copyBlobs(topics []*Topic) error {
 			sha1 := p.MessageSha1Str
 			srcPath := blobPath(srcDataDir, sha1)
 			dstPath := blobPath(blobsDir, sha1)
-			if !PathExists(srcPath) {
+			if !u.PathExists(srcPath) {
 				panic("srcPath doesn't exist")
 			}
-			if !PathExists(dstPath) {
-				if err := CreateDirIfNotExists(filepath.Dir(dstPath)); err != nil {
+			if !u.PathExists(dstPath) {
+				if err := u.CreateDirIfNotExists(filepath.Dir(dstPath)); err != nil {
 					panic("failed to create dir for dstPath")
 				}
-				if err := CopyFile(dstPath, srcPath); err != nil {
+				if err := u.CopyFile(dstPath, srcPath); err != nil {
 					fmt.Printf("CopyFile('%s', '%s') failed with %s", dstPath, srcPath, err)
 					return err
 				}
@@ -368,7 +370,7 @@ func copyBlobs(topics []*Topic) error {
 }
 
 func main() {
-	if err := CreateDirIfNotExists(forumDataDir()); err != nil {
+	if err := u.CreateDirIfNotExists(forumDataDir()); err != nil {
 		panic("failed to create dataDir")
 	}
 

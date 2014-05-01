@@ -7,12 +7,15 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/kjk/u"
 )
 
 type Post struct {
@@ -267,7 +270,7 @@ func (store *Store) markIpBlockedOrUnblocked(ipAddrInternal string, blocked bool
 }
 
 func (store *Store) readExistingData(fileDataPath string) error {
-	d, err := ReadFileAll(fileDataPath)
+	d, err := ioutil.ReadFile(fileDataPath)
 	if err != nil {
 		return err
 	}
@@ -341,7 +344,7 @@ func NewStore(dataDir, forumName string) (*Store, error) {
 		topics:    make([]Topic, 0),
 	}
 	var err error
-	if PathExists(dataFilePath) {
+	if u.PathExists(dataFilePath) {
 		if err = store.readExistingData(dataFilePath); err != nil {
 			fmt.Printf("readExistingData() failed with %s", err.Error())
 			return nil, err
@@ -538,7 +541,7 @@ func remSep(s string) string {
 
 func (store *Store) writeMessageAsSha1(msg []byte, sha1 [20]byte) error {
 	path := store.MessageFilePath(sha1)
-	err := WriteBytesToFile(msg, path)
+	err := ioutil.WriteFile(path, msg, 0644)
 	if err != nil {
 		logger.Errorf("Store.writeMessageAsSha1(): failed to write %s with error %s", path, err.Error())
 	}
@@ -561,7 +564,7 @@ func (store *Store) unblockIp(ipAddr string) {
 
 func (store *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic bool) error {
 	msgBytes := []byte(msg)
-	sha1 := Sha1OfBytes(msgBytes)
+	sha1 := u.Sha1OfBytes(msgBytes)
 	p := &Post{
 		Id:               len(topic.Posts) + 1,
 		CreatedOn:        time.Now(),

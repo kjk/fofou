@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/kjk/u"
 )
 
 type ModelNewPost struct {
@@ -61,7 +63,7 @@ func isMsgValid(msg string, topic *Topic) bool {
 	}
 	// prevent duplicate posts within the topic
 	if topic != nil {
-		sha1 := Sha1OfBytes([]byte(msg))
+		sha1 := u.Sha1OfBytes([]byte(msg))
 		for _, p := range topic.Posts {
 			if bytes.Compare(p.MessageSha1[:], sha1) == 0 {
 				return false

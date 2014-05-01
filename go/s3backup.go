@@ -15,6 +15,7 @@ import (
 
 	"github.com/crowdmob/goamz/aws"
 	"github.com/crowdmob/goamz/s3"
+	"github.com/kjk/u"
 )
 
 // TODO: s3 request have a tendency to block forever so I probably need something
@@ -125,7 +126,7 @@ func s3PutRetry(config *BackupConfig, local, remote string, public bool) error {
 
 // tests if s3 credentials are valid and aborts if aren't
 func ensureValidConfig(config *BackupConfig) {
-	if !PathExists(config.LocalDir) {
+	if !u.PathExists(config.LocalDir) {
 		log.Fatalf("Invalid s3 backup: directory to backup '%s' doesn't exist\n", config.LocalDir)
 	}
 
@@ -229,7 +230,7 @@ func copyBlobs(config *BackupConfig) error {
 			logger.Errorf("WalkFunc() received err %s from filepath.Wath()", err.Error())
 			return err
 		}
-		isDir, err := PathIsDir(path)
+		isDir, err := u.PathIsDir(path)
 		if err != nil {
 			logger.Errorf("PathIsDir() for %s failed with %s\n", path, err.Error())
 			return err
@@ -274,12 +275,12 @@ func doBackup(config *BackupConfig) {
 	zipLocalPath := filepath.Join(os.TempDir(), "fofou-tmp-backup.zip")
 	// TODO: do I need os.Remove() won't os.Create() over-write the file anyway?
 	os.Remove(zipLocalPath) // remove before trying to create a new one, just in cased
-	err := CreateZipWithDirContent(zipLocalPath, forumDir)
+	err := u.CreateZipWithDirContent(zipLocalPath, forumDir)
 	defer os.Remove(zipLocalPath)
 	if err != nil {
 		return
 	}
-	sha1, err := FileSha1(zipLocalPath)
+	sha1, err := u.FileSha1(zipLocalPath)
 	if err != nil {
 		return
 	}

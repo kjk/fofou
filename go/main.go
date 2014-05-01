@@ -22,6 +22,7 @@ import (
 	"code.google.com/p/gorilla/mux"
 	"code.google.com/p/gorilla/securecookie"
 	"github.com/garyburd/go-oauth/oauth"
+	"github.com/kjk/u"
 )
 
 var (
@@ -147,12 +148,12 @@ func getDataDir() string {
 	}
 	// locally
 	dataDir = filepath.Join("..", "..", "fofoudata")
-	if PathExists(dataDir) {
+	if u.PathExists(dataDir) {
 		return dataDir
 	}
 	// on the server
 	dataDir = filepath.Join("..", "..", "data")
-	if PathExists(dataDir) {
+	if u.PathExists(dataDir) {
 		return dataDir
 	}
 	log.Fatal("data directory (../../data or ../../fofoudata) doesn't exist")
@@ -162,7 +163,7 @@ func getDataDir() string {
 func NewForum(config *ForumConfig) *Forum {
 	forum := &Forum{ForumConfig: *config}
 	sidebarTmplPath := filepath.Join("forums", fmt.Sprintf("%s_sidebar.html", forum.ForumUrl))
-	if !PathExists(sidebarTmplPath) {
+	if !u.PathExists(sidebarTmplPath) {
 		panic(fmt.Sprintf("sidebar template %s for forum %s doesn't exist", sidebarTmplPath, forum.ForumUrl))
 	}
 
