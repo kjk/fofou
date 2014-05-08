@@ -50,9 +50,6 @@ def add_dir_files(zip_file, dir):
 
 def zip_files(zip_path):
 	zf = zipfile.ZipFile(zip_path, mode="w", compression=zipfile.ZIP_DEFLATED)
-	blacklist = []
-	files = [f for f in os.listdir(".") if f.endswith(".go") and not f in blacklist]
-	for f in files: zf.write(f)
 	zf.write("config.json")
 	zf.write("fofou_app_linux", "fofou_app")
 	add_dir_files(zf, "forums")
