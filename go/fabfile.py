@@ -4,7 +4,7 @@ from fabric.api import *
 from fabric.contrib import *
 
 
-env.hosts = ['test.fofou.org']
+env.hosts = ['fofou.org']
 env.user = 'fofou'
 
 app_dir = 'www/app'
@@ -54,7 +54,7 @@ def zip_files(zip_path):
 	files = [f for f in os.listdir(".") if f.endswith(".go") and not f in blacklist]
 	for f in files: zf.write(f)
 	zf.write("config.json")
-	add_dir_files(zf, "ext")
+	zf.write("fofou_app_linux", "fofou_app")
 	add_dir_files(zf, "forums")
 	add_dir_files(zf, "img")
 	add_dir_files(zf, "scripts")
@@ -77,7 +77,7 @@ def delete_old_deploys(to_keep=5):
 				i += 1
 				to_keep -= 1
 			else:
-				if len(s) == 41: # s == "0111cb7bdd014850e8c11ee4820dc0d7e12f4015/"
+				if len(s) == 41:  # s == "0111cb7bdd014850e8c11ee4820dc0d7e12f4015/"
 					dirs_to_del.append(s)
 			i += 1
 		if len(dirs_to_del) > to_keep:
@@ -112,9 +112,6 @@ def deploy():
 	with cd(app_dir):
 		run('unzip -q -x %s -d %s' % (zip_path, sha1))
 		run('rm -f %s' % zip_path)
-	# make sure it can build
-	with cd(code_path_remote):
-		run("./scripts/build.sh")
 
 	curr_dir = app_dir + '/current'
 	if files.exists(curr_dir):

@@ -4,3 +4,4 @@ config.json
 appengine/imported_data/
 appengine/posts.txt
 appengine/topics.txt
+go/fofou_app_linux
