@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	atom "github.com/thomas11/atomgenerator"
+	atom "github.com/kjk/atomgenerator"
 )
 
 func buildForumUrl(r *http.Request, forum *Forum) string {
@@ -16,6 +16,12 @@ func buildForumUrl(r *http.Request, forum *Forum) string {
 
 func buildTopicUrl(r *http.Request, forum *Forum, topicId int) string {
 	return fmt.Sprintf("http://%s/%s/topic?id=%d", r.Host, forum.ForumUrl, topicId)
+}
+
+func buildTopicId(r *http.Request, forum *Forum, p *Post) string {
+	pubDateStr := p.CreatedOn.Format("2006-01-02")
+	url := fmt.Sprintf("/%s/topic?id=%d#post%d", forum.ForumUrl, p.Topic.Id, p.Id)
+	return fmt.Sprintf("tag:%s,%s:%s", r.Host, pubDateStr, url)
 }
 
 func handleRss2(w http.ResponseWriter, r *http.Request, all bool) {
@@ -57,6 +63,7 @@ func handleRss2(w http.ResponseWriter, r *http.Request, all bool) {
 		}
 		//id := fmt.Sprintf("tag:forums.fofou.org,1999:%s-topic-%d-post-%d", forum.ForumUrl, p.Topic.Id, p.Id)
 		e := &atom.Entry{
+			Id:      buildTopicId(r, forum, p),
 			Title:   p.Topic.Subject,
 			PubDate: p.CreatedOn,
 			Link:    buildTopicUrl(r, forum, p.Topic.Id),
