@@ -541,7 +541,12 @@ func remSep(s string) string {
 
 func (store *Store) writeMessageAsSha1(msg []byte, sha1 [20]byte) error {
 	path := store.MessageFilePath(sha1)
-	err := ioutil.WriteFile(path, msg, 0644)
+	err := u.CreateDirForFile(path)
+	if err != nil {
+		logger.Errorf("Store.writeMessageAsSha1: u.CreateDirForFile('%s') failed with '%s'\n", path, err)
+		return err
+	}
+	err = ioutil.WriteFile(path, msg, 0644)
 	if err != nil {
 		logger.Errorf("Store.writeMessageAsSha1(): failed to write %s with error %s", path, err.Error())
 	}
