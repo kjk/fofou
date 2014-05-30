@@ -15,12 +15,12 @@ func buildForumUrl(r *http.Request, forum *Forum) string {
 }
 
 func buildTopicUrl(r *http.Request, forum *Forum, p *Post) string {
-	return fmt.Sprintf("http://%s/%s/topic?id=%d#post%d", r.Host, forum.ForumUrl, p.Topic.Id, p.Id)
+	return fmt.Sprintf("http://%s/%s/topic?id=%d&post=%d", r.Host, forum.ForumUrl, p.Topic.Id, p.Id)
 }
 
 func buildTopicId(r *http.Request, forum *Forum, p *Post) string {
 	pubDateStr := p.CreatedOn.Format("2006-01-02")
-	url := fmt.Sprintf("/%s/topic?id=%d/post%d", forum.ForumUrl, p.Topic.Id, p.Id)
+	url := fmt.Sprintf("/%s/topic?id=%d&post=%d", forum.ForumUrl, p.Topic.Id, p.Id)
 	return fmt.Sprintf("tag:%s,%s:%s", r.Host, pubDateStr, url)
 }
 
