@@ -82,7 +82,7 @@ var newline = []byte{'\n'}
 func parseTime(s string) time.Time {
 	t, err := time.Parse("2006-01-02 15:04:05", s)
 	if err != nil {
-		log.Fatalf("failed to parse date %s, err: %s", s, err.Error())
+		log.Fatalf("failed to parse date %s, err: %s", s, err)
 	}
 	return t
 }
@@ -170,7 +170,7 @@ func loadTopics() []*Topic {
 	filePath := filepath.Join(data_dir, "topics.txt")
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		log.Fatalf("ReadAll() failed with error %s", err.Error())
+		log.Fatalf("ReadAll() failed with error %s", err)
 	}
 	return parseTopics(data)
 }
@@ -193,7 +193,7 @@ func loadPosts() []*Post {
 	filePath := filepath.Join(srcDataDir, "posts.txt")
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		log.Fatalf("ReadAll() failed with error %s", err.Error())
+		log.Fatalf("ReadAll() failed with error %s", err)
 	}
 	return parsePosts(data)
 }
@@ -381,13 +381,13 @@ func main() {
 
 	f, err := os.Create(dataFilePath(APP_NAME))
 	if err != nil {
-		log.Fatalf("os.Create() failed with %s", err.Error())
+		log.Fatalf("os.Create() failed with %s", err)
 	}
 	defer f.Close()
 	for _, s := range strs {
 		_, err = f.WriteString(s)
 		if err != nil {
-			log.Fatalf("WriteFile() failed with %s", err.Error())
+			log.Fatalf("WriteFile() failed with %s", err)
 		}
 	}
 	if err = copyBlobs(topics); err != nil {

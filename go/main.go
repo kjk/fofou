@@ -224,7 +224,7 @@ func addForum(forum *Forum) error {
 		for _, s := range *banned {
 			_, err := regexp.Compile(s)
 			if err != nil {
-				log.Fatalf("'%s' is not a valid regexp, err: %s", s, err.Error())
+				log.Fatalf("'%s' is not a valid regexp, err: %s", s, err)
 			}
 		}
 	}
@@ -259,7 +259,7 @@ func DoSidebarTemplate(forum *Forum, isAdmin bool) string {
 
 	s := ""
 	if err := tmpl.Execute(&buf, model); err != nil {
-		logger.Errorf("Failed to execute sidebar template for forum '%s' error: %s", forum.ForumUrl, err.Error())
+		logger.Errorf("Failed to execute sidebar template for forum '%s' error: %s", forum.ForumUrl, err)
 	} else {
 		s = string(buf.Bytes())
 	}
@@ -269,7 +269,7 @@ func DoSidebarTemplate(forum *Forum, isAdmin bool) string {
 func ExecTemplate(w http.ResponseWriter, templateName string, model interface{}) bool {
 	var buf bytes.Buffer
 	if err := GetTemplates().ExecuteTemplate(&buf, templateName, model); err != nil {
-		logger.Errorf("Failed to execute template '%s', error: %s", templateName, err.Error())
+		logger.Errorf("Failed to execute template '%s', error: %s", templateName, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return false
 	} else {
@@ -408,17 +408,17 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	if err := readConfig(*configPath); err != nil {
-		log.Fatalf("Failed reading config file %s. %s\n", *configPath, err.Error())
+		log.Fatalf("Failed reading config file %s. %s\n", *configPath, err)
 	}
 
 	if err := readForumConfigs("forums"); err != nil {
-		log.Fatalf("Failed to read forum configs, err: %s", err.Error())
+		log.Fatalf("Failed to read forum configs, err: %s", err)
 	}
 
 	for _, forumData := range forums {
 		f := NewForum(forumData)
 		if err := addForum(f); err != nil {
-			log.Fatalf("Failed to add the forum: %s, err: %s\n", f.Title, err.Error())
+			log.Fatalf("Failed to add the forum: %s, err: %s\n", f.Title, err)
 		}
 	}
 
@@ -466,7 +466,7 @@ func main() {
 
 	logger.Noticef(fmt.Sprintf("Started runing on %s", *httpAddr))
 	if err := http.ListenAndServe(*httpAddr, nil); err != nil {
-		fmt.Printf("http.ListendAndServer() failed with %s\n", err.Error())
+		fmt.Printf("http.ListendAndServer() failed with %s\n", err)
 	}
 	fmt.Printf("Exited\n")
 }

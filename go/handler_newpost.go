@@ -218,13 +218,13 @@ func createNewPost(w http.ResponseWriter, r *http.Request, model *ModelNewPost, 
 	store := model.Forum.Store
 	if topic == nil {
 		if topicId, err := store.CreateNewPost(subject, msg, userName, ipAddr); err != nil {
-			logger.Errorf("createNewPost(): store.CreateNewPost() failed with %s", err.Error())
+			logger.Errorf("createNewPost(): store.CreateNewPost() failed with %s", err)
 		} else {
 			http.Redirect(w, r, fmt.Sprintf("/%s/topic?id=%d", model.ForumUrl, topicId), 302)
 		}
 	} else {
 		if err := store.AddPostToTopic(topic.Id, msg, userName, ipAddr); err != nil {
-			logger.Errorf("createNewPost(): store.AddPostToTopic() failed with %s", err.Error())
+			logger.Errorf("createNewPost(): store.AddPostToTopic() failed with %s", err)
 		}
 		http.Redirect(w, r, fmt.Sprintf("/%s/topic?id=%d", model.ForumUrl, topic.Id), 302)
 	}

@@ -346,13 +346,13 @@ func NewStore(dataDir, forumName string) (*Store, error) {
 	var err error
 	if u.PathExists(dataFilePath) {
 		if err = store.readExistingData(dataFilePath); err != nil {
-			fmt.Printf("readExistingData() failed with %s", err.Error())
+			fmt.Printf("readExistingData() failed with %s", err)
 			return nil, err
 		}
 	} else {
 		f, err := os.Create(dataFilePath)
 		if err != nil {
-			fmt.Printf("NewStore(): os.Create(%s) failed with %s", dataFilePath, err.Error())
+			fmt.Printf("NewStore(): os.Create(%s) failed with %s", dataFilePath, err)
 			return nil, err
 		}
 		f.Close()
@@ -362,7 +362,7 @@ func NewStore(dataDir, forumName string) (*Store, error) {
 
 	store.dataFile, err = os.OpenFile(dataFilePath, os.O_APPEND|os.O_RDWR, 0666)
 	if err != nil {
-		fmt.Printf("NewStore(): os.OpenFile(%s) failed with %s", dataFilePath, err.Error())
+		fmt.Printf("NewStore(): os.OpenFile(%s) failed with %s", dataFilePath, err)
 		return nil, err
 	}
 	return store, nil
@@ -451,7 +451,7 @@ func (store *Store) findPost(topicId, postId int) (*Post, error) {
 func (store *Store) appendString(str string) error {
 	_, err := store.dataFile.WriteString(str)
 	if err != nil {
-		fmt.Printf("appendString() error: %s\n", err.Error())
+		fmt.Printf("appendString() error: %s\n", err)
 	}
 	return err
 }
@@ -548,7 +548,7 @@ func (store *Store) writeMessageAsSha1(msg []byte, sha1 [20]byte) error {
 	}
 	err = ioutil.WriteFile(path, msg, 0644)
 	if err != nil {
-		logger.Errorf("Store.writeMessageAsSha1(): failed to write %s with error %s", path, err.Error())
+		logger.Errorf("Store.writeMessageAsSha1(): failed to write %s with error %s", path, err)
 	}
 	return err
 }
