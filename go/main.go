@@ -18,8 +18,6 @@ import (
 	"runtime"
 	"strings"
 	"time"
-
-	"code.google.com/p/gorilla/mux"
 	"code.google.com/p/gorilla/securecookie"
 	"github.com/garyburd/go-oauth/oauth"
 	"github.com/kjk/u"
@@ -381,32 +379,6 @@ func main() {
 	if len(appState.Forums) == 0 {
 		log.Fatalf("No forums defined in config.json")
 	}
-
-	r := mux.NewRouter()
-	r.HandleFunc("/", makeTimingHandler(handleMain))
-	r.HandleFunc("/{forum}", makeTimingHandler(handleForum))
-	r.HandleFunc("/{forum}/", makeTimingHandler(handleForum))
-	r.HandleFunc("/{forum}/rss", makeTimingHandler(handleRss))
-	r.HandleFunc("/{forum}/rssall", makeTimingHandler(handleRssAll))
-	r.HandleFunc("/{forum}/topic", makeTimingHandler(handleTopic))
-	r.HandleFunc("/{forum}/postsby", makeTimingHandler(handlePostsBy))
-	r.HandleFunc("/{forum}/postdel", makeTimingHandler(handlePostDelete))
-	r.HandleFunc("/{forum}/postundel", makeTimingHandler(handlePostUndelete))
-	r.HandleFunc("/{forum}/viewraw", makeTimingHandler(handleViewRaw))
-	r.HandleFunc("/{forum}/newpost", makeTimingHandler(handleNewPost))
-	r.HandleFunc("/{forum}/blockip", makeTimingHandler(handleBlockIp))
-	r.HandleFunc("/{forum}/unblockip", makeTimingHandler(handleUnblockIp))
-
-	http.HandleFunc("/oauthtwittercb", handleOauthTwitterCallback)
-	http.HandleFunc("/login", handleLogin)
-	http.HandleFunc("/logout", handleLogout)
-	http.HandleFunc("/favicon.ico", http404)
-	http.HandleFunc("/robots.txt", handleRobotsTxt)
-	http.HandleFunc("/logs", handleLogs)
-	http.HandleFunc("/s/", makeTimingHandler(handleStatic))
-	http.HandleFunc("/img/", makeTimingHandler(handleStaticImg))
-
-	http.Handle("/", r)
 
 	backupConfig := &BackupConfig{
 		AwsAccess: *config.AwsAccess,
