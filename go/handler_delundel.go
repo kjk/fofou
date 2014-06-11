@@ -32,7 +32,7 @@ func getTopicAndPostId(w http.ResponseWriter, r *http.Request) (*Forum, int, int
 // url: /{forum}/postdel?topicId=${topicId}&postId=${postId}
 func handlePostDelete(w http.ResponseWriter, r *http.Request) {
 	if forum, topicId, postId := getTopicAndPostId(w, r); forum != nil {
-		//fmt.Printf("handlePostDelete(): forum: '%s', topicId: %d, postId: %d\n", forum.ForumUrl, topicId, postId)
+		//fmt.Printf("handlePostDelete(): forum: %q, topicId: %d, postId: %d\n", forum.ForumUrl, topicId, postId)
 		// TODO: handle error?
 		forum.Store.DeletePost(topicId, postId)
 		http.Redirect(w, r, fmt.Sprintf("/%s/topic?id=%d", forum.ForumUrl, topicId), 302)
@@ -42,7 +42,7 @@ func handlePostDelete(w http.ResponseWriter, r *http.Request) {
 // url: /{forum}/postundel?topicId=${topicId}&postId=${postId}
 func handlePostUndelete(w http.ResponseWriter, r *http.Request) {
 	if forum, topicId, postId := getTopicAndPostId(w, r); forum != nil {
-		//fmt.Printf("handlePostUndelete(): forum: '%s', topicId: %d, postId: %d\n", forum.ForumUrl, topicId, postId)
+		//fmt.Printf("handlePostUndelete(): forum: %q, topicId: %d, postId: %d\n", forum.ForumUrl, topicId, postId)
 		// TODO: handle error?
 		forum.Store.UndeletePost(topicId, postId)
 		http.Redirect(w, r, fmt.Sprintf("/%s/topic?id=%d", forum.ForumUrl, topicId), 302)

@@ -145,10 +145,10 @@ func handleTopic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//fmt.Printf("handleTopic(): forum: '%s', topicId: %d\n", forum.ForumUrl, topicId)
+	//fmt.Printf("handleTopic(): forum: %q, topicId: %d\n", forum.ForumUrl, topicId)
 	topic := forum.Store.TopicById(topicId)
 	if nil == topic {
-		logger.Noticef("handleTopic(): didn't find topic with id %d, referer: '%s'", topicId, getReferer(r))
+		logger.Noticef("handleTopic(): didn't find topic with id %d, referer: %q", topicId, getReferer(r))
 		http.Redirect(w, r, fmt.Sprintf("/%s/", forum.ForumUrl), 302)
 		return
 	}

@@ -16,7 +16,7 @@ func handleViewRaw(w http.ResponseWriter, r *http.Request) {
 	}
 	topic := forum.Store.TopicById(topicId)
 	if nil == topic {
-		logger.Noticef("handleViewRaw(): didn't find topic with id %d, referer: '%s'", topicId, getReferer(r))
+		logger.Noticef("handleViewRaw(): didn't find topic with id %d, referer: %q", topicId, getReferer(r))
 		http.Redirect(w, r, fmt.Sprintf("/%s/", forum.ForumUrl), 302)
 		return
 	}

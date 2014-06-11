@@ -71,7 +71,7 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 			from = 0
 		}
 	}
-	//fmt.Printf("handleForum(): forum: '%s', from: %d\n", forum.ForumUrl, from)
+	//fmt.Printf("handleForum(): forum: %q, from: %d\n", forum.ForumUrl, from)
 
 	nTopicsMax := 50
 	cookie := getSecureCookie(r)

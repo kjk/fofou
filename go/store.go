@@ -284,7 +284,7 @@ func (store *Store) readExistingData(fileDataPath string) error {
 			panic("idx shouldn't be -1")
 		}
 		line := d[:idx]
-		//fmt.Printf("'%s' len(topics)=%d\n", string(line), len(topics))
+		//fmt.Printf("%q len(topics)=%d\n", string(line), len(topics))
 		d = d[idx+1:]
 		c := line[0]
 		// T - topic
@@ -543,7 +543,7 @@ func (store *Store) writeMessageAsSha1(msg []byte, sha1 [20]byte) error {
 	path := store.MessageFilePath(sha1)
 	err := u.CreateDirForFile(path)
 	if err != nil {
-		logger.Errorf("Store.writeMessageAsSha1: u.CreateDirForFile('%s') failed with '%s'\n", path, err)
+		logger.Errorf("Store.writeMessageAsSha1: u.CreateDirForFile(%q) failed with %q\n", path, err)
 		return err
 	}
 	err = ioutil.WriteFile(path, msg, 0644)

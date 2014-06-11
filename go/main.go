@@ -173,7 +173,7 @@ func NewForum(config *ForumConfig) *Forum {
 	if err != nil {
 		panic("failed to create store for a forum")
 	}
-	logger.Noticef("%d topics, %d posts in forum '%s'", store.TopicsCount(), store.PostsCount(), config.ForumUrl)
+	logger.Noticef("%d topics, %d posts in forum %q", store.TopicsCount(), store.PostsCount(), config.ForumUrl)
 	forum.Store = store
 	return forum
 }
@@ -213,7 +213,7 @@ func forumInvalidField(forum *Forum) string {
 
 func addForum(forum *Forum) error {
 	if invalidField := forumInvalidField(forum); invalidField != "" {
-		return errors.New(fmt.Sprintf("Forum has invalid field '%s'", invalidField))
+		return fmt.Errorf("Forum has invalid field %q", invalidField)
 	}
 	if forumAlreadyExists(forum.ForumUrl) {
 		return errors.New("Forum already exists")
@@ -224,7 +224,7 @@ func addForum(forum *Forum) error {
 		for _, s := range *banned {
 			_, err := regexp.Compile(s)
 			if err != nil {
-				log.Fatalf("'%s' is not a valid regexp, err: %s", s, err)
+				log.Fatalf("%q is not a valid regexp, err: %s", s, err)
 			}
 		}
 	}
@@ -259,7 +259,7 @@ func DoSidebarTemplate(forum *Forum, isAdmin bool) string {
 
 	s := ""
 	if err := tmpl.Execute(&buf, model); err != nil {
-		logger.Errorf("Failed to execute sidebar template for forum '%s' error: %s", forum.ForumUrl, err)
+		logger.Errorf("Failed to execute sidebar template for forum %q error: %s", forum.ForumUrl, err)
 	} else {
 		s = string(buf.Bytes())
 	}
@@ -269,7 +269,7 @@ func DoSidebarTemplate(forum *Forum, isAdmin bool) string {
 func ExecTemplate(w http.ResponseWriter, templateName string, model interface{}) bool {
 	var buf bytes.Buffer
 	if err := GetTemplates().ExecuteTemplate(&buf, templateName, model); err != nil {
-		logger.Errorf("Failed to execute template '%s', error: %s", templateName, err)
+		logger.Errorf("Failed to execute template %q, error: %s", templateName, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return false
 	} else {
@@ -386,7 +386,7 @@ func makeTimingHandler(fn func(http.ResponseWriter, *http.Request)) http.Handler
 			if len(r.URL.RawQuery) > 0 {
 				url = fmt.Sprintf("%s?%s", url, r.URL.RawQuery)
 			}
-			logger.Noticef("'%s' took %f seconds to serve", url, duration.Seconds())
+			logger.Noticef("%q took %f seconds to serve", url, duration.Seconds())
 		}
 	}
 }

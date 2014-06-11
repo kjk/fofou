@@ -358,7 +358,7 @@ func copyBlobs(topics []*Topic) error {
 					panic("failed to create dir for dstPath")
 				}
 				if err := u.CopyFile(dstPath, srcPath); err != nil {
-					fmt.Printf("CopyFile('%s', '%s') failed with %s", dstPath, srcPath, err)
+					fmt.Printf("CopyFile(%q, %q) failed with %s", dstPath, srcPath, err)
 					return err
 				}
 				fmt.Sprintf("%s=>%s\n", srcPath, dstPath)

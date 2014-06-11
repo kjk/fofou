@@ -1,7 +1,10 @@
 // This code is under BSD license. See license-bsd.txt
 package main
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 func isSp(c rune) bool {
 	return c == ' '
@@ -61,4 +64,14 @@ func UnCaps(s string) string {
 		}
 		return strings.Join(res, "\n")
 	*/
+}
+
+func panicif(shouldPanic bool, format string, args ...interface{}) {
+	if shouldPanic {
+		s := format
+		if len(args) > 0 {
+			s = fmt.Sprintf(format, args...)
+		}
+		panic(s)
+	}
 }

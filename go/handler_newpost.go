@@ -254,7 +254,7 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 	isAdmin := userIsAdmin(forum, getSecureCookie(r))
 	sidebar := DoSidebarTemplate(forum, isAdmin)
 
-	//fmt.Printf("handleNewPost(): forum: '%s', topicId: %d\n", forum.ForumUrl, topicId)
+	//fmt.Printf("handleNewPost(): forum: %q, topicId: %d\n", forum.ForumUrl, topicId)
 	cookie := getSecureCookie(r)
 	model := &ModelNewPost{
 		Forum:           *forum,
