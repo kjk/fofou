@@ -18,6 +18,7 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
 	"code.google.com/p/gorilla/securecookie"
 	"github.com/garyburd/go-oauth/oauth"
 	"github.com/kjk/u"
@@ -392,6 +393,7 @@ func main() {
 		go BackupLoop(backupConfig)
 	}
 
+	InitHttpHandlers()
 	logger.Noticef(fmt.Sprintf("Started runing on %s", *httpAddr))
 	if err := http.ListenAndServe(*httpAddr, nil); err != nil {
 		fmt.Printf("http.ListendAndServer() failed with %s\n", err)

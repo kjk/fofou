@@ -5,5 +5,5 @@ set -o errexit
 set -o pipefail
 
 go fmt
-cd tools/importappengine
-go fmt
+go fmt tools/importappengine/*.go
+

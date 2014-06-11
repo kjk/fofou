@@ -1,0 +1,41 @@
+{
+	"ImportPath": "github.com/kjk/fofou/go",
+	"GoVersion": "go1.2.2",
+	"Deps": [
+		{
+			"ImportPath": "code.google.com/p/gorilla/context",
+			"Comment": "go1-0",
+			"Rev": "75a547f433ad6a0e8e4c1d6c1e287c18737dbf72"
+		},
+		{
+			"ImportPath": "code.google.com/p/gorilla/mux",
+			"Comment": "go1-0",
+			"Rev": "75a547f433ad6a0e8e4c1d6c1e287c18737dbf72"
+		},
+		{
+			"ImportPath": "code.google.com/p/gorilla/securecookie",
+			"Comment": "go1-0",
+			"Rev": "75a547f433ad6a0e8e4c1d6c1e287c18737dbf72"
+		},
+		{
+			"ImportPath": "github.com/crowdmob/goamz/aws",
+			"Rev": "721b8036c20a0f864b374e8cc142c71bb3802f90"
+		},
+		{
+			"ImportPath": "github.com/crowdmob/goamz/s3",
+			"Rev": "721b8036c20a0f864b374e8cc142c71bb3802f90"
+		},
+		{
+			"ImportPath": "github.com/garyburd/go-oauth/oauth",
+			"Rev": "12ce6efc373e0a0fb9f6c93209a768dc5b797ba8"
+		},
+		{
+			"ImportPath": "github.com/kjk/atomgenerator",
+			"Rev": "1eb0c713966b11a46ec8ddbe18b10eeec21a8afc"
+		},
+		{
+			"ImportPath": "github.com/kjk/u",
+			"Rev": "88d3a38e7745d920d680ae987d57df8f5551fd86"
+		}
+	]
+}
