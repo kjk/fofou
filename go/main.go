@@ -283,11 +283,15 @@ func isTopLevelUrl(url string) bool {
 	return 0 == len(url) || "/" == url
 }
 
-func serve404(w http.ResponseWriter, r *http.Request) {
+func http404(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
-func serveErrorMsg(w http.ResponseWriter, msg string) {
+func httpErrorf(w http.ResponseWriter, format string, args ...interface{}) {
+	msg := format
+	if len(args) > 0 {
+		msg = fmt.Sprintf(format, args...)
+	}
 	http.Error(w, msg, http.StatusBadRequest)
 }
 
@@ -444,7 +448,7 @@ func main() {
 	http.HandleFunc("/oauthtwittercb", handleOauthTwitterCallback)
 	http.HandleFunc("/login", handleLogin)
 	http.HandleFunc("/logout", handleLogout)
-	http.HandleFunc("/favicon.ico", serve404)
+	http.HandleFunc("/favicon.ico", http404)
 	http.HandleFunc("/robots.txt", handleRobotsTxt)
 	http.HandleFunc("/logs", handleLogs)
 	http.HandleFunc("/s/", makeTimingHandler(handleStatic))

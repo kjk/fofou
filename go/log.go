@@ -12,6 +12,7 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/kjk/u"
@@ -146,4 +147,3 @@ func handleLogs(w http.ResponseWriter, r *http.Request) {
 
 	ExecTemplate(w, tmplLogs, model)
 }
-
