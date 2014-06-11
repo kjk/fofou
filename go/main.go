@@ -70,18 +70,7 @@ var (
 		Forums: make([]*Forum, 0),
 	}
 
-	tmplMain      = "main.html"
-	tmplForum     = "forum.html"
-	tmplTopic     = "topic.html"
-	tmplPosts     = "posts.html"
-	tmplNewPost   = "newpost.html"
-	tmplLogs      = "logs.html"
-	templateNames = [...]string{tmplMain, tmplForum, tmplTopic, tmplPosts,
-		tmplNewPost, tmplLogs, "footer.html", "analytics.html"}
-	templatePaths   []string
-	templates       *template.Template
-	reloadTemplates = true
-	alwaysLogTime   = true
+	alwaysLogTime = true
 )
 
 // a static configuration of a single forum
@@ -232,18 +221,6 @@ func addForum(forum *Forum) error {
 	return nil
 }
 
-func GetTemplates() *template.Template {
-	if reloadTemplates || (nil == templates) {
-		if 0 == len(templatePaths) {
-			for _, name := range templateNames {
-				templatePaths = append(templatePaths, filepath.Join("tmpl", name))
-			}
-		}
-		templates = template.Must(template.ParseFiles(templatePaths...))
-	}
-	return templates
-}
-
 func DoSidebarTemplate(forum *Forum, isAdmin bool) string {
 	n := forum.Store.GetBlockedIpsCount()
 	model := struct {
@@ -266,33 +243,8 @@ func DoSidebarTemplate(forum *Forum, isAdmin bool) string {
 	return s
 }
 
-func ExecTemplate(w http.ResponseWriter, templateName string, model interface{}) bool {
-	var buf bytes.Buffer
-	if err := GetTemplates().ExecuteTemplate(&buf, templateName, model); err != nil {
-		logger.Errorf("Failed to execute template %q, error: %s", templateName, err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return false
-	} else {
-		// at this point we ignore error
-		w.Write(buf.Bytes())
-	}
-	return true
-}
-
 func isTopLevelUrl(url string) bool {
 	return 0 == len(url) || "/" == url
-}
-
-func http404(w http.ResponseWriter, r *http.Request) {
-	http.NotFound(w, r)
-}
-
-func httpErrorf(w http.ResponseWriter, format string, args ...interface{}) {
-	msg := format
-	if len(args) > 0 {
-		msg = fmt.Sprintf(format, args...)
-	}
-	http.Error(w, msg, http.StatusBadRequest)
 }
 
 func userIsAdmin(f *Forum, cookie *SecureCookieValue) bool {
