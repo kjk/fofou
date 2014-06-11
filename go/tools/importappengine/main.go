@@ -235,7 +235,6 @@ func renumberPostIds(topics []*Topic, posts []*Post) []*Topic {
 	for _, t := range topics {
 		if t.Id <= prevId {
 			panic("Invalid id")
-			prevId = t.Id
 		}
 	}
 
@@ -278,7 +277,7 @@ func renumberPostIds(topics []*Topic, posts []*Post) []*Topic {
 		if t.CreatedBy != p.UserName {
 			fmt.Printf("%v\n", t)
 			fmt.Printf("%v\n", p)
-			log.Fatalf("Mismatched names: t.CreatedBy=%s != p.UserName=%s", t.CreatedBy, p.UserName)
+			log.Fatalf("Mismatched names: t.CreatedBy=%s != p.UserName=%v", t.CreatedBy, p.UserName)
 		}
 
 		for idx, p := range t.Posts {

@@ -46,7 +46,6 @@ func isCaptchaValid(n1Str, n2Str, captchaStr string) bool {
 	} else {
 		return captcha == n1+n2
 	}
-	return false
 }
 
 func isSubjectValid(subject string) bool {
