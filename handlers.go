@@ -8,9 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gorilla/mux"
 	"github.com/kjk/u"
-
-	"code.google.com/p/gorilla/mux"
 )
 
 // url: /{forum}/viewraw?topicId=${topicId}&postId=${postId}
