@@ -17,12 +17,22 @@ http://forums.fofou.org/sumatrapdf/
 
 ## Installation
 
-You need to compile the code and run on a server. I use Linux (Ubuntu).
+You probably want to run it on a server (I use Ubuntu) but when testing you can run it on Mac.
 
-You can take a look at fabfile.py (Fabric deployment script) for an example
-on how to do it.
+You need to create `config.json` (see `sample_config.json` for example).
 
-You need to modify/add forum definition in forums directory.
+Since login system uses Twitter OAuth, you need to get token and secret from https://dev.twitter.com/ and set AdminTwitterUser to your Twitter handle (this is the user who is the admin of the forum).
+
+To ensure encryption of cookies, you need to set random CookieAuthKeyHexStr and CookieEncrKeyHexStr. The easies way is to leave them blank and new random values will be printed to stdout.
+
+Look at `scripts/run.sh` to see how to compile and run the forum.
+
+## Deployment
+
+When you want to run the code in production, you probably want to deploy it to a server.
+
+You can take a look at `fabfile.py` (Fabric deployment script) for an example
+on how to do automate deployments.
 
 ## Design philosophy
 

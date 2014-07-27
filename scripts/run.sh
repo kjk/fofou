@@ -5,5 +5,5 @@ set -o errexit
 set -o pipefail
 
 godep go build -o fofou_app *.go
-./fofou_app
+./fofou_app $@
 rm ./fofou_app

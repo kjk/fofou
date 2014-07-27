@@ -261,6 +261,7 @@ func readForumConfigs(configDir string) error {
 	pat := filepath.Join(configDir, "*_config.json")
 	files, err := filepath.Glob(pat)
 	if err != nil {
+		return fmt.Errorf("")
 		return err
 	}
 	if files == nil {
@@ -291,7 +292,7 @@ func readForumConfigs(configDir string) error {
 func readConfig(configFile string) error {
 	b, err := ioutil.ReadFile(configFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s config file doesn't exist. Read readme.md for config instructions", configFile)
 	}
 	err = json.Unmarshal(b, &config)
 	if err != nil {
@@ -314,9 +315,10 @@ func readConfig(configFile string) error {
 	if err != nil {
 		// for convenience, if the auth/encr keys are not set,
 		// generate valid, random value for them
+		fmt.Printf("CookieAuthKeyHexStr and CookieEncrKeyHexStr are invalid or missing in %q\nYou can use the following random values:\n", configFile)
 		auth := securecookie.GenerateRandomKey(32)
 		encr := securecookie.GenerateRandomKey(32)
-		fmt.Printf("auth: %s\nencr: %s\n", hex.EncodeToString(auth), hex.EncodeToString(encr))
+		fmt.Printf("CookieAuthKeyHexStr: %s\nCookieEncrKeyHexStr: %s\n", hex.EncodeToString(auth), hex.EncodeToString(encr))
 	}
 	// TODO: somehow verify twitter creds
 	return err
@@ -372,9 +374,10 @@ func main() {
 		log.Fatalf("Failed reading config file %s. %s\n", *configPath, err)
 	}
 
-	if err := readForumConfigs("forums"); err != nil {
-		log.Fatalf("Failed to read forum configs, err: %s", err)
-	}
+	/*
+		if err := readForumConfigs("forums"); err != nil {
+			log.Fatalf("Failed to read forum configs, err: %s", err)
+		}*/
 
 	for _, forumData := range forums {
 		f := NewForum(forumData)

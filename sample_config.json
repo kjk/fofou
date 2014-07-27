@@ -1,0 +1,16 @@
+{
+    "Forums" : [{
+        "Title":"My sample forum",
+        "ForumUrl":"sampleforum",
+        "WebsiteUrl":"http://example.com",
+        "Tagline":"This is my forum's tagline",
+        "DataDir":"MyForum",
+        "AdminTwitterUser":""
+    }],
+    "TwitterOAuthCredentials": {
+        "Token":"",
+        "Secret":""
+    },
+    "CookieAuthKeyHexStr":"",
+    "CookieEncrKeyHexStr":""
+}
