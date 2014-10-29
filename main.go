@@ -261,7 +261,6 @@ func readForumConfigs(configDir string) error {
 	pat := filepath.Join(configDir, "*_config.json")
 	files, err := filepath.Glob(pat)
 	if err != nil {
-		return fmt.Errorf("")
 		return err
 	}
 	if files == nil {
