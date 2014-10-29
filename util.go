@@ -84,10 +84,6 @@ func panicif(cond bool, args ...interface{}) {
 	panic(msg)
 }
 
-func http404(w http.ResponseWriter, r *http.Request) {
-	http.NotFound(w, r)
-}
-
 func httpErrorf(w http.ResponseWriter, format string, args ...interface{}) {
 	msg := format
 	if len(args) > 0 {

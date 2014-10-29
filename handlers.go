@@ -137,7 +137,7 @@ func handleUnblockIp(w http.ResponseWriter, r *http.Request) {
 // url: /
 func handleMain(w http.ResponseWriter, r *http.Request) {
 	if !isTopLevelUrl(r.URL.Path) {
-		http404(w, r)
+		http.NotFound(w, r)
 		return
 	}
 
@@ -170,7 +170,7 @@ func InitHttpHandlers() {
 	http.HandleFunc("/oauthtwittercb", handleOauthTwitterCallback)
 	http.HandleFunc("/login", handleLogin)
 	http.HandleFunc("/logout", handleLogout)
-	http.HandleFunc("/favicon.ico", http404)
+	http.HandleFunc("/favicon.ico", http.NotFound)
 	http.HandleFunc("/robots.txt", handleRobotsTxt)
 	http.HandleFunc("/logs", handleLogs)
 	http.HandleFunc("/s/", makeTimingHandler(handleStatic))
