@@ -1,0 +1,12 @@
+{
+        "Title":"Sumatra PDF Reader forum",
+        "ForumUrl":"sumatrapdf",
+        "WebsiteUrl":"http://www.sumatrapdfreader.org/free-pdf-reader.html",
+        "Tagline":"Small, fast, free PDF, EPUB, MOBI, CHM, DJVU, CBR, CBZ reader for Windows",
+        "DataDir":"SumatraPDF",
+        "AdminTwitterUser":"kjk",
+        "Disabled":false,
+        "BannedIps":[],
+        "BannedWords": ["ebookconverter.com", "epubconverter.com"]
+}
+

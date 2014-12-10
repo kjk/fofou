@@ -74,18 +74,19 @@ var (
 
 // a static configuration of a single forum
 type ForumConfig struct {
-	Title       string
-	ForumUrl    string
-	WebsiteUrl  string
-	SidebarTmpl *template.Template
-	Tagline     string
-	DataDir     string
+	Title      string
+	ForumUrl   string
+	WebsiteUrl string
+	Tagline    string
+	DataDir    string
 	// we authenticate only with Twitter, this is the twitter user name
 	// of the admin user
 	AdminTwitterUser string
 	Disabled         bool
 	BannedIps        *[]string
 	BannedWords      *[]string
+
+	SidebarTmpl *template.Template
 }
 
 type User struct {
@@ -144,7 +145,7 @@ func getDataDir() string {
 	}
 
 	// locally
-	localDir := u.ExpandTildeInPath("~/data/fofoudata")
+	localDir := u.ExpandTildeInPath("~/data/fofou")
 	dataDir = localDir
 	if u.PathExists(dataDir) {
 		return dataDir
@@ -373,15 +374,16 @@ func main() {
 		log.Fatalf("Failed reading config file %s. %s\n", *configPath, err)
 	}
 
-	/*
-		if err := readForumConfigs("forums"); err != nil {
-			log.Fatalf("Failed to read forum configs, err: %s", err)
-		}*/
+	if err := readForumConfigs("forums"); err != nil {
+		log.Fatalf("Failed to read forum configs, err: %s", err)
+	}
 
 	for _, forumData := range forums {
 		f := NewForum(forumData)
 		if err := addForum(f); err != nil {
 			log.Fatalf("Failed to add the forum: %s, err: %s\n", f.Title, err)
+		} else {
+			fmt.Printf("added forum %s\n", f.ForumUrl)
 		}
 	}
 
