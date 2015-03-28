@@ -306,7 +306,8 @@ func (store *Store) readExistingData(fileDataPath string) error {
 			// D|1234|1
 			post := findPostToDelUndel(line, topicIdToTopic)
 			if post.IsDeleted {
-				panic("post already deleted")
+				//Note: sadly, it happens
+				//panic("post already deleted")
 			}
 			post.IsDeleted = true
 		case 'U':
