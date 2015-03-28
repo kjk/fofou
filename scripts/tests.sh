@@ -4,4 +4,4 @@ set -o nounset
 set -o errexit
 set -o pipefail
 
-godep go test *.go
+gdep go test *.go
