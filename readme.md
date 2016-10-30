@@ -1,3 +1,7 @@
+## Get the code
+
+git clone --recursive https://github.com/kjk/fofou.git
+
 ## Overview
 
 For more info: http://blog.kowalczyk.info/software/fofou/
