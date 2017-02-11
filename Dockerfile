@@ -8,6 +8,7 @@ COPY config.json /app/
 COPY fofou_linux /app/fofou
 COPY scripts/entrypoint.sh /app/entrypoint.sh
 COPY static /app/static/
+COPY img /app/img/
 COPY tmpl /app/tmpl/
 COPY forums /app/forums/
 
