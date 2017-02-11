@@ -336,6 +336,7 @@ func verifyTopics(topics []Topic) {
 	}
 }
 
+// NewStore creates a new store
 func NewStore(dataDir, forumName string) (*Store, error) {
 	dataFilePath := filepath.Join(dataDir, "forum", forumName+".txt")
 	store := &Store{

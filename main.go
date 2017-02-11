@@ -169,6 +169,7 @@ func NewForum(config *ForumConfig) *Forum {
 
 	store, err := NewStore(getDataDir(), config.DataDir)
 	if err != nil {
+		logger.Errorf("NewStore('%s', '%s') failed with '%s'\n", getDataDir(), config.DataDir)
 		panic("failed to create store for a forum")
 	}
 	logger.Noticef("%d topics, %d posts in forum %q", store.TopicsCount(), store.PostsCount(), config.ForumUrl)
