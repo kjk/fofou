@@ -28,6 +28,7 @@ var (
 	configPath   = flag.String("config", "config.json", "Path to configuration file")
 	httpAddr     = flag.String("addr", ":5010", "HTTP server address")
 	inProduction = flag.Bool("production", false, "are we running in production")
+	noS3Backup   = flag.Bool("no-backup", false, "did we disable s3 backup")
 	cookieName   = "ckie"
 )
 
@@ -113,6 +114,9 @@ func StringEmpty(s *string) bool {
 
 // S3BackupEnabled returns true if backup to s3 is enabled
 func S3BackupEnabled() bool {
+	if *noS3Backup {
+		return false
+	}
 	if !*inProduction {
 		logger.Notice("s3 backups disabled because not in production")
 		return false
