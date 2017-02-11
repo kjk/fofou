@@ -136,7 +136,7 @@ func handleUnblockIp(w http.ResponseWriter, r *http.Request) {
 
 // url: /
 func handleMain(w http.ResponseWriter, r *http.Request) {
-	if !isTopLevelUrl(r.URL.Path) {
+	if !isTopLevelURL(r.URL.Path) {
 		http.NotFound(w, r)
 		return
 	}

@@ -1,6 +1,5 @@
 # the backup is in kjkbackup bucket, directory blog:
 # - directory blobs has articles blobs
-# - directory blobs_crashes has crashes blobs
 # - $date_$hash.zip has the rest (the latest has the most recent info)
 import os, json, zipfile
 

@@ -72,7 +72,7 @@ var (
 	alwaysLogTime = true
 )
 
-// a static configuration of a single forum
+// ForumConfig is a static configuration of a single forum
 type ForumConfig struct {
 	Title      string
 	ForumUrl   string
@@ -89,24 +89,29 @@ type ForumConfig struct {
 	SidebarTmpl *template.Template
 }
 
+// User describes a user
 type User struct {
 	Login string
 }
 
+// Forum describes forum
 type Forum struct {
 	ForumConfig
 	Store *Store
 }
 
+// AppState describes state of the app
 type AppState struct {
 	Users  []*User
 	Forums []*Forum
 }
 
+// StringEmpty returns true if string is empty
 func StringEmpty(s *string) bool {
 	return s == nil || 0 == len(*s)
 }
 
+// S3BackupEnabled returns true if backup to s3 is enabled
 func S3BackupEnabled() bool {
 	if !*inProduction {
 		logger.Notice("s3 backups disabled because not in production")
@@ -136,25 +141,24 @@ func getDataDir() string {
 		return dataDir
 	}
 
-	// on the server, must be done first because ExpandTildeInPath()
-	// doesn't work when cross-compiled on mac for linux
-	serverDir := filepath.Join("..", "..", "data")
-	dataDir = serverDir
-	if u.PathExists(dataDir) {
-		return dataDir
+	dirsToCheck := []string{
+		"/data",
+		filepath.Join("..", "..", "data"),   // old on the server
+		u.ExpandTildeInPath("~/data/fofou"), // locally
 	}
 
-	// locally
-	localDir := u.ExpandTildeInPath("~/data/fofou")
-	dataDir = localDir
-	if u.PathExists(dataDir) {
-		return dataDir
-	}
+	for _, dir := range dirsToCheck {
+		if u.PathExists(dir) {
+			dataDir = dir
+			return dataDir
+		}
 
-	log.Fatalf("data directory (%q or %q) doesn't exist", serverDir, localDir)
-	return ""
+		log.Fatalf("data directory (%q) doesn't exist", dirsToCheck)
+		return ""
+	}
 }
 
+// NewForum creates new forum
 func NewForum(config *ForumConfig) *Forum {
 	forum := &Forum{ForumConfig: *config}
 	sidebarTmplPath := filepath.Join("forums", fmt.Sprintf("%s_sidebar.html", forum.ForumUrl))
@@ -173,17 +177,17 @@ func NewForum(config *ForumConfig) *Forum {
 	return forum
 }
 
-func findForum(forumUrl string) *Forum {
+func findForum(forumURL string) *Forum {
 	for _, f := range appState.Forums {
-		if f.ForumUrl == forumUrl {
+		if f.ForumUrl == forumURL {
 			return f
 		}
 	}
 	return nil
 }
 
-func forumAlreadyExists(siteUrl string) bool {
-	return nil != findForum(siteUrl)
+func forumAlreadyExists(siteURL string) bool {
+	return nil != findForum(siteURL)
 }
 
 func forumInvalidField(forum *Forum) string {
@@ -227,6 +231,7 @@ func addForum(forum *Forum) error {
 	return nil
 }
 
+// DoSidebarTemplate renders sidebar template
 func DoSidebarTemplate(forum *Forum, isAdmin bool) string {
 	n := forum.Store.GetBlockedIpsCount()
 	model := struct {
@@ -249,7 +254,7 @@ func DoSidebarTemplate(forum *Forum, isAdmin bool) string {
 	return s
 }
 
-func isTopLevelUrl(url string) bool {
+func isTopLevelURL(url string) bool {
 	return 0 == len(url) || "/" == url
 }
 
