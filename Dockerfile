@@ -1,5 +1,7 @@
 FROM alpine:3.4
 
+RUN apk add --no-cache ca-certificates
+
 WORKDIR /app
 
 COPY config.json /app/
