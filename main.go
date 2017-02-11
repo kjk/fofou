@@ -152,10 +152,9 @@ func getDataDir() string {
 			dataDir = dir
 			return dataDir
 		}
-
-		log.Fatalf("data directory (%q) doesn't exist", dirsToCheck)
-		return ""
 	}
+	log.Fatalf("data directory (%q) doesn't exist", dirsToCheck)
+	return ""
 }
 
 // NewForum creates new forum
