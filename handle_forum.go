@@ -11,12 +11,13 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// TopicDisplay describes a topic
 type TopicDisplay struct {
 	Topic
 	CommentsCountMsg string
 	CreatedBy        string
 	TopicLinkClass   string
-	TopicUrl         string
+	TopicURL         string
 }
 
 func plural(n int, s string) string {
@@ -30,12 +31,12 @@ func plural(n int, s string) string {
 var skipForums = []string{"fofou", "topic.php", "post", "newpost",
 	"crossdomain.xml", "azenv.php", "index.php"}
 
-func logMissingForum(forumUrl, referer string) bool {
+func logMissingForum(forumURL, referer string) bool {
 	if referer == "" {
 		return false
 	}
 	for _, forum := range skipForums {
-		if forum == forumUrl {
+		if forum == forumURL {
 			return false
 		}
 	}
@@ -44,15 +45,15 @@ func logMissingForum(forumUrl, referer string) bool {
 
 func mustGetForum(w http.ResponseWriter, r *http.Request) *Forum {
 	vars := mux.Vars(r)
-	forumUrl := vars["forum"]
-	if forum := findForum(forumUrl); forum != nil {
+	forumURL := vars["forum"]
+	if forum := findForum(forumURL); forum != nil {
 		return forum
 	}
 
-	if logMissingForum(forumUrl, getReferer(r)) {
-		logger.Noticef("didn't find forum %q, referer: %q", forumUrl, getReferer(r))
+	if logMissingForum(forumURL, getReferer(r)) {
+		logger.Noticef("didn't find forum %q, referer: %q", forumURL, getReferer(r))
 	}
-	httpErrorf(w, "Forum %q doesn't exist", forumUrl)
+	httpErrorf(w, "Forum %q doesn't exist", forumURL)
 	return nil
 }
 
@@ -98,9 +99,9 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 			d.TopicLinkClass = "deleted"
 		}
 		if 0 == nComments {
-			d.TopicUrl = fmt.Sprintf("/%s/topic?id=%d", forum.ForumUrl, t.Id)
+			d.TopicURL = fmt.Sprintf("/%s/topic?id=%d", forum.ForumUrl, t.Id)
 		} else {
-			d.TopicUrl = fmt.Sprintf("/%s/topic?id=%d&comments=%d", forum.ForumUrl, t.Id, nComments)
+			d.TopicURL = fmt.Sprintf("/%s/topic?id=%d&comments=%d", forum.ForumUrl, t.Id, nComments)
 		}
 		topicsDisplay = append(topicsDisplay, d)
 	}
@@ -120,7 +121,7 @@ func handleForum(w http.ResponseWriter, r *http.Request) {
 		Forum:         *forum,
 		Topics:        topicsDisplay,
 		SidebarHtml:   template.HTML(sidebar),
-		ForumFullUrl:  buildForumUrl(r, forum),
+		ForumFullUrl:  buildForumURL(r, forum),
 		NewFrom:       newFrom,
 		AnalyticsCode: config.AnalyticsCode,
 		LogInOut:      getLogInOut(r, getSecureCookie(r)),

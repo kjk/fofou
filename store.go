@@ -48,6 +48,7 @@ func (p *Post) UserName() string {
 	return s
 }
 
+// MakeInternalUserName makes internal user name
 // in store, we need to distinguish between anonymous users and those that
 // are logged in via twitter, so we prepend "t:" to twitter user names
 // Note: in future we might add more login methods by adding more
@@ -68,12 +69,14 @@ func MakeInternalUserName(userName string, twitter bool) string {
 	return userName
 }
 
+// Topic describes topic
 type Topic struct {
 	Id      int
 	Subject string
 	Posts   []Post
 }
 
+// Store describes store
 type Store struct {
 	sync.Mutex
 	dataDir   string
@@ -86,7 +89,7 @@ type Store struct {
 	posts []*Post
 
 	// those are in the "internal" (more compact) form
-	blockedIpAddresses []string
+	blockedIPAddresses []string
 	dataFile           *os.File
 }
 
@@ -113,6 +116,7 @@ func deleteStringIn(a *[]string, el string) {
 	}
 }
 
+// IsDeleted returns true if topic is deleted
 func (t *Topic) IsDeleted() bool {
 	for _, p := range t.Posts {
 		if !p.IsDeleted {
@@ -130,20 +134,20 @@ func parseDelUndel(d []byte) (int, int) {
 	if len(parts) != 2 {
 		panic("len(parts) != 2")
 	}
-	topicId, err := strconv.Atoi(parts[0])
+	topicID, err := strconv.Atoi(parts[0])
 	if err != nil {
 		panic("invalid topicId")
 	}
-	postId, err := strconv.Atoi(parts[1])
+	postID, err := strconv.Atoi(parts[1])
 	if err != nil {
 		panic("invalid postId")
 	}
-	return topicId, postId
+	return topicID, postID
 }
 
-func findPostToDelUndel(d []byte, topicIdToTopic map[int]*Topic) *Post {
-	topicId, postId := parseDelUndel(d)
-	topic, ok := topicIdToTopic[topicId]
+func findPostToDelUndel(d []byte, topicIDToTopic map[int]*Topic) *Post {
+	topicID, postId := parseDelUndel(d)
+	topic, ok := topicIDToTopic[topicID]
 	if !ok {
 		panic("no topic with that id")
 	}
@@ -190,7 +194,7 @@ func intStrToBool(s string) bool {
 
 // parse:
 // B$ipAddr|$isBlocked
-func parseBlockUnblockIpAddr(line []byte) (string, bool) {
+func parseBlockUnblockIPAddr(line []byte) (string, bool) {
 	s := string(line[1:])
 	parts := strings.Split(s, "|")
 	if len(parts) != 2 {
@@ -201,20 +205,20 @@ func parseBlockUnblockIpAddr(line []byte) (string, bool) {
 
 // parse:
 // P1|1|1148874103|K4hYtOI8xYt5dYH25VQ7Qcbk73A|4b0af66e|Krzysztof Kowalczyk
-func parsePost(line []byte, topicIdToTopic map[int]*Topic) Post {
+func parsePost(line []byte, topicIDToTopic map[int]*Topic) Post {
 	s := string(line[1:])
 	parts := strings.Split(s, "|")
 	if len(parts) != 6 {
 		panic("len(parts) != 6")
 	}
-	topicIdStr := parts[0]
+	topicIDStr := parts[0]
 	idStr := parts[1]
 	createdOnSecondsStr := parts[2]
 	msgSha1b64 := parts[3] + "="
 	ipAddrInternal := parts[4]
 	userName := parts[5]
 
-	topicId, err := strconv.Atoi(topicIdStr)
+	topicID, err := strconv.Atoi(topicIDStr)
 	if err != nil {
 		panic("topicIdStr not a number")
 	}
@@ -235,22 +239,22 @@ func parsePost(line []byte, topicIdToTopic map[int]*Topic) Post {
 	if len(msgSha1) != 20 {
 		panic("len(msgSha1) != 20")
 	}
-	t, ok := topicIdToTopic[topicId]
+	t, ok := topicIDToTopic[topicID]
 	if !ok {
 		panic("didn't find topic with a given topicId")
 	}
-	realPostId := len(t.Posts) + 1
-	if id != realPostId {
+	realPostID := len(t.Posts) + 1
+	if id != realPostID {
 		fmt.Printf("!Unexpected post id:\n")
 		fmt.Printf("  %s\n", string(line))
-		fmt.Printf("  id: %d, expectedId: %d, topicId: %d\n", topicId, id, realPostId)
+		fmt.Printf("  id: %d, expectedId: %d, topicId: %d\n", topicID, id, realPostID)
 		fmt.Printf("  %s\n", t.Subject)
 		//TODO: I don't see how this could have happened, but it did, so
 		// silently ignore it
 		//panic("id != len(t.Posts) + 1")
 	}
 	post := Post{
-		Id:               realPostId,
+		Id:               realPostID,
 		CreatedOn:        createdOn,
 		UserNameInternal: userName,
 		IpAddrInternal:   ipAddrInternal,
@@ -261,11 +265,11 @@ func parsePost(line []byte, topicIdToTopic map[int]*Topic) Post {
 	return post
 }
 
-func (store *Store) markIpBlockedOrUnblocked(ipAddrInternal string, blocked bool) {
+func (store *Store) markIPBlockedOrUnblocked(ipAddrInternal string, blocked bool) {
 	if blocked {
-		store.blockedIpAddresses = append(store.blockedIpAddresses, ipAddrInternal)
+		store.blockedIPAddresses = append(store.blockedIPAddresses, ipAddrInternal)
 	} else {
-		deleteStringIn(&store.blockedIpAddresses, ipAddrInternal)
+		deleteStringIn(&store.blockedIPAddresses, ipAddrInternal)
 	}
 }
 
@@ -275,7 +279,7 @@ func (store *Store) readExistingData(fileDataPath string) error {
 		return err
 	}
 
-	topicIdToTopic := make(map[int]*Topic)
+	topicIDToTopic := make(map[int]*Topic)
 	for len(d) > 0 {
 		idx := bytes.IndexByte(d, '\n')
 		if -1 == idx {
@@ -296,15 +300,15 @@ func (store *Store) readExistingData(fileDataPath string) error {
 		case 'T':
 			t := parseTopic(line)
 			store.topics = append(store.topics, t)
-			topicIdToTopic[t.Id] = &store.topics[len(store.topics)-1]
+			topicIDToTopic[t.Id] = &store.topics[len(store.topics)-1]
 		case 'P':
-			post := parsePost(line, topicIdToTopic)
+			post := parsePost(line, topicIDToTopic)
 			t := post.Topic
 			t.Posts = append(t.Posts, post)
 			store.posts = append(store.posts, &t.Posts[len(t.Posts)-1])
 		case 'D':
 			// D|1234|1
-			post := findPostToDelUndel(line, topicIdToTopic)
+			post := findPostToDelUndel(line, topicIDToTopic)
 			if post.IsDeleted {
 				//Note: sadly, it happens
 				//panic("post already deleted")
@@ -312,15 +316,15 @@ func (store *Store) readExistingData(fileDataPath string) error {
 			post.IsDeleted = true
 		case 'U':
 			// U|1234|1
-			post := findPostToDelUndel(line, topicIdToTopic)
+			post := findPostToDelUndel(line, topicIDToTopic)
 			if !post.IsDeleted {
 				panic("post already undeleted")
 			}
 			post.IsDeleted = false
 		case 'B':
 			// B$ipAddr|$isBlocked
-			ipAddr, blocked := parseBlockUnblockIpAddr(line[1:])
-			store.markIpBlockedOrUnblocked(ipAddr, blocked)
+			ipAddr, blocked := parseBlockUnblockIPAddr(line[1:])
+			store.markIPBlockedOrUnblocked(ipAddr, blocked)
 		default:
 			panic("Unexpected line type")
 		}
@@ -424,8 +428,8 @@ func (store *Store) topicByIDUnlocked(id int) *Topic {
 	return nil
 }
 
-// TopicById returns topic given its id
-func (store *Store) TopicById(id int) *Topic {
+// TopicByID returns topic given its id
+func (store *Store) TopicByID(id int) *Topic {
 	store.Lock()
 	defer store.Unlock()
 	return store.topicByIDUnlocked(id)
@@ -437,21 +441,22 @@ func blobPath(dir, sha1 string) string {
 	return filepath.Join(dir, "blobs", d1, d2, sha1)
 }
 
+// MessageFilePath returns path of message file
 func (store *Store) MessageFilePath(sha1 [20]byte) string {
 	sha1Str := hex.EncodeToString(sha1[:])
 	return blobPath(store.dataDir, sha1Str)
 }
 
-func (store *Store) findPost(topicId, postId int) (*Post, error) {
-	topic := store.topicByIDUnlocked(topicId)
+func (store *Store) findPost(topicID, postID int) (*Post, error) {
+	topic := store.topicByIDUnlocked(topicID)
 	if nil == topic {
 		return nil, errors.New("didn't find a topic with this id")
 	}
-	if postId > len(topic.Posts) {
+	if postID > len(topic.Posts) {
 		return nil, errors.New("didn't find post with this id")
 	}
 
-	return &topic.Posts[postId-1], nil
+	return &topic.Posts[postID-1], nil
 }
 
 func (store *Store) appendString(str string) error {
@@ -462,18 +467,19 @@ func (store *Store) appendString(str string) error {
 	return err
 }
 
-func (store *Store) DeletePost(topicId, postId int) error {
+// DeletePost deletes a post
+func (store *Store) DeletePost(topicID, postID int) error {
 	store.Lock()
 	defer store.Unlock()
 
-	post, err := store.findPost(topicId, postId)
+	post, err := store.findPost(topicID, postID)
 	if err != nil {
 		return err
 	}
 	if post.IsDeleted {
 		return errors.New("post already deleted")
 	}
-	str := fmt.Sprintf("D%d|%d\n", topicId, postId)
+	str := fmt.Sprintf("D%d|%d\n", topicID, postID)
 	if err = store.appendString(str); err != nil {
 		return err
 	}
@@ -481,18 +487,19 @@ func (store *Store) DeletePost(topicId, postId int) error {
 	return nil
 }
 
-func (store *Store) UndeletePost(topicId, postId int) error {
+// UndeletePost undeletes a post
+func (store *Store) UndeletePost(topicID, postID int) error {
 	store.Lock()
 	defer store.Unlock()
 
-	post, err := store.findPost(topicId, postId)
+	post, err := store.findPost(topicID, postID)
 	if err != nil {
 		return err
 	}
 	if !post.IsDeleted {
 		return errors.New("post already not deleted")
 	}
-	str := fmt.Sprintf("U%d|%d\n", topicId, postId)
+	str := fmt.Sprintf("U%d|%d\n", topicID, postID)
 	if err = store.appendString(str); err != nil {
 		return err
 	}
@@ -559,17 +566,17 @@ func (store *Store) writeMessageAsSha1(msg []byte, sha1 [20]byte) error {
 	return err
 }
 
-func (store *Store) blockIp(ipAddr string) {
+func (store *Store) blockIP(ipAddr string) {
 	s := fmt.Sprintf("B%s|1\n", ipAddrToInternal(ipAddr))
 	if err := store.appendString(s); err == nil {
-		store.markIpBlockedOrUnblocked(ipAddr, true)
+		store.markIPBlockedOrUnblocked(ipAddr, true)
 	}
 }
 
-func (store *Store) unblockIp(ipAddr string) {
+func (store *Store) unblockIP(ipAddr string) {
 	s := fmt.Sprintf("B%s|0\n", ipAddrToInternal(ipAddr))
 	if err := store.appendString(s); err == nil {
-		store.markIpBlockedOrUnblocked(ipAddr, false)
+		store.markIPBlockedOrUnblocked(ipAddr, false)
 	}
 }
 
@@ -598,8 +605,8 @@ func (store *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic 
 	s2 := base64.StdEncoding.EncodeToString(p.MessageSha1[:])
 	s2 = s2[:len(s2)-1] // remove unnecessary '=' from the end
 	s3 := p.UserNameInternal
-	sIp := p.IpAddrInternal
-	postStr := fmt.Sprintf("P%d|%d|%s|%s|%s|%s\n", topic.Id, p.Id, s1, s2, sIp, s3)
+	sIP := p.IpAddrInternal
+	postStr := fmt.Sprintf("P%d|%d|%s|%s|%s|%s\n", topic.Id, p.Id, s1, s2, sIP, s3)
 	str := topicStr + postStr
 	if err := store.appendString(str); err != nil {
 		return err
@@ -642,32 +649,36 @@ func (store *Store) AddPostToTopic(topicID int, msg, user, ipAddr string) error 
 	return store.addNewPost(msg, user, ipAddr, topic, false)
 }
 
-// BlockIp blocks ip address
+// BlockIP blocks ip address
 func (store *Store) BlockIP(ipAddrInternal string) {
 	store.Lock()
 	defer store.Unlock()
-	store.blockIp(ipAddrInternal)
+	store.blockIP(ipAddrInternal)
 }
 
-func (store *Store) UnblockIp(ipAddrInternal string) {
+// UnblockIP unblocks an ip
+func (store *Store) UnblockIP(ipAddrInternal string) {
 	store.Lock()
 	defer store.Unlock()
-	store.unblockIp(ipAddrInternal)
+	store.unblockIP(ipAddrInternal)
 }
 
-func (store *Store) IsIpBlocked(ipAddrInternal string) bool {
+// IsIPBlocked checks if ip is blocked
+func (store *Store) IsIPBlocked(ipAddrInternal string) bool {
 	store.Lock()
 	defer store.Unlock()
-	i := stringIndex(store.blockedIpAddresses, ipAddrInternal)
+	i := stringIndex(store.blockedIPAddresses, ipAddrInternal)
 	return i != -1
 }
 
+// GetBlockedIpsCount returns number of blocked ips
 func (store *Store) GetBlockedIpsCount() int {
 	store.Lock()
 	defer store.Unlock()
-	return len(store.blockedIpAddresses)
+	return len(store.blockedIPAddresses)
 }
 
+// GetRecentPosts returns recent posts
 func (store *Store) GetRecentPosts(max int) []*Post {
 	store.Lock()
 	defer store.Unlock()
@@ -684,6 +695,7 @@ func (store *Store) GetRecentPosts(max int) []*Post {
 	return res
 }
 
+// GetPostsByUserInternal returns posts by user
 func (store *Store) GetPostsByUserInternal(userNameInternal string, max int) ([]*Post, int) {
 	store.Lock()
 	defer store.Unlock()
@@ -696,13 +708,14 @@ func (store *Store) GetPostsByUserInternal(userNameInternal string, max int) ([]
 			if total < max {
 				res = append(res, p)
 			}
-			total += 1
+			total++
 		}
 	}
 	return res, total
 }
 
-func (store *Store) GetPostsByIpInternal(ipAddrInternal string, max int) ([]*Post, int) {
+// GetPostsByIPInternal returns posts from an ip address
+func (store *Store) GetPostsByIPInternal(ipAddrInternal string, max int) ([]*Post, int) {
 	store.Lock()
 	defer store.Unlock()
 
@@ -714,7 +727,7 @@ func (store *Store) GetPostsByIpInternal(ipAddrInternal string, max int) ([]*Pos
 			if total < max {
 				res = append(res, p)
 			}
-			total += 1
+			total++
 		}
 	}
 	return res, total

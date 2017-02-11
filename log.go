@@ -18,25 +18,30 @@ import (
 	"github.com/kjk/u"
 )
 
+// TimestampedMsg is a messsage with a timestamp
 type TimestampedMsg struct {
 	Time time.Time
 	Msg  string
 }
 
+// CircularMessagesBuf is a circular buffer for messages
 type CircularMessagesBuf struct {
 	Msgs []TimestampedMsg
 	pos  int
 	full bool
 }
 
+// TimeStr formats a log timestamp
 func (m *TimestampedMsg) TimeStr() string {
 	return m.Time.Format("2006-01-02 15:04:05")
 }
 
+// TimeSinceStr returns formatted time since log timestamp
 func (m *TimestampedMsg) TimeSinceStr() string {
 	return u.TimeSinceNowAsString(m.Time)
 }
 
+// NewCircularMessagesBuf creates a new circular buffer
 func NewCircularMessagesBuf(cap int) *CircularMessagesBuf {
 	return &CircularMessagesBuf{
 		Msgs: make([]TimestampedMsg, cap, cap),
@@ -45,6 +50,7 @@ func NewCircularMessagesBuf(cap int) *CircularMessagesBuf {
 	}
 }
 
+// Add adds a message
 func (b *CircularMessagesBuf) Add(s string) {
 	var msg = TimestampedMsg{time.Now(), s}
 	if b.pos == cap(b.Msgs) {
@@ -52,9 +58,10 @@ func (b *CircularMessagesBuf) Add(s string) {
 		b.full = true
 	}
 	b.Msgs[b.pos] = msg
-	b.pos += 1
+	b.pos++
 }
 
+// GetOrdered returns ordered messages
 func (b *CircularMessagesBuf) GetOrdered() []*TimestampedMsg {
 	size := b.pos
 	if b.full {
@@ -71,12 +78,14 @@ func (b *CircularMessagesBuf) GetOrdered() []*TimestampedMsg {
 	return res
 }
 
+// ServerLogger describes a logger
 type ServerLogger struct {
 	Errors    *CircularMessagesBuf
 	Notices   *CircularMessagesBuf
 	UseStdout bool
 }
 
+// NewServerLogger creates a logger
 func NewServerLogger(errorsMax, noticesMax int, useStdout bool) *ServerLogger {
 	l := &ServerLogger{
 		Errors:    NewCircularMessagesBuf(errorsMax),
@@ -86,32 +95,38 @@ func NewServerLogger(errorsMax, noticesMax int, useStdout bool) *ServerLogger {
 	return l
 }
 
+// Error logs an error
 func (l *ServerLogger) Error(s string) {
 	l.Errors.Add(s)
 	fmt.Printf("Error: %s\n", s)
 }
 
+// Errorf logs an error
 func (l *ServerLogger) Errorf(format string, v ...interface{}) {
 	s := fmt.Sprintf(format, v...)
 	l.Errors.Add(s)
 	fmt.Printf("Error: %s\n", s)
 }
 
+// Notice logs a notice
 func (l *ServerLogger) Notice(s string) {
 	l.Notices.Add(s)
 	fmt.Printf("%s\n", s)
 }
 
+// Noticef logs a notice
 func (l *ServerLogger) Noticef(format string, v ...interface{}) {
 	s := fmt.Sprintf(format, v...)
 	l.Notices.Add(s)
 	fmt.Printf("%s\n", s)
 }
 
+// GetErrors returns error messages
 func (l *ServerLogger) GetErrors() []*TimestampedMsg {
 	return l.Errors.GetOrdered()
 }
 
+// GetNotices returns notice messages
 func (l *ServerLogger) GetNotices() []*TimestampedMsg {
 	return l.Notices.GetOrdered()
 }
@@ -142,7 +157,7 @@ func handleLogs(w http.ResponseWriter, r *http.Request) {
 
 	if r.FormValue("show") != "" {
 		model.Header = &r.Header
-		model.Header.Add("RealIp", getIpAddress(r))
+		model.Header.Add("RealIp", getIPAddress(r))
 	}
 
 	ExecTemplate(w, tmplLogs, model)

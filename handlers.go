@@ -14,18 +14,18 @@ import (
 
 // url: /{forum}/viewraw?topicId=${topicId}&postId=${postId}
 func handleViewRaw(w http.ResponseWriter, r *http.Request) {
-	forum, topicId, postId := getTopicAndPostId(w, r)
-	if 0 == topicId {
+	forum, topicID, postID := getTopicAndPostID(w, r)
+	if 0 == topicID {
 		http.Redirect(w, r, fmt.Sprintf("/%s/", forum.ForumUrl), 302)
 		return
 	}
-	topic := forum.Store.TopicById(topicId)
+	topic := forum.Store.TopicByID(topicID)
 	if nil == topic {
-		logger.Noticef("handleViewRaw(): didn't find topic with id %d, referer: %q", topicId, getReferer(r))
+		logger.Noticef("handleViewRaw(): didn't find topic with id %d, referer: %q", topicID, getReferer(r))
 		http.Redirect(w, r, fmt.Sprintf("/%s/", forum.ForumUrl), 302)
 		return
 	}
-	post := topic.Posts[postId-1]
+	post := topic.Posts[postID-1]
 	w.Header().Set("Content-Type", "text/plain")
 	sha1 := post.MessageSha1
 	msgFilePath := forum.Store.MessageFilePath(sha1)
@@ -61,48 +61,48 @@ func handleRobotsTxt(w http.ResponseWriter, r *http.Request) {
 	serveFileFromDir(w, r, "static", "robots.txt")
 }
 
-func getTopicAndPostId(w http.ResponseWriter, r *http.Request) (*Forum, int, int) {
+func getTopicAndPostID(w http.ResponseWriter, r *http.Request) (*Forum, int, int) {
 	forum := mustGetForum(w, r)
 	if forum == nil {
 		http.Redirect(w, r, "/", 302)
 		return nil, 0, 0
 	}
-	topicIdStr := strings.TrimSpace(r.FormValue("topicId"))
-	postIdStr := strings.TrimSpace(r.FormValue("postId"))
-	topicId, err := strconv.Atoi(topicIdStr)
-	if err != nil || topicId == 0 {
+	topicIDStr := strings.TrimSpace(r.FormValue("topicId"))
+	postIDStr := strings.TrimSpace(r.FormValue("postId"))
+	topicID, err := strconv.Atoi(topicIDStr)
+	if err != nil || topicID == 0 {
 		http.Redirect(w, r, fmt.Sprintf("/%s/", forum.ForumUrl), 302)
 		return nil, 0, 0
 	}
-	postId, err := strconv.Atoi(postIdStr)
-	if err != nil || postId == 0 {
+	postID, err := strconv.Atoi(postIDStr)
+	if err != nil || postID == 0 {
 		http.Redirect(w, r, fmt.Sprintf("/%s/", forum.ForumUrl), 302)
 		return forum, 0, 0
 	}
-	return forum, topicId, postId
+	return forum, topicID, postID
 }
 
 // url: /{forum}/postdel?topicId=${topicId}&postId=${postId}
 func handlePostDelete(w http.ResponseWriter, r *http.Request) {
-	if forum, topicId, postId := getTopicAndPostId(w, r); forum != nil {
+	if forum, topicID, postID := getTopicAndPostID(w, r); forum != nil {
 		//fmt.Printf("handlePostDelete(): forum: %q, topicId: %d, postId: %d\n", forum.ForumUrl, topicId, postId)
 		// TODO: handle error?
-		forum.Store.DeletePost(topicId, postId)
-		http.Redirect(w, r, fmt.Sprintf("/%s/topic?id=%d", forum.ForumUrl, topicId), 302)
+		forum.Store.DeletePost(topicID, postID)
+		http.Redirect(w, r, fmt.Sprintf("/%s/topic?id=%d", forum.ForumUrl, topicID), 302)
 	}
 }
 
 // url: /{forum}/postundel?topicId=${topicId}&postId=${postId}
 func handlePostUndelete(w http.ResponseWriter, r *http.Request) {
-	if forum, topicId, postId := getTopicAndPostId(w, r); forum != nil {
+	if forum, topicID, postID := getTopicAndPostID(w, r); forum != nil {
 		//fmt.Printf("handlePostUndelete(): forum: %q, topicId: %d, postId: %d\n", forum.ForumUrl, topicId, postId)
 		// TODO: handle error?
-		forum.Store.UndeletePost(topicId, postId)
-		http.Redirect(w, r, fmt.Sprintf("/%s/topic?id=%d", forum.ForumUrl, topicId), 302)
+		forum.Store.UndeletePost(topicID, postID)
+		http.Redirect(w, r, fmt.Sprintf("/%s/topic?id=%d", forum.ForumUrl, topicID), 302)
 	}
 }
 
-func getIpAddr(w http.ResponseWriter, r *http.Request) (*Forum, string) {
+func getIPAddr(w http.ResponseWriter, r *http.Request) (*Forum, string) {
 	forum := mustGetForum(w, r)
 	if forum == nil {
 		http.Redirect(w, r, "/", 302)
@@ -118,7 +118,7 @@ func getIpAddr(w http.ResponseWriter, r *http.Request) (*Forum, string) {
 
 // url: /{forum}/blockip?ip=${ip}
 func handleBlockIP(w http.ResponseWriter, r *http.Request) {
-	if forum, ip := getIpAddr(w, r); forum != nil {
+	if forum, ip := getIPAddr(w, r); forum != nil {
 		//fmt.Printf("handleBlockIP(): forum: %q, ip: %s\n", forum.ForumUrl, ip)
 		forum.Store.BlockIP(ip)
 		http.Redirect(w, r, fmt.Sprintf("/%s/postsby?ip=%s", forum.ForumUrl, ip), 302)
@@ -127,9 +127,9 @@ func handleBlockIP(w http.ResponseWriter, r *http.Request) {
 
 // url: /{forum}/unblockip?ip=${ip}
 func handleUnblockIP(w http.ResponseWriter, r *http.Request) {
-	if forum, ip := getIpAddr(w, r); forum != nil {
+	if forum, ip := getIPAddr(w, r); forum != nil {
 		//fmt.Printf("handleUnblockIP(): forum: %q, ip: %s\n", forum.ForumUrl, ip)
-		forum.Store.UnblockIp(ip)
+		forum.Store.UnblockIP(ip)
 		http.Redirect(w, r, fmt.Sprintf("/%s/postsby?ip=%s", forum.ForumUrl, ip), 302)
 	}
 }
@@ -151,7 +151,7 @@ func handleMain(w http.ResponseWriter, r *http.Request) {
 	ExecTemplate(w, tmplMain, model)
 }
 
-func initHttpHandlers() {
+func initHTTPHandlers() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", makeTimingHandler(handleMain))
 	r.HandleFunc("/{forum}", makeTimingHandler(handleForum))

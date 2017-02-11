@@ -42,7 +42,7 @@
       {{ if len .Topics }}
         {{ range .Topics }}
           <div class="topic">
-            <a class="{{.TopicLinkClass}}" href="{{.TopicUrl}}">{{ .Subject }} </a>
+            <a class="{{.TopicLinkClass}}" href="{{.TopicURL}}">{{ .Subject }} </a>
             <em>{{ .CreatedBy }}</em> <span>({{ .CommentsCountMsg }})</span>
           </div>
         {{ end }}

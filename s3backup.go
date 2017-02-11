@@ -247,7 +247,7 @@ func copyBlobs(config *BackupConfig) error {
 		file := path[idx+len("/blobs/"):]
 		s3Path := filepath.Join(blobsS3Dir, file)
 		if _, ok := blobFilesInS3[s3Path]; ok {
-			existing += 1
+			existing++
 			return nil
 		}
 
@@ -257,7 +257,7 @@ func copyBlobs(config *BackupConfig) error {
 		} else {
 			logger.Noticef("copyBlobs(): s3Put %q as %q\n", path, s3Path)
 		}
-		copied += 1
+		copied++
 		return nil
 	})
 	logger.Noticef("copyBlobs(): skipped %d existing files, copied %d files\n", existing, copied)

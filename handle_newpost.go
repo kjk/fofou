@@ -14,6 +14,7 @@ import (
 	"github.com/kjk/u"
 )
 
+// ModelNewPost represents a new post
 type ModelNewPost struct {
 	Forum
 	SidebarHtml     template.HTML
@@ -21,7 +22,7 @@ type ModelNewPost struct {
 	Num1            int
 	Num2            int
 	Num3            int
-	TopicId         int
+	TopicID         int
 	CaptchaClass    string
 	PrevCaptcha     string
 	SubjectClass    string
@@ -82,11 +83,11 @@ func ipAddrFromRemoteAddr(s string) string {
 	return s[:idx]
 }
 
-func getIpAddress(r *http.Request) string {
+func getIPAddress(r *http.Request) string {
 	hdr := r.Header
-	hdrRealIp := hdr.Get("X-Real-Ip")
+	hdrRealIP := hdr.Get("X-Real-Ip")
 	hdrForwardedFor := hdr.Get("X-Forwarded-For")
-	if hdrRealIp == "" && hdrForwardedFor == "" {
+	if hdrRealIP == "" && hdrForwardedFor == "" {
 		return ipAddrFromRemoteAddr(r.RemoteAddr)
 	}
 	if hdrForwardedFor != "" {
@@ -98,10 +99,10 @@ func getIpAddress(r *http.Request) string {
 		// TODO: should return first non-local address
 		return parts[0]
 	}
-	return hdrRealIp
+	return hdrRealIP
 }
 
-var badUserHtml string = `
+var badUserHTML = `
 <html>
 <head>
 </head>
@@ -112,8 +113,8 @@ Internal problem 0xcc03fad detected ...
 </html>
 `
 
-func isIpBlocked(forum Forum, ip string, ipInternal string) bool {
-	if forum.Store.IsIpBlocked(ipInternal) {
+func isIPBlocked(forum Forum, ip string, ipInternal string) bool {
+	if forum.Store.IsIPBlocked(ipInternal) {
 		return true
 	}
 	banned := forum.BannedIps
@@ -142,11 +143,11 @@ func isMessageBlocked(forum Forum, msg string) bool {
 }
 
 func createNewPost(w http.ResponseWriter, r *http.Request, model *ModelNewPost, topic *Topic) {
-	ipAddr := getIpAddress(r)
+	ipAddr := getIPAddress(r)
 	ipAddrInternal := ipAddrToInternal(ipAddr)
-	if isIpBlocked(model.Forum, ipAddr, ipAddrInternal) {
+	if isIPBlocked(model.Forum, ipAddr, ipAddrInternal) {
 		logger.Noticef("blocked a post from ip address %s (%s)", ipAddr, ipAddrInternal)
-		w.Write([]byte(badUserHtml))
+		w.Write([]byte(badUserHTML))
 		return
 	}
 
@@ -166,7 +167,7 @@ func createNewPost(w http.ResponseWriter, r *http.Request, model *ModelNewPost, 
 
 	if isMessageBlocked(model.Forum, msg) {
 		logger.Notice("blocked a post because has a banned word in it")
-		w.Write([]byte(badUserHtml))
+		w.Write([]byte(badUserHTML))
 		return
 	}
 
@@ -178,7 +179,7 @@ func createNewPost(w http.ResponseWriter, r *http.Request, model *ModelNewPost, 
 	model.PrevMessage = msg
 	model.PrevName = name
 
-	if model.TopicId != 0 {
+	if model.TopicID != 0 {
 		model.PrevSubject = topic.Subject
 	}
 
@@ -186,7 +187,7 @@ func createNewPost(w http.ResponseWriter, r *http.Request, model *ModelNewPost, 
 	if !isCaptchaValid(num1Str, num2Str, captchaStr) {
 		model.CaptchaClass = errorClass
 		ok = false
-	} else if (model.TopicId == 0) && !isSubjectValid(subject) {
+	} else if (model.TopicID == 0) && !isSubjectValid(subject) {
 		model.SubjectClass = errorClass
 		ok = false
 	} else if !isMsgValid(msg, topic) {
@@ -216,10 +217,10 @@ func createNewPost(w http.ResponseWriter, r *http.Request, model *ModelNewPost, 
 
 	store := model.Forum.Store
 	if topic == nil {
-		if topicId, err := store.CreateNewPost(subject, msg, userName, ipAddr); err != nil {
+		if topicID, err := store.CreateNewPost(subject, msg, userName, ipAddr); err != nil {
 			logger.Errorf("createNewPost(): store.CreateNewPost() failed with %s", err)
 		} else {
-			http.Redirect(w, r, fmt.Sprintf("/%s/topic?id=%d", model.ForumUrl, topicId), 302)
+			http.Redirect(w, r, fmt.Sprintf("/%s/topic?id=%d", model.ForumUrl, topicID), 302)
 		}
 	} else {
 		if err := store.AddPostToTopic(topic.Id, msg, userName, ipAddr); err != nil {
@@ -237,16 +238,16 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	topicId := 0
+	topicID := 0
 	var topic *Topic
-	topicIdStr := strings.TrimSpace(r.FormValue("topicId"))
-	if topicIdStr != "" {
-		if topicId, err = strconv.Atoi(topicIdStr); err != nil {
+	topicIDStr := strings.TrimSpace(r.FormValue("topicId"))
+	if topicIDStr != "" {
+		if topicID, err = strconv.Atoi(topicIDStr); err != nil {
 			http.Redirect(w, r, fmt.Sprintf("/%s/", forum.ForumUrl), 302)
 			return
 		}
-		if topic = forum.Store.TopicById(topicId); topic == nil {
-			logger.Noticef("handleNewPost(): invalid topicId: %d\n", topicId)
+		if topic = forum.Store.TopicByID(topicID); topic == nil {
+			logger.Noticef("handleNewPost(): invalid topicId: %d\n", topicID)
 			http.Redirect(w, r, fmt.Sprintf("/%s/", forum.ForumUrl), 302)
 			return
 		}
@@ -262,7 +263,7 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 		AnalyticsCode:   config.AnalyticsCode,
 		Num1:            rand.Intn(9) + 1,
 		Num2:            rand.Intn(9) + 1,
-		TopicId:         topicId,
+		TopicID:         topicID,
 		LogInOut:        getLogInOut(r, getSecureCookie(r)),
 		TwitterUserName: cookie.TwitterUser,
 		PrevName:        cookie.AnonUser,
@@ -274,7 +275,7 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if topicId != 0 {
+	if topicID != 0 {
 		model.PrevSubject = topic.Subject
 	}
 

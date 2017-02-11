@@ -139,16 +139,16 @@ func handleTopic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	idStr := strings.TrimSpace(r.FormValue("id"))
-	topicId, err := strconv.Atoi(idStr)
+	topicID, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Redirect(w, r, fmt.Sprintf("/%s/", forum.ForumUrl), 302)
 		return
 	}
 
 	//fmt.Printf("handleTopic(): forum: %q, topicId: %d\n", forum.ForumUrl, topicId)
-	topic := forum.Store.TopicById(topicId)
+	topic := forum.Store.TopicByID(topicID)
 	if nil == topic {
-		logger.Noticef("handleTopic(): didn't find topic with id %d, referer: %q", topicId, getReferer(r))
+		logger.Noticef("handleTopic(): didn't find topic with id %d, referer: %q", topicID, getReferer(r))
 		http.Redirect(w, r, fmt.Sprintf("/%s/", forum.ForumUrl), 302)
 		return
 	}

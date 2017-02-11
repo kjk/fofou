@@ -29,14 +29,14 @@ func handlePostsBy(w http.ResponseWriter, r *http.Request) {
 	if userInternal != "" {
 		posts, total = store.GetPostsByUserInternal(userInternal, 50)
 	} else {
-		posts, total = store.GetPostsByIpInternal(ipAddrInternal, 50)
+		posts, total = store.GetPostsByIPInternal(ipAddrInternal, 50)
 	}
 
 	var ipAddr string
 	ipBlocked := false
 	if ipAddrInternal != "" {
 		ipAddr = ipAddrInternalToOriginal(ipAddrInternal)
-		ipBlocked = store.IsIpBlocked(ipAddrInternal)
+		ipBlocked = store.IsIPBlocked(ipAddrInternal)
 	}
 
 	isAdmin := userIsAdmin(forum, getSecureCookie(r))

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func testIpConvOne(t *testing.T, s string) {
+func testIPConvOne(t *testing.T, s string) {
 	internal := ipAddrToInternal(s)
 	orig := ipAddrInternalToOriginal(internal)
 	if s != orig {
@@ -31,7 +31,7 @@ func testStringSliceEq(t *testing.T, s1, s2 []string) {
 	if len(s1) != len(s2) {
 		t.Fatalf("len(s1) != len(s2) (%d != %d)", len(s1), len(s2))
 	}
-	for i, _ := range s1 {
+	for i := range s1 {
 		if s1[i] != s2[i] {
 			t.Fatalf("s1[%d] != s2[%d] (%s != %s)", i, i, s1[i], s2[i])
 		}
@@ -39,9 +39,9 @@ func testStringSliceEq(t *testing.T, s1, s2 []string) {
 }
 
 func TestIpConv(t *testing.T) {
-	testIpConvOne(t, "127.0.0.1")
-	testIpConvOne(t, "27.3.255.238")
-	testIpConvOne(t, "hello kitty")
+	testIPConvOne(t, "127.0.0.1")
+	testIPConvOne(t, "27.3.255.238")
+	testIPConvOne(t, "hello kitty")
 
 	testMakeInternalUserName(t, "foo", false, "foo")
 	testMakeInternalUserName(t, "foo", true, "t:foo")

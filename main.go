@@ -412,7 +412,7 @@ func main() {
 		go BackupLoop(backupConfig)
 	}
 
-	initHttpHandlers()
+	initHTTPHandlers()
 	logger.Noticef(fmt.Sprintf("Started runing on %s", *httpAddr))
 	if err := http.ListenAndServe(*httpAddr, nil); err != nil {
 		fmt.Printf("http.ListendAndServer() failed with %s\n", err)
