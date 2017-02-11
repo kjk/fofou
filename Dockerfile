@@ -12,6 +12,6 @@ COPY img /app/img/
 COPY tmpl /app/tmpl/
 COPY forums /app/forums/
 
-EXPOSE 80
+EXPOSE 80 443
 
 CMD ["./entrypoint.sh"]

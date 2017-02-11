@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/kjk/u"
@@ -151,7 +152,8 @@ func handleMain(w http.ResponseWriter, r *http.Request) {
 	ExecTemplate(w, tmplMain, model)
 }
 
-func initHTTPHandlers() {
+// // https://blog.gopheracademy.com/advent-2016/exposing-go-on-the-internet/
+func initHTTPServer() *http.Server {
 	r := mux.NewRouter()
 	r.HandleFunc("/", makeTimingHandler(handleMain))
 	r.HandleFunc("/{forum}", makeTimingHandler(handleForum))
@@ -167,14 +169,24 @@ func initHTTPHandlers() {
 	r.HandleFunc("/{forum}/blockip", makeTimingHandler(handleBlockIP))
 	r.HandleFunc("/{forum}/unblockip", makeTimingHandler(handleUnblockIP))
 
-	http.HandleFunc("/oauthtwittercb", handleOauthTwitterCallback)
-	http.HandleFunc("/login", handleLogin)
-	http.HandleFunc("/logout", handleLogout)
-	http.HandleFunc("/favicon.ico", http.NotFound)
-	http.HandleFunc("/robots.txt", handleRobotsTxt)
-	http.HandleFunc("/logs", handleLogs)
-	http.HandleFunc("/s/", makeTimingHandler(handleStatic))
-	http.HandleFunc("/img/", makeTimingHandler(handleStaticImg))
+	smux := &http.ServeMux{}
+	smux.HandleFunc("/oauthtwittercb", handleOauthTwitterCallback)
+	smux.HandleFunc("/login", handleLogin)
+	smux.HandleFunc("/logout", handleLogout)
+	smux.HandleFunc("/favicon.ico", http.NotFound)
+	smux.HandleFunc("/robots.txt", handleRobotsTxt)
+	smux.HandleFunc("/logs", handleLogs)
+	smux.HandleFunc("/s/", makeTimingHandler(handleStatic))
+	smux.HandleFunc("/img/", makeTimingHandler(handleStaticImg))
+	smux.Handle("/", r)
 
-	http.Handle("/", r)
+	srv := &http.Server{
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		// TODO: 1.8 only
+		// IdleTimeout:  120 * time.Second,
+		Handler: smux,
+	}
+	// TODO: track connections and their state
+	return srv
 }

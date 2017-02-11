@@ -3,6 +3,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -19,9 +20,12 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/acme/autocert"
+
 	"github.com/garyburd/go-oauth/oauth"
 	"github.com/gorilla/securecookie"
 	"github.com/kjk/u"
+	netcontext "golang.org/x/net/context"
 )
 
 var (
@@ -359,6 +363,13 @@ func makeTimingHandler(fn func(http.ResponseWriter, *http.Request)) http.Handler
 	}
 }
 
+func fofouHostPolicy(ctx netcontext.Context, host string) error {
+	if strings.HasSuffix(host, "fofou.org") {
+		return nil
+	}
+	return errors.New("acme/autocert: only *.fofou.org hosts are allowed")
+}
+
 func main() {
 	// set number of goroutines to number of cpus, but capped at 4 since
 	// I don't expect this to be heavily trafficed website
@@ -412,9 +423,24 @@ func main() {
 		go BackupLoop(backupConfig)
 	}
 
-	initHTTPHandlers()
-	logger.Noticef(fmt.Sprintf("Started runing on %s", *httpAddr))
-	if err := http.ListenAndServe(*httpAddr, nil); err != nil {
+	if *inProduction {
+		m := autocert.Manager{
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: fofouHostPolicy,
+		}
+		srv := initHTTPServer()
+		srv.Addr = ":443"
+		srv.TLSConfig = &tls.Config{GetCertificate: m.GetCertificate}
+		logger.Noticef("Started runing HTTPS on", srv.Addr)
+		go func() {
+			srv.ListenAndServeTLS("", "")
+		}()
+	}
+
+	srv := initHTTPServer()
+	srv.Addr = *httpAddr
+	logger.Noticef(fmt.Sprintf("Started runing on %s", srv.Addr))
+	if err := srv.ListenAndServe(); err != nil {
 		fmt.Printf("http.ListendAndServer() failed with %s\n", err)
 	}
 	fmt.Printf("Exited\n")
