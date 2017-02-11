@@ -153,7 +153,7 @@ func getDataDir() string {
 			return dataDir
 		}
 	}
-	log.Fatalf("data directory (%q) doesn't exist", dirsToCheck)
+	log.Fatalf("data directory (%q) doesn't exist\n", dirsToCheck)
 	return ""
 }
 
@@ -169,7 +169,7 @@ func NewForum(config *ForumConfig) *Forum {
 
 	store, err := NewStore(getDataDir(), config.DataDir)
 	if err != nil {
-		logger.Errorf("NewStore('%s', '%s') failed with '%s'\n", getDataDir(), config.DataDir)
+		logger.Errorf("NewStore('%s', '%s') failed with '%s'\n", getDataDir(), config.DataDir, err)
 		panic("failed to create store for a forum")
 	}
 	logger.Noticef("%d topics, %d posts in forum %q", store.TopicsCount(), store.PostsCount(), config.ForumUrl)
@@ -408,7 +408,7 @@ func main() {
 		go BackupLoop(backupConfig)
 	}
 
-	InitHttpHandlers()
+	initHttpHandlers()
 	logger.Noticef(fmt.Sprintf("Started runing on %s", *httpAddr))
 	if err := http.ListenAndServe(*httpAddr, nil); err != nil {
 		fmt.Printf("http.ListendAndServer() failed with %s\n", err)

@@ -117,18 +117,18 @@ func getIpAddr(w http.ResponseWriter, r *http.Request) (*Forum, string) {
 }
 
 // url: /{forum}/blockip?ip=${ip}
-func handleBlockIp(w http.ResponseWriter, r *http.Request) {
+func handleBlockIP(w http.ResponseWriter, r *http.Request) {
 	if forum, ip := getIpAddr(w, r); forum != nil {
-		//fmt.Printf("handleBlockIp(): forum: %q, ip: %s\n", forum.ForumUrl, ip)
-		forum.Store.BlockIp(ip)
+		//fmt.Printf("handleBlockIP(): forum: %q, ip: %s\n", forum.ForumUrl, ip)
+		forum.Store.BlockIP(ip)
 		http.Redirect(w, r, fmt.Sprintf("/%s/postsby?ip=%s", forum.ForumUrl, ip), 302)
 	}
 }
 
 // url: /{forum}/unblockip?ip=${ip}
-func handleUnblockIp(w http.ResponseWriter, r *http.Request) {
+func handleUnblockIP(w http.ResponseWriter, r *http.Request) {
 	if forum, ip := getIpAddr(w, r); forum != nil {
-		//fmt.Printf("handleUnblockIp(): forum: %q, ip: %s\n", forum.ForumUrl, ip)
+		//fmt.Printf("handleUnblockIP(): forum: %q, ip: %s\n", forum.ForumUrl, ip)
 		forum.Store.UnblockIp(ip)
 		http.Redirect(w, r, fmt.Sprintf("/%s/postsby?ip=%s", forum.ForumUrl, ip), 302)
 	}
@@ -151,7 +151,7 @@ func handleMain(w http.ResponseWriter, r *http.Request) {
 	ExecTemplate(w, tmplMain, model)
 }
 
-func InitHttpHandlers() {
+func initHttpHandlers() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", makeTimingHandler(handleMain))
 	r.HandleFunc("/{forum}", makeTimingHandler(handleForum))
@@ -164,8 +164,8 @@ func InitHttpHandlers() {
 	r.HandleFunc("/{forum}/postundel", makeTimingHandler(handlePostUndelete))
 	r.HandleFunc("/{forum}/viewraw", makeTimingHandler(handleViewRaw))
 	r.HandleFunc("/{forum}/newpost", makeTimingHandler(handleNewPost))
-	r.HandleFunc("/{forum}/blockip", makeTimingHandler(handleBlockIp))
-	r.HandleFunc("/{forum}/unblockip", makeTimingHandler(handleUnblockIp))
+	r.HandleFunc("/{forum}/blockip", makeTimingHandler(handleBlockIP))
+	r.HandleFunc("/{forum}/unblockip", makeTimingHandler(handleUnblockIP))
 
 	http.HandleFunc("/oauthtwittercb", handleOauthTwitterCallback)
 	http.HandleFunc("/login", handleLogin)

@@ -348,13 +348,13 @@ func NewStore(dataDir, forumName string) (*Store, error) {
 	var err error
 	if u.PathExists(dataFilePath) {
 		if err = store.readExistingData(dataFilePath); err != nil {
-			fmt.Printf("readExistingData() failed with %s", err)
+			fmt.Printf("readExistingData() failed with %s\n", err)
 			return nil, err
 		}
 	} else {
 		f, err := os.Create(dataFilePath)
 		if err != nil {
-			fmt.Printf("NewStore(): os.Create(%s) failed with %s", dataFilePath, err)
+			fmt.Printf("NewStore(): os.Create(%s) failed with %s\n", dataFilePath, err)
 			return nil, err
 		}
 		f.Close()
@@ -370,6 +370,7 @@ func NewStore(dataDir, forumName string) (*Store, error) {
 	return store, nil
 }
 
+// PostsCount returns number of posts
 func (store *Store) PostsCount() int {
 	store.Lock()
 	defer store.Unlock()
@@ -380,12 +381,14 @@ func (store *Store) PostsCount() int {
 	return n
 }
 
+// TopicsCount retuns number of topics
 func (store *Store) TopicsCount() int {
 	store.Lock()
 	defer store.Unlock()
 	return len(store.topics)
 }
 
+// GetTopics retuns topics
 func (store *Store) GetTopics(nMax, from int, withDeleted bool) ([]*Topic, int) {
 	res := make([]*Topic, 0, nMax)
 	store.Lock()
@@ -399,8 +402,8 @@ func (store *Store) GetTopics(nMax, from int, withDeleted bool) ([]*Topic, int) 
 		}
 		t := &store.topics[idx]
 		res = append(res, t)
-		n -= 1
-		i += 1
+		n--
+		i++
 	}
 
 	newFrom := i
@@ -412,7 +415,7 @@ func (store *Store) GetTopics(nMax, from int, withDeleted bool) ([]*Topic, int) 
 
 // note: could probably speed up with binary search, but given our sizes, we're
 // fast enough
-func (store *Store) topicByIdUnlocked(id int) *Topic {
+func (store *Store) topicByIDUnlocked(id int) *Topic {
 	for idx, t := range store.topics {
 		if id == t.Id {
 			return &store.topics[idx]
@@ -421,10 +424,11 @@ func (store *Store) topicByIdUnlocked(id int) *Topic {
 	return nil
 }
 
+// TopicById returns topic given its id
 func (store *Store) TopicById(id int) *Topic {
 	store.Lock()
 	defer store.Unlock()
-	return store.topicByIdUnlocked(id)
+	return store.topicByIDUnlocked(id)
 }
 
 func blobPath(dir, sha1 string) string {
@@ -439,7 +443,7 @@ func (store *Store) MessageFilePath(sha1 [20]byte) string {
 }
 
 func (store *Store) findPost(topicId, postId int) (*Post, error) {
-	topic := store.topicByIdUnlocked(topicId)
+	topic := store.topicByIDUnlocked(topicId)
 	if nil == topic {
 		return nil, errors.New("didn't find a topic with this id")
 	}
@@ -608,6 +612,7 @@ func (store *Store) addNewPost(msg, user, ipAddr string, topic *Topic, newTopic 
 	return nil
 }
 
+// CreateNewPost creates a new post
 func (store *Store) CreateNewPost(subject, msg, user, ipAddr string) (int, error) {
 	store.Lock()
 	defer store.Unlock()
@@ -625,18 +630,20 @@ func (store *Store) CreateNewPost(subject, msg, user, ipAddr string) (int, error
 	return topic.Id, err
 }
 
-func (store *Store) AddPostToTopic(topicId int, msg, user, ipAddr string) error {
+// AddPostToTopic adds a post to a topic
+func (store *Store) AddPostToTopic(topicID int, msg, user, ipAddr string) error {
 	store.Lock()
 	defer store.Unlock()
 
-	topic := store.topicByIdUnlocked(topicId)
+	topic := store.topicByIDUnlocked(topicID)
 	if topic == nil {
-		return errors.New("invalid topicId")
+		return errors.New("invalid topicID")
 	}
 	return store.addNewPost(msg, user, ipAddr, topic, false)
 }
 
-func (store *Store) BlockIp(ipAddrInternal string) {
+// BlockIp blocks ip address
+func (store *Store) BlockIP(ipAddrInternal string) {
 	store.Lock()
 	defer store.Unlock()
 	store.blockIp(ipAddrInternal)
