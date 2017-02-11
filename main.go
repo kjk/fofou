@@ -431,7 +431,7 @@ func main() {
 		srv := initHTTPServer()
 		srv.Addr = ":443"
 		srv.TLSConfig = &tls.Config{GetCertificate: m.GetCertificate}
-		logger.Noticef("Started runing HTTPS on", srv.Addr)
+		logger.Noticef("Started runing HTTPS on %s\n", srv.Addr)
 		go func() {
 			srv.ListenAndServeTLS("", "")
 		}()
@@ -439,7 +439,7 @@ func main() {
 
 	srv := initHTTPServer()
 	srv.Addr = *httpAddr
-	logger.Noticef(fmt.Sprintf("Started runing on %s", srv.Addr))
+	logger.Noticef(fmt.Sprintf("Started runing on %s\n", srv.Addr))
 	if err := srv.ListenAndServe(); err != nil {
 		fmt.Printf("http.ListendAndServer() failed with %s\n", err)
 	}
