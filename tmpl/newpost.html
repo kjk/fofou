@@ -29,8 +29,8 @@
 		<input name="num1" value="{{ .Num1 }}" type="hidden">
 		<input name="num2" value="{{ .Num2 }}" type="hidden">
 
-		{{ if .TopicId }}
-			<input name="topicId" value="{{ .TopicId }}" type="hidden">
+		{{ if .TopicID }}
+			<input name="topicId" value="{{ .TopicID }}" type="hidden">
 			<h2>Reply to "{{ .PrevSubject }}"</h2>
 		{{ else }}
 			<h2>New topic</h2>
@@ -48,7 +48,7 @@
 					&nbsp;
 			</td>
 			</tr>
-			{{ if not .TopicId }}
+			{{ if not .TopicID }}
 			<tr>
 				<th><label for="Subject">Subject:</label></th>
 				<td colspan="2">
