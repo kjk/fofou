@@ -282,8 +282,9 @@ func (store *Store) readExistingData(fileDataPath string) error {
 	topicIDToTopic := make(map[int]*Topic)
 	for len(d) > 0 {
 		idx := bytes.IndexByte(d, '\n')
+		var line []byte
 		if -1 != idx {
-			line := d[:idx]
+			line = d[:idx]
 			d = d[idx+1:]
 		} else {
 			line = d
