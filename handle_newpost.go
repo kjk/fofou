@@ -238,6 +238,12 @@ func handleNewPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Disable new posts by redicting to topic list
+	if true {
+		http.Redirect(w, r, fmt.Sprintf("/%s/", forum.ForumUrl), 302)
+		return
+	}
+
 	topicID := 0
 	var topic *Topic
 	topicIDStr := strings.TrimSpace(r.FormValue("topicId"))
