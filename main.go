@@ -3,6 +3,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
@@ -25,7 +26,6 @@ import (
 	"github.com/garyburd/go-oauth/oauth"
 	"github.com/gorilla/securecookie"
 	"github.com/kjk/u"
-	netcontext "golang.org/x/net/context"
 )
 
 var (
@@ -363,7 +363,7 @@ func makeTimingHandler(fn func(http.ResponseWriter, *http.Request)) http.Handler
 	}
 }
 
-func fofouHostPolicy(ctx netcontext.Context, host string) error {
+func fofouHostPolicy(ctx context.Context, host string) error {
 	if strings.HasSuffix(host, "fofou.org") {
 		return nil
 	}
