@@ -282,14 +282,15 @@ func (store *Store) readExistingData(fileDataPath string) error {
 	topicIDToTopic := make(map[int]*Topic)
 	for len(d) > 0 {
 		idx := bytes.IndexByte(d, '\n')
-		if -1 == idx {
-			// TODO: this could happen if the last record was only
-			// partially written. Should I just ignore it?
-			panic("idx shouldn't be -1")
+		var line []byte
+		if -1 != idx {
+			line = d[:idx]
+			d = d[idx+1:]
+		} else {
+			line = d
+			d = nil
 		}
-		line := d[:idx]
 		//fmt.Printf("%q len(topics)=%d\n", string(line), len(topics))
-		d = d[idx+1:]
 		c := line[0]
 		// T - topic
 		// P - post
