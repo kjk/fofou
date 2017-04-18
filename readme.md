@@ -8,7 +8,7 @@ Was it because my simplistic (but effective for 9 years) anti-spam check was cra
 
 I don't know but the reality is that those days to fight spam you need sophisticated technology and scale to detect spam across many forums.
 
-I moved my forum to a hosted solution https://muut.com/sumatrapdf/.
+I moved my forum to a hosted solution http://www.sumatrapdfreader.org/forum.html.
 
 There's also https://www.discourse.org/ (expensive hosted option but also open-source so can be self-hosted for $20 on https://www.digitalocean.com).
 
