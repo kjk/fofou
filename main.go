@@ -17,7 +17,6 @@ import (
 	"net/http"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"time"
 
@@ -29,8 +28,9 @@ import (
 )
 
 var (
+	dataDir      string
 	configPath   = flag.String("config", "config.json", "Path to configuration file")
-	httpAddr     = flag.String("addr", ":5010", "HTTP server address")
+	httpAddr     = flag.String("http-addr", ":5010", "HTTP server address")
 	inProduction = flag.Bool("production", false, "are we running in production")
 	noS3Backup   = flag.Bool("no-backup", false, "did we disable s3 backup")
 	cookieName   = "ckie"
@@ -66,8 +66,6 @@ var (
 	cookieAuthKey []byte
 	cookieEncrKey []byte
 	secureCookie  *securecookie.SecureCookie
-
-	dataDir string
 
 	appState = AppState{
 		Users:  make([]*User, 0),
@@ -371,13 +369,7 @@ func fofouHostPolicy(ctx context.Context, host string) error {
 }
 
 func main() {
-	// set number of goroutines to number of cpus, but capped at 4 since
-	// I don't expect this to be heavily trafficed website
-	ncpu := runtime.NumCPU()
-	if ncpu > 4 {
-		ncpu = 4
-	}
-	runtime.GOMAXPROCS(ncpu)
+	flag.StringVar(&dataDir, "data-dir", "", "data directory")
 	flag.Parse()
 
 	if *inProduction {
